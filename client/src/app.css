@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary-hover: var(--primary-hover);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+}
+
+:root {
+    /* Apple-like Light Mode */
+    --background: #f5f5f7;
+    /* Soothing Light Gray */
+    --foreground: #1d1d1f;
+
+    --primary: #007aff;
+    /* Apple Blue */
+    --primary-foreground: #ffffff;
+    --primary-hover: #0066d6;
+
+    --secondary: #e5e5ea;
+    --secondary-foreground: #1d1d1f;
+
+    --muted: #f2f2f7;
+    --muted-foreground: #6e6e73;
+
+    --accent: rgba(0, 0, 0, 0.05);
+    --accent-foreground: #1d1d1f;
+
+    --destructive: #ff3b30;
+    --destructive-foreground: #ffffff;
+
+    --card: rgba(255, 255, 255, 0.7);
+    --card-foreground: #1d1d1f;
+
+    --popover: rgba(255, 255, 255, 0.85);
+    /* Slightly more opaque for readability */
+    --popover-foreground: #1d1d1f;
+
+    --border: rgba(0, 0, 0, 0.1);
+    --input: rgba(0, 0, 0, 0.05);
+    --ring: #007aff;
+
+    --radius: 0.75rem;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.dark {
+    /* Deep Space Dark Mode */
+    --background: #000000;
+    /* Pure Black or very deep blue */
+    --foreground: #f5f5f7;
+
+    --primary: #0a84ff;
+    --primary-foreground: #ffffff;
+    --primary-hover: #409cff;
+
+    --secondary: #2c2c2e;
+    --secondary-foreground: #ffffff;
+
+    --muted: #1c1c1e;
+    --muted-foreground: #86868b;
+
+    --accent: rgba(255, 255, 255, 0.1);
+    --accent-foreground: #ffffff;
+
+    --destructive: #ff453a;
+    --destructive-foreground: #ffffff;
+
+    --card: rgba(28, 28, 30, 0.6);
+    --card-foreground: #ffffff;
+
+    --popover: rgba(28, 28, 30, 0.85);
+    --popover-foreground: #ffffff;
+
+    --border: rgba(255, 255, 255, 0.1);
+    --input: rgba(255, 255, 255, 0.1);
+}
+
+@layer base {
+    body {
+        @apply bg-background text-foreground font-display antialiased selection:bg-primary/20;
+        /* Soothing Mesh Gradient Background */
+        background-image: radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
+        background-attachment: fixed;
+    }
+
+    .dark body {
+        /* Deep Space Gradient */
+        background-image: radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+    }
+}
+
+@layer components {
+    .glass-panel {
+        @apply bg-white/70 dark:bg-[#1c1c1e]/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-lg rounded-2xl transition-all duration-300;
+    }
+
+    .glass-button {
+        @apply bg-white/10 hover:bg-white/20 active:scale-95 transition-all duration-200 backdrop-blur-md border border-white/10 rounded-xl font-medium;
+    }
+}
+
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .text-gradient {
+        @apply bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent;
+    }
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    /* Preferred icon size */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+}
+
+[data-bits-command-item][data-hidden] {
+    display: none;
+}
