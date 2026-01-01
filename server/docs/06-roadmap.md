@@ -13,6 +13,36 @@ Deliverables:
 Dependencies:
 - Cloud accounts, IAM, and network approvals.
 
+## Detailed Service-to-Service Implementation Plan (Immediate Execution)
+
+This section details the strict order of operations for the "Strict Isolation" build phase.
+
+### Phase 1: Foundation & Identity (The "Who")
+1.  **Identity Service**: Implement `Register`, `Login`.
+2.  **API Gateway**: Configure basic routing to Identity.
+3.  **Authentication**: Verify JWT issuance and middleware in `pkg/server`.
+
+### Phase 2: Core Data (The "What")
+1.  **Catalog Service**: Implement `CreateStation`, `CreateRoute`, `CreateTrip`.
+2.  **Data Seeding**: Script to populate initial routes (Dhaka->Chittagong).
+3.  **Public API**: `GET /trips` (Search) endpoint.
+
+### Phase 3: Inventory & Availability (The "How Many")
+1.  **Inventory Service**: Implement `InitializeInventory` (allocating seats to segments).
+2.  **Availability Logic**: `GetAvailability` (checking segments for a trip).
+3.  **Holds**: `HoldSeat` with TTL (Redis/ScyllaDB).
+
+### Phase 4: Transactions (The "Deal")
+1.  **Order Service**: `CreateOrder` (Pending state).
+2.  **Saga Pattern**: Orchestrate `Inventory.Reserve` -> `Payment.Charge` -> `Order.Confirm`.
+3.  **Payment Service**: Mock gateway integration.
+
+### Phase 5: Result (The "Ticket")
+1.  **Fulfillment Service**: Listen to `OrderConfirmed` events, generate QR.
+2.  **Notification Service**: Send email/SMS stub.
+
+---
+
 ## Sprint 1 (Identity + Catalog MVP)
 
 Deliverables:

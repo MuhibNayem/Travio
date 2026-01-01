@@ -1,0 +1,18 @@
+go 1.25.3
+
+use (
+	./pkg
+	./services/audit
+	./services/catalog
+	./services/fraud
+	./services/fulfillment
+	./services/identity
+	./services/inventory
+	./services/notification
+	./services/order
+	./services/payment
+	./services/queue
+	./services/reporting
+	./services/search
+	./services/subscription
+)

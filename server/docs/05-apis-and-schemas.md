@@ -12,6 +12,14 @@ External calls are REST/GraphQL. Kafka events are protobuf-encoded.
 
 ## 2) Service APIs (Selected Endpoints)
 
+### 2.0 Subscription Service (SaaS Core)
+
+REST:
+- POST `/v1/subscriptions/plans` (Admin)
+- GET `/v1/subscriptions/plans`
+- POST `/v1/subscriptions/checkout`
+- POST `/v1/subscriptions/webhook` (Stripe/Payment Provider)
+
 ### 2.1 Identity Service
 
 REST:
@@ -126,6 +134,23 @@ Event rules:
 - Include `event_id`, `timestamp`, `trace_id`, `source`.
 
 ## 4) Data Schemas (Core & Transport)
+
+### 4.0 SaaS Multi-Tenancy (Common PostgreSQL)
+
+Table: `organizations` (Tenants)
+- id (UUID, PK)
+- name (VARCHAR)
+- slug (VARCHAR, UNIQUE)
+- status (ENUM: active, suspended, trial)
+- created_at (TIMESTAMP)
+
+Table: `subscriptions`
+- id (UUID, PK)
+- organization_id (UUID, FK)
+- plan_id (VARCHAR)
+- status (ENUM: active, past_due, canceled)
+- current_period_end (TIMESTAMP)
+- stripe_subscription_id (VARCHAR)
 
 ### 4.1 PostgreSQL (Orders and Payments)
 

@@ -2,6 +2,12 @@
 
 ## 1) PostgreSQL Strategy
 
+### 1.0 Multi-Tenancy Strategy (SaaS)
+
+- **Schema-Based Isolation**: (Optional future optimization) 1 Schema per Org.
+- **Row-Level Security (RLS)**: currently preferred. All tables (Orders, Trips) must have `organization_id`.
+- **Partitioning by Org**: Large tables can be partitioned by `organization_id` hash for massive tenants.
+
 ### 1.1 Partitioning
 
 - Orders partitioned by `created_at` (monthly) for efficient archival.
