@@ -1,11 +1,13 @@
 go 1.25.3
 
 use (
+	./api
 	./pkg
 	./services/audit
 	./services/catalog
 	./services/fraud
 	./services/fulfillment
+	./services/gateway
 	./services/identity
 	./services/inventory
 	./services/notification

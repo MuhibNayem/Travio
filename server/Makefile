@@ -3,7 +3,7 @@
 .PHONY: all build test clean proto
 
 # List of all services
-SERVICES := identity catalog inventory order payment notification fraud fulfillment search reporting queue audit subscription
+SERVICES := identity catalog inventory order payment notification fraud fulfillment search reporting queue audit subscription gateway
 
 all: build
 
