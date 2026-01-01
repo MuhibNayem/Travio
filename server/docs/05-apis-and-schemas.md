@@ -28,7 +28,15 @@ REST:
 - GET `/v1/events/{id}`
 - GET `/v1/events?geo=lat,lng&radius=km&date=...`
 - POST `/v1/venues`
-- GET `/v1/venues/{id}`
+### 2.2 Catalog Service (Transport Enabled)
+
+REST:
+- POST `/v1/events` (Generic)
+- POST `/v1/trips` (Transport)
+- POST `/v1/routes`
+- GET `/v1/trips?from=station_id&to=station_id&date=...`
+- POST `/v1/venues` (Stations)
+
 
 ### 2.3 Inventory Service
 
@@ -117,7 +125,7 @@ Event rules:
 - Use schema registry to prevent breaking changes.
 - Include `event_id`, `timestamp`, `trace_id`, `source`.
 
-## 4) Data Schemas (Core)
+## 4) Data Schemas (Core & Transport)
 
 ### 4.1 PostgreSQL (Orders and Payments)
 
@@ -157,6 +165,13 @@ Table: `inventory_by_event`
 - clustering: section_id, seat_id
 - columns: status (available, held, sold), price_tier, hold_id, hold_expires_at
 
+Table: `inventory_by_trip_segment`
+- partition key: trip_id
+- clustering: segment_idx, seat_id
+- columns: status (available, held, sold), hold_id, hold_expires_at
+- note: segment_idx represents the leg (e.g., 0 for A->B, 1 for B->C)
+
+
 Table: `holds_by_id`
 - partition key: hold_id
 - columns: event_id, user_id, seat_ids, expires_at (TTL)
@@ -186,3 +201,40 @@ message InventoryHoldCreated {
 }
 ```
 
+## 6) Vendor/Partner Schema (PostgreSQL)
+
+Table: `vendors`
+- id (UUID, PK)
+- name (VARCHAR)
+- status (ENUM: pending, verified, active, suspended)
+- contact_email (VARCHAR)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+Table: `vendor_kyc`
+- id (UUID, PK)
+- vendor_id (UUID, FK)
+- status (ENUM: pending, approved, rejected)
+- provider_ref (VARCHAR)
+- reviewed_at (TIMESTAMP)
+
+Table: `vendor_contracts`
+- id (UUID, PK)
+- vendor_id (UUID, FK)
+- version (VARCHAR)
+- accepted_at (TIMESTAMP)
+- revenue_share (DECIMAL)
+
+Table: `vendor_payouts`
+- id (UUID, PK)
+- vendor_id (UUID, FK)
+- provider (VARCHAR)
+- payout_account_ref (VARCHAR)
+- status (ENUM: pending, verified, blocked)
+
+Table: `vendor_audit_events`
+- id (UUID, PK)
+- vendor_id (UUID, FK)
+- event_type (VARCHAR)
+- payload (JSONB)
+- created_at (TIMESTAMP)

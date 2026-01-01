@@ -10,6 +10,7 @@ supporting stack detailed below.
 - Serve nationwide demand with peak-event spikes and regional outages.
 - Ensure high availability, low latency, and strong consistency where required.
 - Support multi-tenant vendors, promoters, and venues with strict isolation.
+- Support complex **Transportation Logic** (Train, Bus, Launch) with segmented inventory.
 - Offer robust fraud prevention, queueing, and inventory protection.
 - Meet compliance and audit requirements.
 

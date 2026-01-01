@@ -166,3 +166,28 @@ Key goals:
 - Alerting for inventory inconsistencies and payment errors.
 - Load tests and chaos testing for peak events.
 
+## 11) Transportation Domain Adaptation
+
+### 11.1 Core Concept Mapping
+
+To support transportation (Bus, Train, Launch) alongside generic events, the following domain mapping is applied:
+
+- **Event** -> **Trip (Journey)**: A specific scheduled instance of travel (e.g., "Dhaka to Ctg, 7:00 AM").
+- **Venue** -> **Station/Stop**: A physical location where passengers board or alight.
+- **Section** -> **Class/Deck**: e.g., "Business Class", "Economy", "Upper Deck".
+- **Performer** -> **Operator**: The transport company (e.g., "Green Line").
+
+### 11.2 Segmented Inventory Logic
+
+Unlike simple events, transportation inventory requires **Segmented Availability**.
+- A Trip consists of an ordered list of **Stops** (A -> B -> C -> D).
+- Inventory is managed on **Segments** (A->B, B->C, C->D).
+- **Seat Reuse**: A seat booked for A->B is **available** for B->C and C->D.
+- **Validation**: Inventory Service must check availability for *all* segments in a requested journey range.
+
+### 11.3 Hierarchy
+
+1.  **Route**: Static definition (e.g., "Dhaka-Chittagong Express").
+2.  **Trip**: Datetime-specific instance of a Route.
+    - Contains `StopSequence` (Station A [08:00], Station B [10:00]...).
+3.  **Vehicle**: The physical unit (Bus #101) linked to a Trip, defining the Seat Map.

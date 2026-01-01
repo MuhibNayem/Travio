@@ -73,6 +73,14 @@ nationwide ticketing system with microservices and high scalability.
 - FR-REP-02: Export financial summaries.
 - FR-REP-03: Audit reports for compliance.
 
+### 3.11 Vendor Registration and Onboarding
+
+- FR-VEN-01: Vendors can register with organization profile and contacts.
+- FR-VEN-02: Collect KYC/AML artifacts and verification status.
+- FR-VEN-03: Configure payout accounts with verification checks.
+- FR-VEN-04: Accept contracts and revenue share terms.
+- FR-VEN-05: Vendor status lifecycle (pending, verified, active, suspended).
+
 ## 4) Non-Functional Requirements
 
 - NFR-PERF-01: p95 latency < 200ms for read paths.
@@ -93,4 +101,3 @@ nationwide ticketing system with microservices and high scalability.
 - Backend services must be implemented in Go.
 - Polyglot persistence required for scalability.
 - Kafka must be used for event-driven coordination.
-
