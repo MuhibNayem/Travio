@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package nid.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/nid/v1";
+
+// NIDService provides National ID verification
+service NIDService {
+  // Verify an NID with specified country
+  rpc Verify(VerifyNIDRequest) returns (VerifyNIDResponse);
+  
+  // Verify with auto-detected country
+  rpc VerifyAuto(VerifyNIDRequest) returns (VerifyNIDResponse);
+  
+  // Validate NID format without verification
+  rpc ValidateFormat(ValidateFormatRequest) returns (ValidateFormatResponse);
+  
+  // Get supported countries
+  rpc GetSupportedCountries(GetCountriesRequest) returns (GetCountriesResponse);
+  
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// --- Verify ---
+
+message VerifyNIDRequest {
+  string nid = 1;
+  string country = 2;           // ISO country code (BD, IN)
+  string date_of_birth = 3;     // YYYY-MM-DD
+  string name = 4;              // Optional: for name matching
+  string phone = 5;             // Optional: for OTP
+  string request_id = 6;        // For tracing
+}
+
+message VerifyNIDResponse {
+  bool is_valid = 1;
+  double confidence = 2;        // 0.0 to 1.0
+  MatchScore match_score = 3;
+  CitizenData citizen = 4;
+  string provider_name = 5;
+  int64 verified_at = 6;
+  int64 expires_at = 7;
+  string error_code = 8;
+  string error_message = 9;
+}
+
+message MatchScore {
+  double name_match = 1;
+  bool dob_match = 2;
+  double overall_match = 3;
+}
+
+message CitizenData {
+  string nid = 1;
+  string name_bn = 2;           // Bengali name
+  string name_en = 3;           // English name
+  string father_name = 4;
+  string mother_name = 5;
+  string date_of_birth = 6;     // YYYY-MM-DD
+  string gender = 7;
+  string blood_group = 8;
+  Address present_address = 9;
+  Address permanent_address = 10;
+  string photo = 11;            // Base64 encoded
+  string voter_area = 12;
+}
+
+message Address {
+  string division = 1;
+  string district = 2;
+  string upazila = 3;
+  string union = 4;
+  string village = 5;
+  string post_code = 6;
+  string full_text = 7;
+}
+
+// --- Validate Format ---
+
+message ValidateFormatRequest {
+  string nid = 1;
+  string country = 2;           // Optional: if not provided, try all
+}
+
+message ValidateFormatResponse {
+  bool is_valid = 1;
+  string detected_country = 2;
+  string normalized_nid = 3;
+  string error_message = 4;
+}
+
+// --- Countries ---
+
+message GetCountriesRequest {}
+
+message GetCountriesResponse {
+  repeated CountryInfo countries = 1;
+}
+
+message CountryInfo {
+  string code = 1;              // ISO code (BD, IN)
+  string name = 2;              // Full name
+  string provider = 3;          // Provider name
+  bool is_available = 4;        // Is provider healthy
+  string nid_format = 5;        // Format description
+}
+
+// --- Health ---
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool is_healthy = 1;
+  map<string, ProviderHealth> providers = 2;
+}
+
+message ProviderHealth {
+  string name = 1;
+  bool is_healthy = 2;
+  string error = 3;
+  int64 last_checked = 4;
+}

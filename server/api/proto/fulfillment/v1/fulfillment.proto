@@ -1,0 +1,165 @@
+syntax = "proto3";
+
+package fulfillment.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/fulfillment/v1";
+
+service FulfillmentService {
+  // Generate tickets for a confirmed booking
+  rpc GenerateTickets(GenerateTicketsRequest) returns (GenerateTicketsResponse);
+  
+  // Get ticket by ID
+  rpc GetTicket(GetTicketRequest) returns (Ticket);
+  
+  // List tickets for an order
+  rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
+  
+  // Validate ticket (for boarding)
+  rpc ValidateTicket(ValidateTicketRequest) returns (ValidateTicketResponse);
+  
+  // Cancel ticket
+  rpc CancelTicket(CancelTicketRequest) returns (CancelTicketResponse);
+  
+  // Get ticket PDF
+  rpc GetTicketPDF(GetTicketPDFRequest) returns (TicketPDFResponse);
+  
+  // Resend ticket via email/SMS
+  rpc ResendTicket(ResendTicketRequest) returns (ResendTicketResponse);
+}
+
+message Ticket {
+  string id = 1;
+  string booking_id = 2;
+  string order_id = 3;
+  string organization_id = 4;
+  
+  // Trip info
+  string trip_id = 5;
+  string route_name = 6;
+  string from_station = 7;
+  string to_station = 8;
+  int64 departure_time = 9;
+  int64 arrival_time = 10;
+  
+  // Passenger
+  string passenger_nid = 11;
+  string passenger_name = 12;
+  string seat_number = 13;
+  string seat_class = 14;
+  
+  // Pricing
+  int64 price_paisa = 15;
+  string currency = 16;
+  
+  // QR Code
+  string qr_code_data = 17;
+  string qr_code_url = 18;
+  
+  // Status
+  TicketStatus status = 19;
+  int64 created_at = 20;
+  int64 valid_until = 21;
+  
+  // Boarding
+  bool is_boarded = 22;
+  int64 boarded_at = 23;
+  string boarded_by = 24;
+}
+
+enum TicketStatus {
+  TICKET_STATUS_UNSPECIFIED = 0;
+  TICKET_STATUS_ACTIVE = 1;
+  TICKET_STATUS_USED = 2;
+  TICKET_STATUS_CANCELLED = 3;
+  TICKET_STATUS_EXPIRED = 4;
+}
+
+message GenerateTicketsRequest {
+  string booking_id = 1;
+  string order_id = 2;
+  string organization_id = 3;
+  string trip_id = 4;
+  string route_name = 5;
+  string from_station = 6;
+  string to_station = 7;
+  int64 departure_time = 8;
+  int64 arrival_time = 9;
+  repeated PassengerSeat passengers = 10;
+  string contact_email = 11;
+  string contact_phone = 12;
+}
+
+message PassengerSeat {
+  string nid = 1;
+  string name = 2;
+  string seat_id = 3;
+  string seat_number = 4;
+  string seat_class = 5;
+  int64 price_paisa = 6;
+}
+
+message GenerateTicketsResponse {
+  repeated Ticket tickets = 1;
+  string pdf_url = 2;
+}
+
+message GetTicketRequest {
+  string ticket_id = 1;
+}
+
+message ListTicketsRequest {
+  string order_id = 1;
+  string booking_id = 2;
+  string user_id = 3;
+}
+
+message ListTicketsResponse {
+  repeated Ticket tickets = 1;
+}
+
+message ValidateTicketRequest {
+  string qr_code_data = 1;
+  string validator_id = 2;
+  string device_id = 3;
+  double latitude = 4;
+  double longitude = 5;
+}
+
+message ValidateTicketResponse {
+  bool is_valid = 1;
+  Ticket ticket = 2;
+  string failure_reason = 3;
+  bool already_used = 4;
+}
+
+message CancelTicketRequest {
+  string ticket_id = 1;
+  string reason = 2;
+}
+
+message CancelTicketResponse {
+  bool success = 1;
+  Ticket ticket = 2;
+}
+
+message GetTicketPDFRequest {
+  string ticket_id = 1;
+  string order_id = 2;
+}
+
+message TicketPDFResponse {
+  bytes pdf_data = 1;
+  string filename = 2;
+  string content_type = 3;
+}
+
+message ResendTicketRequest {
+  string ticket_id = 1;
+  string email = 2;
+  string phone = 3;
+}
+
+message ResendTicketResponse {
+  bool success = 1;
+  string message = 2;
+}

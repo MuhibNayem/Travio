@@ -1,0 +1,253 @@
+syntax = "proto3";
+
+package order.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/order/v1";
+
+// OrderService manages the order lifecycle using Saga pattern
+service OrderService {
+  // Create a new booking order (initiates saga)
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  
+  // Get order details
+  rpc GetOrder(GetOrderRequest) returns (Order);
+  
+  // List user orders
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  
+  // Cancel order (initiates compensation saga)
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  
+  // Get order status and saga progress
+  rpc GetOrderStatus(GetOrderStatusRequest) returns (OrderStatusResponse);
+  
+  // Retry failed order (resume saga)
+  rpc RetryOrder(RetryOrderRequest) returns (RetryOrderResponse);
+}
+
+// --- Order ---
+
+message Order {
+  string id = 1;
+  string organization_id = 2;
+  string user_id = 3;
+  string trip_id = 4;
+  string from_station_id = 5;
+  string to_station_id = 6;
+  
+  // Passengers
+  repeated Passenger passengers = 7;
+  
+  // Pricing
+  int64 subtotal_paisa = 8;
+  int64 tax_paisa = 9;
+  int64 booking_fee_paisa = 10;
+  int64 discount_paisa = 11;
+  int64 total_paisa = 12;
+  string currency = 13;
+  
+  // Payment
+  string payment_id = 14;
+  PaymentStatus payment_status = 15;
+  
+  // Booking
+  string booking_id = 16;
+  repeated BookedSeat seats = 17;
+  
+  // Status
+  OrderStatus status = 18;
+  SagaState saga_state = 19;
+  
+  // Timestamps
+  int64 created_at = 20;
+  int64 updated_at = 21;
+  int64 expires_at = 22;  // For pending orders
+  
+  // Contact
+  string contact_email = 23;
+  string contact_phone = 24;
+}
+
+message Passenger {
+  string nid = 1;
+  string name = 2;
+  string seat_id = 3;
+  string seat_number = 4;
+  string seat_class = 5;
+  string gender = 6;
+  int32 age = 7;
+  bool nid_verified = 8;
+}
+
+message BookedSeat {
+  string seat_id = 1;
+  string seat_number = 2;
+  string seat_class = 3;
+  string ticket_id = 4;
+  int64 price_paisa = 5;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;        // Saga in progress
+  ORDER_STATUS_CONFIRMED = 2;      // All steps succeeded
+  ORDER_STATUS_FAILED = 3;         // Saga failed, compensated
+  ORDER_STATUS_CANCELLED = 4;      // User cancelled
+  ORDER_STATUS_EXPIRED = 5;        // Hold expired
+  ORDER_STATUS_REFUND_PENDING = 6;
+  ORDER_STATUS_REFUNDED = 7;
+}
+
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_AUTHORIZED = 2;
+  PAYMENT_STATUS_CAPTURED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+  PAYMENT_STATUS_REFUNDED = 5;
+}
+
+message SagaState {
+  string saga_id = 1;
+  SagaStatus status = 2;
+  string current_step = 3;
+  repeated SagaStep steps = 4;
+  string failure_reason = 5;
+  int64 started_at = 6;
+  int64 completed_at = 7;
+}
+
+enum SagaStatus {
+  SAGA_STATUS_UNSPECIFIED = 0;
+  SAGA_STATUS_RUNNING = 1;
+  SAGA_STATUS_COMPLETED = 2;
+  SAGA_STATUS_COMPENSATING = 3;
+  SAGA_STATUS_COMPENSATED = 4;
+  SAGA_STATUS_FAILED = 5;
+}
+
+message SagaStep {
+  string name = 1;
+  StepStatus status = 2;
+  string error = 3;
+  int64 started_at = 4;
+  int64 completed_at = 5;
+  bool compensated = 6;
+}
+
+enum StepStatus {
+  STEP_STATUS_UNSPECIFIED = 0;
+  STEP_STATUS_PENDING = 1;
+  STEP_STATUS_RUNNING = 2;
+  STEP_STATUS_COMPLETED = 3;
+  STEP_STATUS_FAILED = 4;
+  STEP_STATUS_COMPENSATED = 5;
+}
+
+// --- Create Order ---
+
+message CreateOrderRequest {
+  string organization_id = 1;
+  string user_id = 2;
+  string trip_id = 3;
+  string from_station_id = 4;
+  string to_station_id = 5;
+  string hold_id = 6;              // From inventory hold
+  repeated PassengerRequest passengers = 7;
+  PaymentMethod payment_method = 8;
+  string contact_email = 9;
+  string contact_phone = 10;
+  string coupon_code = 11;         // Optional discount
+  string idempotency_key = 12;     // For retry safety
+}
+
+message PassengerRequest {
+  string nid = 1;
+  string name = 2;
+  string seat_id = 3;
+  string gender = 4;
+  int32 age = 5;
+  string date_of_birth = 6;        // For NID verification
+}
+
+message PaymentMethod {
+  string type = 1;                 // card, bkash, nagad, bank
+  string token = 2;                // Payment gateway token
+  string card_last_four = 3;
+  string card_brand = 4;
+}
+
+message CreateOrderResponse {
+  Order order = 1;
+  string payment_redirect_url = 2; // For 3DS or mobile payment
+  bool requires_action = 3;        // Needs user action (OTP, etc)
+}
+
+// --- Get Order ---
+
+message GetOrderRequest {
+  string order_id = 1;
+  string user_id = 2;
+}
+
+// --- List Orders ---
+
+message ListOrdersRequest {
+  string user_id = 1;
+  string organization_id = 2;      // Optional: filter by operator
+  OrderStatus status = 3;          // Optional: filter by status
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// --- Cancel Order ---
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string user_id = 2;
+  string reason = 3;
+}
+
+message CancelOrderResponse {
+  bool success = 1;
+  Order order = 2;
+  RefundInfo refund = 3;
+}
+
+message RefundInfo {
+  string refund_id = 1;
+  int64 amount_paisa = 2;
+  string status = 3;
+  int64 estimated_completion = 4;
+}
+
+// --- Order Status ---
+
+message GetOrderStatusRequest {
+  string order_id = 1;
+  string user_id = 2;
+}
+
+message OrderStatusResponse {
+  OrderStatus status = 1;
+  SagaState saga = 2;
+  string message = 3;
+}
+
+// --- Retry ---
+
+message RetryOrderRequest {
+  string order_id = 1;
+  string user_id = 2;
+}
+
+message RetryOrderResponse {
+  bool success = 1;
+  Order order = 2;
+}

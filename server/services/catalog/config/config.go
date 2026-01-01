@@ -7,17 +7,35 @@ import (
 )
 
 type Config struct {
-	Server server.Config
+	Server   server.Config
+	Database DatabaseConfig
 }
 
-func Load() Config {
-	return Config{
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
+func Load() *Config {
+	return &Config{
 		Server: server.Config{
-			HTTPPort:        8082,
 			GRPCPort:        9082,
-			ReadTimeout:     5 * time.Second,
+			HTTPPort:        8082,
+			ReadTimeout:     10 * time.Second,
 			WriteTimeout:    10 * time.Second,
-			ShutdownTimeout: 5 * time.Second,
+			ShutdownTimeout: 30 * time.Second,
+		},
+		Database: DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			User:     "postgres",
+			Password: "postgres",
+			DBName:   "travio_catalog",
+			SSLMode:  "disable",
 		},
 	}
 }

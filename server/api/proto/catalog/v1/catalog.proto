@@ -1,0 +1,330 @@
+syntax = "proto3";
+
+package catalog.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1";
+
+// CatalogService manages transportation network data
+service CatalogService {
+  // Station Management
+  rpc CreateStation(CreateStationRequest) returns (Station);
+  rpc GetStation(GetStationRequest) returns (Station);
+  rpc ListStations(ListStationsRequest) returns (ListStationsResponse);
+  rpc UpdateStation(UpdateStationRequest) returns (Station);
+  rpc DeleteStation(DeleteStationRequest) returns (DeleteStationResponse);
+  
+  // Route Management
+  rpc CreateRoute(CreateRouteRequest) returns (Route);
+  rpc GetRoute(GetRouteRequest) returns (Route);
+  rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse);
+  rpc UpdateRoute(UpdateRouteRequest) returns (Route);
+  rpc DeleteRoute(DeleteRouteRequest) returns (DeleteRouteResponse);
+  
+  // Trip Management
+  rpc CreateTrip(CreateTripRequest) returns (Trip);
+  rpc GetTrip(GetTripRequest) returns (Trip);
+  rpc ListTrips(ListTripsRequest) returns (ListTripsResponse);
+  rpc UpdateTrip(UpdateTripRequest) returns (Trip);
+  rpc CancelTrip(CancelTripRequest) returns (Trip);
+  
+  // Search (for frontend)
+  rpc SearchTrips(SearchTripsRequest) returns (SearchTripsResponse);
+}
+
+// --- Station ---
+
+message Station {
+  string id = 1;
+  string organization_id = 2;  // Multi-tenant
+  string code = 3;             // e.g., "DHA" for Dhaka
+  string name = 4;
+  string city = 5;
+  string state = 6;
+  string country = 7;
+  double latitude = 8;
+  double longitude = 9;
+  string timezone = 10;
+  string address = 11;
+  repeated string amenities = 12;  // ["parking", "food_court", "wifi"]
+  StationStatus status = 13;
+  int64 created_at = 14;
+  int64 updated_at = 15;
+}
+
+enum StationStatus {
+  STATION_STATUS_UNSPECIFIED = 0;
+  STATION_STATUS_ACTIVE = 1;
+  STATION_STATUS_INACTIVE = 2;
+  STATION_STATUS_UNDER_CONSTRUCTION = 3;
+}
+
+message CreateStationRequest {
+  string organization_id = 1;
+  string code = 2;
+  string name = 3;
+  string city = 4;
+  string state = 5;
+  string country = 6;
+  double latitude = 7;
+  double longitude = 8;
+  string timezone = 9;
+  string address = 10;
+  repeated string amenities = 11;
+}
+
+message GetStationRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message ListStationsRequest {
+  string organization_id = 1;
+  string city = 2;           // Filter by city
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListStationsResponse {
+  repeated Station stations = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdateStationRequest {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  string address = 4;
+  repeated string amenities = 5;
+  StationStatus status = 6;
+}
+
+message DeleteStationRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message DeleteStationResponse {
+  bool success = 1;
+}
+
+// --- Route ---
+
+message Route {
+  string id = 1;
+  string organization_id = 2;
+  string code = 3;              // e.g., "DHA-CTG-001"
+  string name = 4;              // "Dhaka to Chittagong Express"
+  string origin_station_id = 5;
+  string destination_station_id = 6;
+  repeated RouteStop intermediate_stops = 7;
+  int32 distance_km = 8;
+  int32 estimated_duration_minutes = 9;
+  RouteStatus status = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+}
+
+message RouteStop {
+  string station_id = 1;
+  int32 sequence = 2;
+  int32 arrival_offset_minutes = 3;   // Minutes from departure
+  int32 departure_offset_minutes = 4;
+  int32 distance_from_origin_km = 5;
+}
+
+enum RouteStatus {
+  ROUTE_STATUS_UNSPECIFIED = 0;
+  ROUTE_STATUS_ACTIVE = 1;
+  ROUTE_STATUS_INACTIVE = 2;
+  ROUTE_STATUS_SUSPENDED = 3;
+}
+
+message CreateRouteRequest {
+  string organization_id = 1;
+  string code = 2;
+  string name = 3;
+  string origin_station_id = 4;
+  string destination_station_id = 5;
+  repeated RouteStop intermediate_stops = 6;
+  int32 distance_km = 7;
+  int32 estimated_duration_minutes = 8;
+}
+
+message GetRouteRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message ListRoutesRequest {
+  string organization_id = 1;
+  string origin_station_id = 2;
+  string destination_station_id = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListRoutesResponse {
+  repeated Route routes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdateRouteRequest {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  repeated RouteStop intermediate_stops = 4;
+  int32 estimated_duration_minutes = 5;
+  RouteStatus status = 6;
+}
+
+message DeleteRouteRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message DeleteRouteResponse {
+  bool success = 1;
+}
+
+// --- Trip ---
+
+message Trip {
+  string id = 1;
+  string organization_id = 2;
+  string route_id = 3;
+  string vehicle_id = 4;           // Bus/Train number
+  string vehicle_type = 5;         // "bus", "train", "ferry"
+  string vehicle_class = 6;        // "economy", "business", "ac"
+  int64 departure_time = 7;        // Unix timestamp
+  int64 arrival_time = 8;
+  int32 total_seats = 9;
+  int32 available_seats = 10;
+  TripPricing pricing = 11;
+  TripStatus status = 12;
+  repeated TripSegment segments = 13;  // For segment-based inventory
+  int64 created_at = 14;
+  int64 updated_at = 15;
+}
+
+message TripPricing {
+  int64 base_price_paisa = 1;      // Price in smallest unit (paisa)
+  int64 tax_paisa = 2;
+  int64 booking_fee_paisa = 3;
+  string currency = 4;             // "BDT", "INR"
+  map<string, int64> class_prices = 5; // {"economy": 50000, "ac": 80000}
+}
+
+message TripSegment {
+  int32 segment_index = 1;
+  string from_station_id = 2;
+  string to_station_id = 3;
+  int64 departure_time = 4;
+  int64 arrival_time = 5;
+  int32 available_seats = 6;
+}
+
+enum TripStatus {
+  TRIP_STATUS_UNSPECIFIED = 0;
+  TRIP_STATUS_SCHEDULED = 1;
+  TRIP_STATUS_BOARDING = 2;
+  TRIP_STATUS_DEPARTED = 3;
+  TRIP_STATUS_IN_TRANSIT = 4;
+  TRIP_STATUS_ARRIVED = 5;
+  TRIP_STATUS_CANCELLED = 6;
+  TRIP_STATUS_DELAYED = 7;
+}
+
+message CreateTripRequest {
+  string organization_id = 1;
+  string route_id = 2;
+  string vehicle_id = 3;
+  string vehicle_type = 4;
+  string vehicle_class = 5;
+  int64 departure_time = 6;
+  int32 total_seats = 7;
+  TripPricing pricing = 8;
+}
+
+message GetTripRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message ListTripsRequest {
+  string organization_id = 1;
+  string route_id = 2;
+  int64 departure_after = 3;   // Unix timestamp
+  int64 departure_before = 4;
+  TripStatus status = 5;
+  int32 page_size = 6;
+  string page_token = 7;
+}
+
+message ListTripsResponse {
+  repeated Trip trips = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdateTripRequest {
+  string id = 1;
+  string organization_id = 2;
+  int64 departure_time = 3;
+  TripPricing pricing = 4;
+  TripStatus status = 5;
+}
+
+message CancelTripRequest {
+  string id = 1;
+  string organization_id = 2;
+  string reason = 3;
+}
+
+// --- Search ---
+
+message SearchTripsRequest {
+  string organization_id = 1;     // Optional: search all or specific operator
+  string origin_city = 2;
+  string destination_city = 3;
+  int64 travel_date = 4;          // Unix timestamp (date only)
+  int32 passengers = 5;
+  string vehicle_type = 6;        // Filter by bus/train/ferry
+  string vehicle_class = 7;       // Filter by class
+  SortOrder sort_by = 8;
+  int32 page_size = 9;
+  string page_token = 10;
+}
+
+enum SortOrder {
+  SORT_ORDER_UNSPECIFIED = 0;
+  SORT_ORDER_DEPARTURE_ASC = 1;
+  SORT_ORDER_DEPARTURE_DESC = 2;
+  SORT_ORDER_PRICE_ASC = 3;
+  SORT_ORDER_PRICE_DESC = 4;
+  SORT_ORDER_DURATION_ASC = 5;
+}
+
+message SearchTripsResponse {
+  repeated TripSearchResult results = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+  SearchFilters available_filters = 4;
+}
+
+message TripSearchResult {
+  Trip trip = 1;
+  Route route = 2;
+  Station origin_station = 3;
+  Station destination_station = 4;
+  string operator_name = 5;
+}
+
+message SearchFilters {
+  repeated string vehicle_types = 1;
+  repeated string vehicle_classes = 2;
+  int64 min_price = 3;
+  int64 max_price = 4;
+  repeated string operators = 5;
+}
