@@ -50,30 +50,26 @@
 <Popover.Root bind:open>
     <Popover.Trigger bind:ref={triggerRef}>
         {#snippet child({ props })}
-            <div class="relative w-full">
+            <Button
+                variant="glass"
+                size="xl"
+                role="combobox"
+                aria-expanded={open}
+                class={cn(
+                    "justify-between font-semibold focus:ring-2 focus:ring-primary/20 data-[state=open]:bg-white/90 dark:data-[state=open]:bg-white/20 transition-all font-sans",
+                    width,
+                    className,
+                )}
+                {...props}
+            >
                 {#if icon}
-                    <div
-                        class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-muted-foreground pointer-events-none"
-                    >
+                    <span class="shrink-0 text-muted-foreground mr-2">
                         {@render icon()}
-                    </div>
+                    </span>
                 {/if}
-                <Button
-                    variant="ghost"
-                    role="combobox"
-                    aria-expanded={open}
-                    class={cn(
-                        "justify-between h-14 rounded-xl border-transparent bg-black/5 text-base font-semibold placeholder:text-muted-foreground hover:bg-black/10 focus:bg-white focus:ring-2 focus:ring-primary/20 data-[state=open]:bg-white dark:bg-white/5 dark:hover:bg-white/10 dark:focus:bg-white/10 dark:data-[state=open]:bg-white/10 transition-all font-sans",
-                        width,
-                        icon ? "pl-12" : "px-4",
-                        className,
-                    )}
-                    {...props}
-                >
-                    {selectedLabel}
-                    <ChevronsUpDown class="opacity-50 ml-2 h-4 w-4 shrink-0" />
-                </Button>
-            </div>
+                <span class="truncate flex-1 text-left">{selectedLabel}</span>
+                <ChevronsUpDown class="opacity-50 ml-2 h-4 w-4 shrink-0" />
+            </Button>
         {/snippet}
     </Popover.Trigger>
     <Popover.Content class={cn("p-0", width)}>

@@ -19,12 +19,14 @@
 				secondary:
 					"bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs",
 				ghost: "hover:bg-black/5 hover:text-accent-foreground dark:hover:bg-white/10",
+				glass: "bg-white/60 hover:bg-white/80 text-foreground border border-white/20 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15 shadow-sm backdrop-blur-md",
 				link: "text-primary underline-offset-4 hover:underline",
 			},
 			size: {
 				default: "h-11 px-6 py-2 has-[>svg]:px-4",
 				sm: "h-9 gap-1.5 rounded-lg px-3 has-[>svg]:px-2.5",
 				lg: "h-12 rounded-xl px-8 has-[>svg]:px-6 text-base",
+				xl: "h-14 rounded-xl px-4 text-base",
 				icon: "size-10 rounded-xl",
 				"icon-sm": "size-8 rounded-lg",
 				"icon-lg": "size-12 rounded-2xl",

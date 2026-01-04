@@ -211,12 +211,12 @@
                                 >
                                 <div class="relative flex items-center">
                                     <div
-                                        class="absolute left-4 text-muted-foreground"
+                                        class="absolute left-4 z-10 text-muted-foreground pointer-events-none"
                                     >
                                         <Calendar size={24} />
                                     </div>
                                     <Input
-                                        class="h-14 rounded-xl border-transparent bg-black/5 pl-12 text-base font-semibold placeholder:text-muted-foreground focus:bg-white focus:ring-2 focus:ring-primary/20 dark:bg-white/5 dark:focus:bg-white/10 transition-all"
+                                        class="!h-14 rounded-xl border border-white/20 bg-white/60 backdrop-blur-md pl-12 text-base font-semibold placeholder:text-muted-foreground hover:bg-white/80 focus:bg-white/90 focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15 dark:focus:bg-white/20 transition-all shadow-sm"
                                         placeholder="Select Date"
                                         type="date"
                                         bind:value={date}
