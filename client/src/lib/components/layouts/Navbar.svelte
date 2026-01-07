@@ -1,7 +1,9 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
-    import { auth } from "$lib/runes/auth.svelte"; // Implements id: 10
+    import { auth } from "$lib/runes/auth.svelte";
+    import { goto } from "$app/navigation";
     import { Ticket, Sun, Moon, Menu } from "@lucide/svelte";
+    import { toast } from "svelte-sonner";
 
     let theme = $state<"light" | "dark">("light");
 
@@ -10,6 +12,14 @@
         if (typeof document !== "undefined") {
             document.documentElement.classList.toggle("dark", theme === "dark");
         }
+    }
+
+    async function handleLogout() {
+        await auth.logout();
+        toast.success("Signed out", {
+            description: "You have been logged out successfully.",
+        });
+        goto("/login");
     }
 
     $effect(() => {
@@ -63,7 +73,7 @@
                 <Button
                     variant="outline"
                     class="glass-button h-10 border-transparent bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-foreground dark:text-white"
-                    onclick={() => auth.logout()}
+                    onclick={handleLogout}
                 >
                     Sign Out
                 </Button>

@@ -1,13 +1,51 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
+    import { auth } from "$lib/runes/auth.svelte";
+    import { goto } from "$app/navigation";
+    import { Loader2 } from "@lucide/svelte";
+    import { toast } from "svelte-sonner";
 
     let name = $state("");
     let email = $state("");
     let password = $state("");
+    let confirmPassword = $state("");
+    let orgName = $state("");
 
-    function handleRegister() {
-        alert("Registration not implemented yet");
+    let passwordError = $derived(
+        confirmPassword && password !== confirmPassword
+            ? "Passwords do not match"
+            : null,
+    );
+
+    let isFormValid = $derived(
+        name && email && password && confirmPassword && !passwordError,
+    );
+
+    async function handleRegister() {
+        if (!isFormValid) return;
+
+        // Use name as org name if not provided
+        const organizationName = orgName || name;
+
+        const success = await auth.register(email, password, organizationName);
+        if (success) {
+            toast.success("Account created!", {
+                description: "Please sign in with your credentials.",
+            });
+            // Redirect to login after successful registration
+            goto("/login?registered=true");
+        } else {
+            toast.error("Registration failed", {
+                description: auth.error || "Please try again.",
+            });
+        }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === "Enter" && isFormValid) {
+            handleRegister();
+        }
     }
 </script>
 
@@ -24,47 +62,112 @@
             <p class="text-muted-foreground">Create your account today</p>
         </div>
 
+        {#if auth.error}
+            <div
+                class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-600 dark:text-red-400"
+            >
+                {auth.error}
+            </div>
+        {/if}
+
         <div class="flex flex-col gap-4 text-left">
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
-                    >Full Name</label
+                    for="name">Full Name</label
                 >
                 <Input
+                    id="name"
                     type="text"
                     bind:value={name}
                     class="bg-white/50 backdrop-blur-sm"
+                    placeholder="John Doe"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
                 />
             </div>
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
-                    >Email</label
+                    for="email">Email</label
                 >
                 <Input
+                    id="email"
                     type="email"
                     bind:value={email}
                     class="bg-white/50 backdrop-blur-sm"
+                    placeholder="you@example.com"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
                 />
             </div>
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
-                    >Password</label
+                    for="orgName"
+                    >Organization Name <span
+                        class="text-muted-foreground font-normal"
+                        >(optional)</span
+                    ></label
                 >
                 <Input
+                    id="orgName"
+                    type="text"
+                    bind:value={orgName}
+                    class="bg-white/50 backdrop-blur-sm"
+                    placeholder="Your Company"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
+                />
+            </div>
+            <div class="space-y-2">
+                <label
+                    class="text-sm font-bold text-gray-700 dark:text-gray-300"
+                    for="password">Password</label
+                >
+                <Input
+                    id="password"
                     type="password"
                     bind:value={password}
                     class="bg-white/50 backdrop-blur-sm"
+                    placeholder="••••••••"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
                 />
+            </div>
+            <div class="space-y-2">
+                <label
+                    class="text-sm font-bold text-gray-700 dark:text-gray-300"
+                    for="confirmPassword">Confirm Password</label
+                >
+                <Input
+                    id="confirmPassword"
+                    type="password"
+                    bind:value={confirmPassword}
+                    class="bg-white/50 backdrop-blur-sm {passwordError
+                        ? 'border-red-500'
+                        : ''}"
+                    placeholder="••••••••"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
+                />
+                {#if passwordError}
+                    <p class="text-xs text-red-500">{passwordError}</p>
+                {/if}
             </div>
         </div>
 
         <Button
             class="w-full h-12 text-lg font-bold shadow-lg shadow-purple-500/20 bg-purple-600 hover:bg-purple-700"
             onclick={handleRegister}
+            disabled={auth.isLoading || !isFormValid}
         >
-            Create Account
+            {#if auth.isLoading}
+                <Loader2 class="mr-2 h-5 w-5 animate-spin" />
+                Creating account...
+            {:else}
+                Create Account
+            {/if}
         </Button>
 
         <p class="text-sm text-gray-500">

@@ -36,7 +36,9 @@
     // Find selected label based on value
     // We use a derived value to ensure it updates when value or items change
     let selectedLabel = $derived(
-        items.find((item) => item.value === value)?.label ?? placeholder,
+        items.find(
+            (item: { value: string; label: string }) => item.value === value,
+        )?.label ?? placeholder,
     );
 
     function closeAndFocusTrigger() {

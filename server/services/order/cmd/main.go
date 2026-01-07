@@ -55,7 +55,7 @@ func main() {
 
 	// Repository and service
 	orderRepo := repository.NewOrderRepository(db)
-	orderService := service.NewOrderService(orderRepo, sagaDeps)
+	orderService := service.NewOrderService(db, orderRepo, sagaDeps)
 	grpcHandler := handler.NewGrpcHandler(orderService)
 
 	// HTTP mux

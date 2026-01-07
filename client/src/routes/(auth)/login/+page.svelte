@@ -3,22 +3,34 @@
     import { Input } from "$lib/components/ui/input";
     import { auth } from "$lib/runes/auth.svelte";
     import { goto } from "$app/navigation";
+    import { Loader2 } from "@lucide/svelte";
+    import { toast } from "svelte-sonner";
 
-    let email = $state("user@example.com");
-    let password = $state("password");
+    let email = $state("");
+    let password = $state("");
 
-    function handleLogin() {
-        // Mock login
-        auth.login(
-            {
-                id: "1",
-                name: "John Doe",
-                email: email,
-                role: "user",
-            },
-            "mock_token",
-        );
-        goto("/dashboard");
+    async function handleLogin() {
+        if (!email || !password) {
+            return;
+        }
+
+        const success = await auth.login(email, password);
+        if (success) {
+            toast.success("Welcome back!", {
+                description: "You have successfully signed in.",
+            });
+            goto("/dashboard");
+        } else {
+            toast.error("Login failed", {
+                description: auth.error || "Please check your credentials.",
+            });
+        }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === "Enter") {
+            handleLogin();
+        }
     }
 </script>
 
@@ -35,27 +47,43 @@
             <p class="text-muted-foreground">Sign in to manage your tickets</p>
         </div>
 
+        {#if auth.error}
+            <div
+                class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-600 dark:text-red-400"
+            >
+                {auth.error}
+            </div>
+        {/if}
+
         <div class="flex flex-col gap-4 text-left">
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
-                    >Email</label
+                    for="email">Email</label
                 >
                 <Input
+                    id="email"
                     type="email"
                     bind:value={email}
                     class="bg-white/50 backdrop-blur-sm"
+                    placeholder="you@example.com"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
                 />
             </div>
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
-                    >Password</label
+                    for="password">Password</label
                 >
                 <Input
+                    id="password"
                     type="password"
                     bind:value={password}
                     class="bg-white/50 backdrop-blur-sm"
+                    placeholder="••••••••"
+                    disabled={auth.isLoading}
+                    onkeydown={handleKeyDown}
                 />
             </div>
         </div>
@@ -63,8 +91,14 @@
         <Button
             class="w-full h-12 text-lg font-bold shadow-lg shadow-blue-500/20"
             onclick={handleLogin}
+            disabled={auth.isLoading || !email || !password}
         >
-            Sign In
+            {#if auth.isLoading}
+                <Loader2 class="mr-2 h-5 w-5 animate-spin" />
+                Signing in...
+            {:else}
+                Sign In
+            {/if}
         </Button>
 
         <p class="text-sm text-gray-500">

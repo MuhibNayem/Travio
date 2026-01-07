@@ -27,7 +27,7 @@
         // Notify parent
         // Flatten layout to find objects
         const flat = layout.flat();
-        const selectedObjects = flat.filter((s) =>
+        const selectedObjects = flat.filter((s: Seat) =>
             selectedSeats.includes(s.id),
         );
         onSelectionChange(selectedObjects);

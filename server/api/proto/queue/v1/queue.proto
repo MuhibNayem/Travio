@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package queue.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/queue/v1";
+
+service QueueService {
+  // JoinQueue adds a user to the virtual waiting room
+  rpc JoinQueue(JoinQueueRequest) returns (QueuePosition);
+  
+  // GetPosition returns user's current queue position
+  rpc GetPosition(GetPositionRequest) returns (QueuePosition);
+  
+  // LeaveQueue removes a user from the queue
+  rpc LeaveQueue(LeaveQueueRequest) returns (LeaveQueueResponse);
+  
+  // ValidateToken checks if an admission token is valid
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  
+  // ConsumeToken marks a token as used (user started purchase)
+  rpc ConsumeToken(ConsumeTokenRequest) returns (ConsumeTokenResponse);
+  
+  // GetQueueStats returns queue statistics
+  rpc GetQueueStats(GetQueueStatsRequest) returns (QueueStats);
+  
+  // ConfigureQueue sets queue configuration (admin only)
+  rpc ConfigureQueue(ConfigureQueueRequest) returns (ConfigureQueueResponse);
+}
+
+message JoinQueueRequest {
+  string event_id = 1;
+  string user_id = 2;
+  string session_id = 3;
+}
+
+message GetPositionRequest {
+  string event_id = 1;
+  string user_id = 2;
+}
+
+message LeaveQueueRequest {
+  string event_id = 1;
+  string user_id = 2;
+}
+
+message LeaveQueueResponse {
+  bool success = 1;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string event_id = 3;
+}
+
+message ConsumeTokenRequest {
+  string token = 1;
+}
+
+message ConsumeTokenResponse {
+  bool success = 1;
+}
+
+message GetQueueStatsRequest {
+  string event_id = 1;
+}
+
+message ConfigureQueueRequest {
+  string event_id = 1;
+  int32 max_concurrent = 2;
+  int32 batch_size = 3;
+  int32 interval_secs = 4;
+  int32 token_ttl_secs = 5;
+  bool enabled = 6;
+}
+
+message ConfigureQueueResponse {
+  bool success = 1;
+}
+
+message QueuePosition {
+  int32 position = 1;
+  int32 estimated_wait = 2; // seconds
+  string token = 3;
+  QueueStatus status = 4;
+}
+
+message QueueStats {
+  string event_id = 1;
+  int32 total_waiting = 2;
+  int32 total_admitted = 3;
+  int32 avg_wait_secs = 4;
+  int32 admission_rate = 5; // per minute
+}
+
+enum QueueStatus {
+  QUEUE_STATUS_UNSPECIFIED = 0;
+  QUEUE_STATUS_WAITING = 1;
+  QUEUE_STATUS_READY = 2;
+  QUEUE_STATUS_EXPIRED = 3;
+  QUEUE_STATUS_COMPLETED = 4;
+}

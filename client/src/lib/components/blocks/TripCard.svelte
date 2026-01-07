@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
-    import type { Trip } from "$lib/types/transport";
+    import type { Trip, TransportType } from "$lib/types/transport";
     import {
         ArrowRight,
         Clock,
@@ -13,13 +13,13 @@
 
     let { trip } = $props<{ trip: Trip }>();
 
-    const icons = {
+    const icons: Record<TransportType, typeof Bus> = {
         bus: Bus,
         train: Train,
         launch: Ship,
     };
 
-    const Icon = icons[trip.type] || Bus;
+    const Icon = $derived(icons[trip.type as TransportType] || Bus);
 
     function formatTime(iso: string) {
         return new Date(iso).toLocaleTimeString("en-US", {

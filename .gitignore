@@ -28,6 +28,7 @@ server/build
 # Environment credentials
 .env
 .env.local
+.env.dev
 config/*.local.yaml
 
 # Terraform

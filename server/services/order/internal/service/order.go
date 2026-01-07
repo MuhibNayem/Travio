@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/services/order/internal/domain"
+	"github.com/MuhibNayem/Travio/server/services/order/internal/events"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/saga"
 )
@@ -17,23 +19,28 @@ const (
 )
 
 type OrderService struct {
+	db           *sql.DB
 	orderRepo    *repository.OrderRepository
 	sagaDeps     *saga.BookingDependencies
 	orchestrator *saga.Orchestrator
+	publisher    *events.Publisher
 }
 
 func NewOrderService(
+	db *sql.DB,
 	orderRepo *repository.OrderRepository,
 	sagaDeps *saga.BookingDependencies,
 ) *OrderService {
 	return &OrderService{
+		db:           db,
 		orderRepo:    orderRepo,
 		sagaDeps:     sagaDeps,
 		orchestrator: saga.NewOrchestrator(),
+		publisher:    events.NewPublisher(db),
 	}
 }
 
-// CreateOrder initiates the booking saga
+// CreateOrder initiates the booking saga with transactional outbox event
 func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*domain.Order, error) {
 	// Idempotency check
 	if req.IdempotencyKey != "" {
@@ -45,6 +52,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 			return existing, nil // Return existing order
 		}
 	}
+
+	// Start transaction
+	tx, err := s.orderRepo.BeginTx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
 
 	// Create order record
 	order := &domain.Order{
@@ -72,9 +86,20 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 	}
 	order.CalculateTotals(basePrices, TaxRate, BookingFeePaisa)
 
-	// Save order
-	if err := s.orderRepo.Create(ctx, order); err != nil {
+	// Create order in transaction
+	txRepo := repository.NewTxOrderRepository(tx)
+	if err := txRepo.CreateTx(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to create order: %w", err)
+	}
+
+	// Publish OrderCreated event to outbox (same transaction)
+	if err := s.publisher.PublishOrderCreated(ctx, tx, order); err != nil {
+		return nil, fmt.Errorf("failed to publish order created event: %w", err)
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Create booking saga
@@ -102,23 +127,66 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		return nil, fmt.Errorf("failed to update order with saga ID: %w", err)
 	}
 
-	// Execute saga asynchronously
+	// Execute saga asynchronously with outbox event on completion
 	go func() {
 		execCtx := context.Background()
 		if err := s.orchestrator.Execute(execCtx, sagaInstance); err != nil {
-			// Update order status on failure
-			_ = s.orderRepo.UpdateStatus(execCtx, order.ID, domain.OrderStatusFailed)
+			// Update order status on failure and publish event
+			s.handleOrderFailed(execCtx, order, err.Error(), fmt.Sprintf("%v", sagaInstance.Status))
 		} else {
-			// Update order status on success
-			order.Status = domain.OrderStatusConfirmed
-			order.PaymentStatus = domain.PaymentStatusCaptured
-			order.BookingID = sagaInstance.Context.GetString("booking_id")
-			order.PaymentID = sagaInstance.Context.GetString("payment_id")
-			_ = s.orderRepo.Update(execCtx, order)
+			// Update order status on success and publish event
+			s.handleOrderConfirmed(execCtx, order, sagaInstance)
 		}
 	}()
 
 	return order, nil
+}
+
+// handleOrderConfirmed updates order and publishes confirmation event
+func (s *OrderService) handleOrderConfirmed(ctx context.Context, order *domain.Order, sagaInstance *saga.Saga) {
+	tx, err := s.orderRepo.BeginTx(ctx)
+	if err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	order.Status = domain.OrderStatusConfirmed
+	order.PaymentStatus = domain.PaymentStatusCaptured
+	order.BookingID = sagaInstance.Context.GetString("booking_id")
+	order.PaymentID = sagaInstance.Context.GetString("payment_id")
+
+	txRepo := repository.NewTxOrderRepository(tx)
+	if err := txRepo.UpdateTx(ctx, order); err != nil {
+		return
+	}
+
+	if err := s.publisher.PublishOrderConfirmed(ctx, tx, order); err != nil {
+		return
+	}
+
+	tx.Commit()
+}
+
+// handleOrderFailed updates order and publishes failure event
+func (s *OrderService) handleOrderFailed(ctx context.Context, order *domain.Order, reason, sagaState string) {
+	tx, err := s.orderRepo.BeginTx(ctx)
+	if err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	order.Status = domain.OrderStatusFailed
+
+	txRepo := repository.NewTxOrderRepository(tx)
+	if err := txRepo.UpdateStatusTx(ctx, order.ID, domain.OrderStatusFailed); err != nil {
+		return
+	}
+
+	if err := s.publisher.PublishOrderFailed(ctx, tx, order, reason, sagaState); err != nil {
+		return
+	}
+
+	tx.Commit()
 }
 
 // GetOrder retrieves an order by ID
@@ -146,7 +214,7 @@ func (s *OrderService) ListOrders(ctx context.Context, userID, status string, pa
 	return orders, total, nextToken, nil
 }
 
-// CancelOrder initiates the cancellation saga
+// CancelOrder initiates the cancellation saga with transactional outbox event
 func (s *OrderService) CancelOrder(ctx context.Context, orderID, userID, reason string) (*domain.Order, *RefundInfo, error) {
 	order, err := s.orderRepo.GetByID(ctx, orderID, userID)
 	if err != nil {
@@ -170,24 +238,40 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID, userID, reason 
 		order.TotalPaisa,
 	)
 
-	// Update order status
-	order.Status = domain.OrderStatusRefundPending
-	if err := s.orderRepo.Update(ctx, order); err != nil {
-		return nil, nil, err
-	}
-
 	// Execute cancellation saga
 	if err := s.orchestrator.Execute(ctx, cancellationSaga); err != nil {
 		return nil, nil, fmt.Errorf("cancellation failed: %w", err)
 	}
 
-	// Update final status
+	// Start transaction for final update
+	tx, err := s.orderRepo.BeginTx(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Rollback()
+
+	refundID := cancellationSaga.Context.GetString("refund_id")
+
+	// Update order status
 	order.Status = domain.OrderStatusRefunded
 	order.PaymentStatus = domain.PaymentStatusRefunded
-	_ = s.orderRepo.Update(ctx, order)
+
+	txRepo := repository.NewTxOrderRepository(tx)
+	if err := txRepo.UpdateTx(ctx, order); err != nil {
+		return nil, nil, err
+	}
+
+	// Publish cancellation event
+	if err := s.publisher.PublishOrderCancelled(ctx, tx, order, refundID, order.TotalPaisa, reason); err != nil {
+		return nil, nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, err
+	}
 
 	refund := &RefundInfo{
-		RefundID:    cancellationSaga.Context.GetString("refund_id"),
+		RefundID:    refundID,
 		AmountPaisa: order.TotalPaisa,
 		Status:      "completed",
 	}

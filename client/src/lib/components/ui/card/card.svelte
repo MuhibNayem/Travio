@@ -13,11 +13,7 @@
 <div
 	bind:this={ref}
 	data-slot="card"
-	class={cn(
-	class={cn(
-		"glass-panel flex flex-col gap-6 p-6",
-		className
-	)}
+	class={cn("glass-panel flex flex-col gap-6 p-6", className)}
 	{...restProps}
 >
 	{@render children?.()}

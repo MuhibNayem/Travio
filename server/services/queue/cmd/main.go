@@ -1,13 +1,64 @@
 package main
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
+	"github.com/MuhibNayem/Travio/server/services/queue/config"
+	"github.com/MuhibNayem/Travio/server/services/queue/internal/handler"
+	"github.com/MuhibNayem/Travio/server/services/queue/internal/repository"
+	"github.com/MuhibNayem/Travio/server/services/queue/internal/service"
+	"google.golang.org/grpc"
 )
 
 func main() {
 	logger.Init("queue-service")
-	logger.Info("Starting Queue Service", "port", 8091)
-	http.ListenAndServe(":8091", nil)
+	cfg := config.Load()
+
+	// Initialize repository
+	repo := repository.NewQueueRepository(cfg.RedisAddr)
+	defer repo.Close()
+
+	// Initialize service
+	queueService := service.NewQueueService(repo)
+
+	// gRPC server (commented out until proto is generated)
+	// grpcHandler := handler.NewGrpcHandler(queueService)
+
+	// HTTP server
+	httpHandler := handler.NewHTTPHandler(queueService)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", httpHandler.Health)
+	mux.HandleFunc("/v1/queue/join", httpHandler.JoinQueue)
+	mux.HandleFunc("/v1/queue/position", httpHandler.GetPosition)
+	mux.HandleFunc("/v1/queue/validate", httpHandler.ValidateToken)
+	mux.HandleFunc("/v1/queue/stats", httpHandler.GetStats)
+
+	// Start servers
+	go func() {
+		addr := fmt.Sprintf(":%d", cfg.HTTPPort)
+		logger.Info("Queue HTTP server starting", "addr", addr)
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			logger.Error("HTTP server error", "error", err)
+		}
+	}()
+
+	// Start gRPC server
+	grpcServer := grpc.NewServer()
+	grpcHandler := handler.NewGrpcHandler(queueService)
+	_ = grpcHandler // Register when proto is generated
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
+	if err != nil {
+		logger.Error("Failed to listen", "error", err)
+		return
+	}
+
+	logger.Info("Queue gRPC server starting", "port", cfg.GRPCPort)
+	if err := grpcServer.Serve(lis); err != nil {
+		logger.Error("gRPC server error", "error", err)
+	}
 }
