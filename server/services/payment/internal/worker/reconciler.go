@@ -10,16 +10,18 @@ import (
 )
 
 type Reconciler struct {
-	repo     *repository.TransactionRepository
-	registry *gateway.Registry
-	interval time.Duration
+	repo       *repository.TransactionRepository
+	configRepo *repository.PaymentConfigRepository
+	registry   *gateway.Registry
+	interval   time.Duration
 }
 
-func NewReconciler(repo *repository.TransactionRepository, registry *gateway.Registry, interval time.Duration) *Reconciler {
+func NewReconciler(repo *repository.TransactionRepository, configRepo *repository.PaymentConfigRepository, registry *gateway.Registry, interval time.Duration) *Reconciler {
 	return &Reconciler{
-		repo:     repo,
-		registry: registry,
-		interval: interval,
+		repo:       repo,
+		configRepo: configRepo,
+		registry:   registry,
+		interval:   interval,
 	}
 }
 
@@ -62,9 +64,24 @@ func (r *Reconciler) reconcile(ctx context.Context) {
 			continue
 		}
 
-		gw, err := r.registry.Get(tx.Gateway)
+		providerName := r.registry.ResolveProvider(tx.Gateway)
+		factory, err := r.registry.GetFactory(providerName)
 		if err != nil {
 			logger.Error("Reconciler unknown gateway", "gateway", tx.Gateway, "tx_id", tx.ID)
+			continue
+		}
+
+		// Load Config
+		payConfig, err := r.configRepo.GetConfig(ctx, tx.OrganizationID)
+		if err != nil {
+			logger.Error("Reconciler failed to get config", "org_id", tx.OrganizationID, "error", err)
+			continue
+		}
+
+		// Create Gateway
+		gw, err := factory.Create(payConfig.Credentials, false)
+		if err != nil {
+			logger.Error("Reconciler failed to create gateway", "gateway", tx.Gateway, "error", err)
 			continue
 		}
 

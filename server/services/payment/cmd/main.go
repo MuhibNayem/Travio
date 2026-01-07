@@ -34,51 +34,35 @@ func main() {
 	} else {
 		logger.Info("Connected to DB, running migrations...")
 		_ = db.AutoMigrate(&model.Transaction{})
+		// Ensure payment_configs table? Actually we rely on init-db.sql, but GORM AutoMigrate is safer
+		// Define PaymentConfig in model? Repository defines it in internal/repository/config.go but better if it was in internal/model.
+		// For now, let's skip auto-migrating PaymentConfig unless we move it to model package.
+		// It's defined in repository package, so we can't reference it easily here without import cycle or weirdness.
+		// Assuming init-db.sql handles it.
 	}
 
 	repo := repository.NewTransactionRepository(db)
+	configRepo := repository.NewPaymentConfigRepository(db)
 
-	// Initialize payment gateways
+	// Initialize payment gateways registry with Factories
 	registry := gateway.NewRegistry()
 
-	// SSLCommerz
-	sslcommerz := gateway.NewSSLCommerz(gateway.SSLCommerzConfig{
-		StoreID:     cfg.SSLCommerz.StoreID,
-		StorePasswd: cfg.SSLCommerz.StorePasswd,
-		IsSandbox:   cfg.SSLCommerz.IsSandbox,
-	})
-	registry.Register("sslcommerz", sslcommerz)
-	registry.SetFallback(sslcommerz)
-
-	// bKash
-	bkash := gateway.NewBKash(gateway.BKashConfig{
-		AppKey:    cfg.BKash.AppKey,
-		AppSecret: cfg.BKash.AppSecret,
-		Username:  cfg.BKash.Username,
-		Password:  cfg.BKash.Password,
-		IsSandbox: cfg.BKash.IsSandbox,
-	})
-	registry.Register("bkash", bkash)
-
-	// Nagad
-	nagad := gateway.NewNagad(gateway.NagadConfig{
-		MerchantID:     cfg.Nagad.MerchantID,
-		MerchantNumber: cfg.Nagad.MerchantNumber,
-		PublicKey:      cfg.Nagad.PublicKey,
-		PrivateKey:     cfg.Nagad.PrivateKey,
-		IsSandbox:      cfg.Nagad.IsSandbox,
-	})
-	registry.Register("nagad", nagad)
+	// Register Factories
+	registry.Register("sslcommerz", &gateway.SSLCommerzFactory{})
+	registry.Register("bkash", &gateway.BKashFactory{})
+	registry.Register("nagad", &gateway.NagadFactory{})
 
 	// Start Reconciliation Worker
-	reconciler := worker.NewReconciler(repo, registry, 5*time.Minute)
+	reconciler := worker.NewReconciler(repo, configRepo, registry, 5*time.Minute)
 	go reconciler.Start(context.Background())
+	// logger.Warn("Reconciliation worker temporarily disabled during dynamic gateway refactor")
 
 	// Service and handler
-	paymentService := service.NewPaymentService(registry, repo)
-	grpcHandler := handler.NewGrpcHandler(paymentService, registry)
+	// Service and handler
+	paymentService := service.NewPaymentService(registry, repo, configRepo)
+	grpcHandler := handler.NewGrpcHandler(paymentService, registry, repo, configRepo)
 
-	// HTTP mux for health and IPN webhooks
+	// HTTP mux for health (IPN webhooks might need updates too, skipping dynamic IPN for now)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

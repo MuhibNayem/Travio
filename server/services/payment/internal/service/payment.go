@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -12,14 +13,16 @@ import (
 )
 
 type PaymentService struct {
-	registry *gateway.Registry
-	repo     *repository.TransactionRepository
+	registry   *gateway.Registry
+	repo       *repository.TransactionRepository
+	configRepo *repository.PaymentConfigRepository
 }
 
-func NewPaymentService(registry *gateway.Registry, repo *repository.TransactionRepository) *PaymentService {
+func NewPaymentService(registry *gateway.Registry, repo *repository.TransactionRepository, configRepo *repository.PaymentConfigRepository) *PaymentService {
 	return &PaymentService{
-		registry: registry,
-		repo:     repo,
+		registry:   registry,
+		repo:       repo,
+		configRepo: configRepo,
 	}
 }
 
@@ -31,6 +34,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 
 	tx := &model.Transaction{
 		OrderID:        req.OrderID,
+		OrganizationID: req.OrganizationID,
 		Attempt:        1,
 		Amount:         req.AmountPaisa,
 		Currency:       req.Currency,
@@ -74,10 +78,26 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 		}, nil
 	}
 
-	// 3. Call Gateway
-	gw, err := s.registry.SelectByMethod(req.PaymentMethod)
+	// 3. Resolve Gateway Factory and Credentials
+	providerName := s.registry.ResolveProvider(req.PaymentMethod)
+	factory, err := s.registry.GetFactory(providerName)
 	if err != nil {
 		return nil, err
+	}
+
+	// Fetch Organization Keys
+	if req.OrganizationID == "" {
+		return nil, fmt.Errorf("organization_id required for direct payment")
+	}
+	payConfig, err := s.configRepo.GetConfig(ctx, req.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment config for organization %s: %w", err)
+	}
+
+	// Instantiate Gateway client
+	gw, err := factory.Create(payConfig.Credentials, false) // TODO: Handle Sandbox flag properly
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gateway instance: %w", err)
 	}
 
 	gwReq := &gateway.CreatePaymentRequest{
@@ -88,8 +108,8 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 		CustomerEmail: req.CustomerEmail,
 		CustomerPhone: req.CustomerPhone,
 		Description:   req.Description,
-		ReturnURL:     req.ReturnURL,
-		CancelURL:     req.CancelURL,
+		ReturnURL:     req.ReturnURL + "&org=" + req.OrganizationID, // Pass org context if needed
+		CancelURL:     req.CancelURL + "&org=" + req.OrganizationID,
 		IPNURL:        req.IPNURL,
 	}
 
@@ -114,41 +134,99 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 }
 
 func (s *PaymentService) VerifyPayment(ctx context.Context, gatewayName, transactionID string) (*gateway.PaymentStatus, error) {
-	gw, err := s.registry.Get(gatewayName)
+	// 1. Load Transaction to get OrgID
+	tx, err := s.repo.GetByID(ctx, transactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction not found: %w", err)
+	}
+
+	// 2. Load Config
+	payConfig, err := s.configRepo.GetConfig(ctx, tx.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment config: %w", err)
+	}
+
+	// 3. Create Gateway
+	providerName := s.registry.ResolveProvider(gatewayName)
+	factory, err := s.registry.GetFactory(providerName)
 	if err != nil {
 		return nil, err
 	}
+	gw, err := factory.Create(payConfig.Credentials, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return gw.VerifyPayment(ctx, transactionID)
 }
 
 func (s *PaymentService) CapturePayment(ctx context.Context, gatewayName, transactionID string) (*gateway.PaymentStatus, error) {
-	gw, err := s.registry.Get(gatewayName)
+	// 1. Load Transaction to get OrgID
+	tx, err := s.repo.GetByID(ctx, transactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction not found: %w", err)
+	}
+
+	// 2. Load Config
+	payConfig, err := s.configRepo.GetConfig(ctx, tx.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment config: %w", err)
+	}
+
+	// 3. Create Gateway
+	providerName := s.registry.ResolveProvider(gatewayName)
+	factory, err := s.registry.GetFactory(providerName)
 	if err != nil {
 		return nil, err
 	}
+	gw, err := factory.Create(payConfig.Credentials, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return gw.CapturePayment(ctx, transactionID)
 }
 
 func (s *PaymentService) RefundPayment(ctx context.Context, gatewayName, transactionID string, amount int64, reason string) (*gateway.RefundResponse, error) {
-	gw, err := s.registry.Get(gatewayName)
+	// 1. Load Transaction to get OrgID
+	tx, err := s.repo.GetByID(ctx, transactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction not found: %w", err)
+	}
+
+	// 2. Load Config
+	payConfig, err := s.configRepo.GetConfig(ctx, tx.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment config: %w", err)
+	}
+
+	// 3. Create Gateway
+	providerName := s.registry.ResolveProvider(gatewayName)
+	factory, err := s.registry.GetFactory(providerName)
 	if err != nil {
 		return nil, err
 	}
+	gw, err := factory.Create(payConfig.Credentials, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return gw.RefundPayment(ctx, transactionID, amount, reason)
 }
 
 type CreatePaymentReq struct {
-	OrderID       string
-	AmountPaisa   int64
-	Currency      string
-	PaymentMethod string
-	CustomerName  string
-	CustomerEmail string
-	CustomerPhone string
-	Description   string
-	ReturnURL     string
-	CancelURL     string
-	IPNURL        string
+	OrderID        string
+	OrganizationID string
+	AmountPaisa    int64
+	Currency       string
+	PaymentMethod  string
+	CustomerName   string
+	CustomerEmail  string
+	CustomerPhone  string
+	Description    string
+	ReturnURL      string
+	CancelURL      string
+	IPNURL         string
 }
 
 type PaymentResult struct {
@@ -159,4 +237,35 @@ type PaymentResult struct {
 	RedirectURL string
 	Status      string
 	CreatedAt   time.Time
+}
+
+func (s *PaymentService) UpdatePaymentConfig(ctx context.Context, organizationID, gatewayName string, credentials map[string]string, isActive bool) error {
+	// Validate Gateway Name
+	providerName := s.registry.ResolveProvider(gatewayName)
+	if _, err := s.registry.GetFactory(providerName); err != nil {
+		return fmt.Errorf("invalid gateway: %s", gatewayName)
+	}
+
+	// Marshal Credentials
+	credsJSON, err := json.Marshal(credentials)
+	if err != nil {
+		return fmt.Errorf("failed to marshal credentials: %w", err)
+	}
+
+	config := &repository.PaymentConfig{
+		OrganizationID: organizationID,
+		Gateway:        gatewayName,
+		Credentials:    credsJSON,
+		IsActive:       isActive,
+		UpdatedAt:      time.Now(),
+	}
+	// Repo Save logic: "r.db.WithContext(ctx).Save(config)" -> GORM Save performs Insert or Update
+	if err := s.configRepo.SaveConfig(ctx, config); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+	return nil
+}
+
+func (s *PaymentService) GetPaymentConfig(ctx context.Context, organizationID string) (*repository.PaymentConfig, error) {
+	return s.configRepo.GetConfig(ctx, organizationID)
 }

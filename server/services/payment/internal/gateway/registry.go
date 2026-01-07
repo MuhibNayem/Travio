@@ -1,58 +1,115 @@
 package gateway
 
 import (
+	"encoding/json"
 	"errors"
 	"sync"
 )
 
-// Registry manages multiple payment gateways
+// Factory creates a Gateway instance from configuration
+type Factory interface {
+	Create(credentials json.RawMessage, isSandbox bool) (Gateway, error)
+	ParseOrderID(payload map[string]string) (string, error)
+}
+
+// Registry manages payment gateway factories
 type Registry struct {
-	gateways map[string]Gateway
-	mu       sync.RWMutex
-	fallback Gateway
+	factories map[string]Factory
+	mu        sync.RWMutex
 }
 
 func NewRegistry() *Registry {
-	return &Registry{gateways: make(map[string]Gateway)}
+	return &Registry{factories: make(map[string]Factory)}
 }
 
-func (r *Registry) Register(name string, gateway Gateway) {
+func (r *Registry) Register(name string, factory Factory) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.gateways[name] = gateway
+	r.factories[name] = factory
 }
 
-func (r *Registry) SetFallback(gateway Gateway) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.fallback = gateway
-}
-
-func (r *Registry) Get(name string) (Gateway, error) {
+func (r *Registry) GetFactory(name string) (Factory, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if gw, ok := r.gateways[name]; ok {
-		return gw, nil
-	}
-	if r.fallback != nil {
-		return r.fallback, nil
+	if f, ok := r.factories[name]; ok {
+		return f, nil
 	}
 	return nil, ErrGatewayNotFound
 }
 
-func (r *Registry) SelectByMethod(method string) (Gateway, error) {
+// Helper to map generic method names (card, mobile_bank) to specific providers
+func (r *Registry) ResolveProvider(method string) string {
 	methodMap := map[string]string{
-		"card": "sslcommerz", "bkash": "bkash", "nagad": "nagad",
-		"bank": "sslcommerz", "mobile_bank": "sslcommerz",
+		"card":        "sslcommerz",
+		"bank":        "sslcommerz",
+		"mobile_bank": "sslcommerz", // Default aggregator, often overridden
+		"bkash":       "bkash",
+		"nagad":       "nagad",
 	}
-	if name, ok := methodMap[method]; ok {
-		return r.Get(name)
+	if provider, ok := methodMap[method]; ok {
+		return provider
 	}
-	if r.fallback != nil {
-		return r.fallback, nil
-	}
-	return nil, ErrPaymentMethodNotSupported
+	return method // Return as-is if no mapping
 }
 
-var ErrGatewayNotFound = errors.New("gateway not found")
-var ErrPaymentMethodNotSupported = errors.New("payment method not supported")
+var ErrGatewayNotFound = errors.New("gateway factory not found")
+
+// --- Factory Implementations ---
+
+// SSLCommerzFactory
+type SSLCommerzFactory struct{}
+
+func (f *SSLCommerzFactory) Create(credentials json.RawMessage, isSandbox bool) (Gateway, error) {
+	var cfg SSLCommerzConfig
+	if err := json.Unmarshal(credentials, &cfg); err != nil {
+		return nil, err
+	}
+	cfg.IsSandbox = isSandbox
+	return NewSSLCommerz(cfg), nil
+}
+
+func (f *SSLCommerzFactory) ParseOrderID(payload map[string]string) (string, error) {
+	if val, ok := payload["tran_id"]; ok {
+		return val, nil
+	}
+	return "", errors.New("tran_id not found in payload")
+}
+
+// BKashFactory
+type BKashFactory struct{}
+
+func (f *BKashFactory) Create(credentials json.RawMessage, isSandbox bool) (Gateway, error) {
+	var cfg BKashConfig
+	if err := json.Unmarshal(credentials, &cfg); err != nil {
+		return nil, err
+	}
+	cfg.IsSandbox = isSandbox
+	return NewBKash(cfg), nil
+}
+
+func (f *BKashFactory) ParseOrderID(payload map[string]string) (string, error) {
+	// bKash usually sends paymentID via callback, but merchantInvoiceNumber corresponds to OrderID
+	if val, ok := payload["merchantInvoiceNumber"]; ok {
+		return val, nil
+	}
+	return "", errors.New("merchantInvoiceNumber not found in payload")
+}
+
+// NagadFactory
+type NagadFactory struct{}
+
+func (f *NagadFactory) Create(credentials json.RawMessage, isSandbox bool) (Gateway, error) {
+	var cfg NagadConfig
+	if err := json.Unmarshal(credentials, &cfg); err != nil {
+		return nil, err
+	}
+	cfg.IsSandbox = isSandbox
+	return NewNagad(cfg), nil
+}
+
+func (f *NagadFactory) ParseOrderID(payload map[string]string) (string, error) {
+	if val, ok := payload["order_id"]; ok {
+		return val, nil
+	}
+	return "", errors.New("order_id not found in payload")
+}

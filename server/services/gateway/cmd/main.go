@@ -299,6 +299,13 @@ func main() {
 			r.Get("/payments/methods", paymentHandler.GetPaymentMethods)
 			r.Post("/payments", paymentHandler.ProcessPayment)
 			r.Get("/payments/{orderId}", paymentHandler.GetPaymentStatus)
+
+			// Organization Config (Admin Only)
+			r.Route("/organizations/{orgId}/payment-config", func(r chi.Router) {
+				r.Use(middleware.RequireRole("admin"))
+				r.Put("/", paymentHandler.UpdatePaymentConfig)
+				r.Get("/", paymentHandler.GetPaymentConfig)
+			})
 		}
 
 		// Fulfillment/Ticket routes (protected)

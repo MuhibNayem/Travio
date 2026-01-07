@@ -118,12 +118,13 @@ func NewPaymentClient(addr string) (*PaymentClient, error) {
 	return &PaymentClient{client: paymentpb.NewPaymentServiceClient(conn)}, nil
 }
 
-func (c *PaymentClient) Authorize(ctx context.Context, orderID, token string, amountPaisa int64) (string, error) {
+func (c *PaymentClient) Authorize(ctx context.Context, orderID, orgID, token string, amountPaisa int64) (string, error) {
 	resp, err := c.client.CreatePayment(ctx, &paymentpb.CreatePaymentRequest{
-		OrderId:       orderID,
-		AmountPaisa:   amountPaisa,
-		Currency:      "BDT",
-		PaymentMethod: "sslcommerz",
+		OrderId:        orderID,
+		OrganizationId: orgID,
+		AmountPaisa:    amountPaisa,
+		Currency:       "BDT",
+		PaymentMethod:  "sslcommerz",
 	})
 	if err != nil {
 		return "", err

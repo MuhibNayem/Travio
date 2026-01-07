@@ -10,6 +10,10 @@ service PaymentService {
   rpc CapturePayment(CapturePaymentRequest) returns (PaymentStatusResponse);
   rpc RefundPayment(RefundPaymentRequest) returns (RefundResponse);
   rpc HandleIPN(IPNRequest) returns (IPNResponse);
+  
+  // Admin/Config RPCs
+  rpc UpdatePaymentConfig(UpdatePaymentConfigRequest) returns (UpdatePaymentConfigResponse);
+  rpc GetPaymentConfig(GetPaymentConfigRequest) returns (GetPaymentConfigResponse);
 }
 
 message CreatePaymentRequest {
@@ -24,6 +28,7 @@ message CreatePaymentRequest {
   string return_url = 9;
   string cancel_url = 10;
   string ipn_url = 11;
+  string organization_id = 12;
 }
 
 message CreatePaymentResponse {
@@ -79,4 +84,26 @@ message IPNResponse {
   string transaction_id = 2;
   string order_id = 3;
   string status = 4;
+}
+
+message UpdatePaymentConfigRequest {
+  string organization_id = 1;
+  string gateway = 2; // 'sslcommerz', 'bkash', 'nagad'
+  map<string, string> credentials = 3;
+  bool is_active = 4;
+}
+
+message UpdatePaymentConfigResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetPaymentConfigRequest {
+  string organization_id = 1;
+}
+
+message GetPaymentConfigResponse {
+  string organization_id = 1;
+  string gateway = 2;
+  bool is_active = 3;
 }

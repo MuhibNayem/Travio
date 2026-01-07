@@ -54,3 +54,13 @@ func (c *PaymentClient) VerifyPayment(ctx context.Context, req *paymentv1.Verify
 func (c *PaymentClient) RefundPayment(ctx context.Context, req *paymentv1.RefundPaymentRequest) (*paymentv1.RefundResponse, error) {
 	return c.client.RefundPayment(ctx, req)
 }
+
+// UpdatePaymentConfig updates payment configuration for an organization
+func (c *PaymentClient) UpdatePaymentConfig(ctx context.Context, req *paymentv1.UpdatePaymentConfigRequest) (*paymentv1.UpdatePaymentConfigResponse, error) {
+	return c.client.UpdatePaymentConfig(ctx, req)
+}
+
+// GetPaymentConfig returns payment configuration for an organization
+func (c *PaymentClient) GetPaymentConfig(ctx context.Context, req *paymentv1.GetPaymentConfigRequest) (*paymentv1.GetPaymentConfigResponse, error) {
+	return c.client.GetPaymentConfig(ctx, req)
+}

@@ -63,3 +63,22 @@ func (r *TransactionRepository) FindsPending(ctx context.Context, olderThanMinut
 		Find(&txs).Error
 	return txs, err
 }
+
+func (r *TransactionRepository) GetByID(ctx context.Context, id string) (*model.Transaction, error) {
+	var tx model.Transaction
+	err := r.db.WithContext(ctx).First(&tx, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}
+
+func (r *TransactionRepository) GetByOrderID(ctx context.Context, orderID string) (*model.Transaction, error) {
+	var tx model.Transaction
+	// Assuming finding the LATEST attempt for this order
+	err := r.db.WithContext(ctx).Where("order_id = ?", orderID).Order("created_at desc").First(&tx).Error
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}

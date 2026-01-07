@@ -9,6 +9,7 @@ import (
 
 type Transaction struct {
 	ID             string `gorm:"primaryKey;type:uuid"`
+	OrganizationID string `gorm:"type:uuid;not null"`
 	OrderID        string `gorm:"uniqueIndex:idx_order_attempt;not null"`
 	Attempt        int    `gorm:"uniqueIndex:idx_order_attempt;default:1"`
 	Amount         int64  `gorm:"not null"`

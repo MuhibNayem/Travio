@@ -67,3 +67,41 @@ func (h *PaymentHandler) GetPaymentMethods(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"methods": methods})
 }
+
+// UpdatePaymentConfig handles updating payment configuration
+func (h *PaymentHandler) UpdatePaymentConfig(w http.ResponseWriter, r *http.Request) {
+	orgID := chi.URLParam(r, "orgId")
+	var req paymentv1.UpdatePaymentConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	req.OrganizationId = orgID // Ensure ID from URL is used
+
+	resp, err := h.client.UpdatePaymentConfig(r.Context(), &req)
+	if err != nil {
+		logger.Error("Failed to update payment config", "org_id", orgID, "error", err)
+		http.Error(w, `{"error": "failed to update config"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetPaymentConfig handles retrieving payment configuration
+func (h *PaymentHandler) GetPaymentConfig(w http.ResponseWriter, r *http.Request) {
+	orgID := chi.URLParam(r, "orgId")
+
+	resp, err := h.client.GetPaymentConfig(r.Context(), &paymentv1.GetPaymentConfigRequest{
+		OrganizationId: orgID,
+	})
+	if err != nil {
+		logger.Error("Failed to get payment config", "org_id", orgID, "error", err)
+		http.Error(w, `{"error": "config not found"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}

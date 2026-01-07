@@ -197,6 +197,7 @@ CREATE INDEX IF NOT EXISTS idx_event_outbox_status ON event_outbox(status) WHERE
 
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
     order_id UUID NOT NULL,
     attempt INTEGER DEFAULT 1,
     amount BIGINT NOT NULL,
@@ -204,10 +205,19 @@ CREATE TABLE IF NOT EXISTS transactions (
     gateway VARCHAR(50) NOT NULL, -- sslcommerz, bkash, nagad
     gateway_tx_id VARCHAR(255),   -- External ID from gateway
     status VARCHAR(20) NOT NULL,  -- PENDING, SUCCESS, FAILED
-    idempotency_key UUID UNIQUE, 
+    idempotency_key VARCHAR(255) UNIQUE, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS payment_configs (
+    organization_id UUID PRIMARY KEY,
+    gateway VARCHAR(50) NOT NULL, -- 'sslcommerz', 'bkash', 'nagad'
+    credentials JSONB NOT NULL,   -- Encrypted StoreID/Pass, AppKey/Secret
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions(order_id);

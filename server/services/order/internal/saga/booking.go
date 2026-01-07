@@ -110,7 +110,7 @@ type InventoryClient interface {
 }
 
 type PaymentClient interface {
-	Authorize(ctx context.Context, orderID, token string, amountPaisa int64) (string, error)
+	Authorize(ctx context.Context, orderID, orgID, token string, amountPaisa int64) (string, error)
 	Capture(ctx context.Context, paymentID string) error
 	Refund(ctx context.Context, paymentID string, amountPaisa int64) (string, error)
 }
@@ -170,7 +170,7 @@ func (d *BookingDependencies) releaseSeats(ctx context.Context, sagaCtx *SagaCon
 }
 
 func (d *BookingDependencies) processPayment(ctx context.Context, sagaCtx *SagaContext, req *BookingRequest) error {
-	paymentID, err := d.PaymentService.Authorize(ctx, req.OrderID, req.PaymentToken, req.TotalPaisa)
+	paymentID, err := d.PaymentService.Authorize(ctx, req.OrderID, req.OrgID, req.PaymentToken, req.TotalPaisa)
 	if err != nil {
 		return fmt.Errorf("payment authorization failed: %w", err)
 	}
