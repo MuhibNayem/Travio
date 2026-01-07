@@ -41,22 +41,33 @@ func main() {
 	r.Get("/health", handler.Health)
 	r.Get("/ready", handler.Ready)
 
+	// Initialize Circuit Breakers
+	catalogCB := middleware.NewCircuitBreaker("catalog-service")
+	inventoryCB := middleware.NewCircuitBreaker("inventory-service")
+	orderCB := middleware.NewCircuitBreaker("order-service")
+	searchCB := middleware.NewCircuitBreaker("search-service")
+	_ = searchCB // Pending Search Update
+	identityCB := middleware.NewCircuitBreaker("identity-service")
+
+	// HTTP Client for Identity Proxy with Circuit Breaker
+	identityClient := identityCB.HTTPClient(10 * time.Second)
+
 	// Initialize gRPC handlers
-	catalogHandler, err := handler.NewCatalogHandler(cfg.CatalogURL)
+	catalogHandler, err := handler.NewCatalogHandler(cfg.CatalogURL, catalogCB)
 	if err != nil {
 		logger.Error("Failed to connect to catalog service", "error", err)
 	} else {
 		defer catalogHandler.Close()
 	}
 
-	inventoryHandler, err := handler.NewInventoryHandler(cfg.InventoryURL)
+	inventoryHandler, err := handler.NewInventoryHandler(cfg.InventoryURL, inventoryCB)
 	if err != nil {
 		logger.Error("Failed to connect to inventory service", "error", err)
 	} else {
 		defer inventoryHandler.Close()
 	}
 
-	orderHandler, err := handler.NewOrderHandler(cfg.OrderURL)
+	orderHandler, err := handler.NewOrderHandler(cfg.OrderURL, orderCB)
 	if err != nil {
 		logger.Error("Failed to connect to order service", "error", err)
 	} else {
@@ -76,16 +87,16 @@ func main() {
 	r.Route("/v1", func(r chi.Router) {
 		// Auth routes - proxy to Identity service
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", proxyTo(cfg.IdentityURL))
-			r.Post("/login", proxyTo(cfg.IdentityURL))
-			r.Post("/refresh", proxyTo(cfg.IdentityURL))
-			r.Post("/logout", proxyTo(cfg.IdentityURL))
-			r.Post("/logout-all", proxyTo(cfg.IdentityURL))
-			r.Get("/sessions", proxyTo(cfg.IdentityURL))
+			r.Post("/register", proxyTo(identityClient, cfg.IdentityURL))
+			r.Post("/login", proxyTo(identityClient, cfg.IdentityURL))
+			r.Post("/refresh", proxyTo(identityClient, cfg.IdentityURL))
+			r.Post("/logout", proxyTo(identityClient, cfg.IdentityURL))
+			r.Post("/logout-all", proxyTo(identityClient, cfg.IdentityURL))
+			r.Get("/sessions", proxyTo(identityClient, cfg.IdentityURL))
 		})
 
 		// Organization routes - proxy to Identity
-		r.Post("/orgs", proxyTo(cfg.IdentityURL))
+		r.Post("/orgs", proxyTo(identityClient, cfg.IdentityURL))
 
 		// Catalog routes
 		if catalogHandler != nil {
@@ -152,10 +163,10 @@ func main() {
 }
 
 // proxyTo creates a simple reverse proxy handler
-func proxyTo(target string) http.HandlerFunc {
+func proxyTo(client *http.Client, target string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Simple proxy - in production use httputil.ReverseProxy
-		client := &http.Client{Timeout: 10 * time.Second}
+		// Client is now injected (with Circuit Breaker)
 
 		proxyURL := target + r.URL.Path
 		if r.URL.RawQuery != "" {

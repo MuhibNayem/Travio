@@ -7,6 +7,7 @@ import (
 	"time"
 
 	orderpb "github.com/MuhibNayem/Travio/server/api/proto/order/v1"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,10 +17,11 @@ import (
 type OrderHandler struct {
 	conn   *grpc.ClientConn
 	client orderpb.OrderServiceClient
+	cb     *middleware.CircuitBreaker
 }
 
 // NewOrderHandler creates an order handler with gRPC connection
-func NewOrderHandler(orderURL string) (*OrderHandler, error) {
+func NewOrderHandler(orderURL string, cb *middleware.CircuitBreaker) (*OrderHandler, error) {
 	conn, err := grpc.NewClient(orderURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -27,6 +29,7 @@ func NewOrderHandler(orderURL string) (*OrderHandler, error) {
 	return &OrderHandler{
 		conn:   conn,
 		client: orderpb.NewOrderServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 
@@ -89,26 +92,29 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	resp, err := h.client.CreateOrder(ctx, &orderpb.CreateOrderRequest{
-		OrganizationId: orgID,
-		UserId:         userID,
-		TripId:         req.TripID,
-		FromStationId:  req.FromStationID,
-		ToStationId:    req.ToStationID,
-		HoldId:         req.HoldID,
-		Passengers:     passengers,
-		PaymentMethod: &orderpb.PaymentMethod{
-			Type:  req.PaymentMethod.Type,
-			Token: req.PaymentMethod.Token,
-		},
-		ContactEmail:   req.ContactEmail,
-		ContactPhone:   req.ContactPhone,
-		IdempotencyKey: idempotencyKey,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.CreateOrder(ctx, &orderpb.CreateOrderRequest{
+			OrganizationId: orgID,
+			UserId:         userID,
+			TripId:         req.TripID,
+			FromStationId:  req.FromStationID,
+			ToStationId:    req.ToStationID,
+			HoldId:         req.HoldID,
+			Passengers:     passengers,
+			PaymentMethod: &orderpb.PaymentMethod{
+				Type:  req.PaymentMethod.Type,
+				Token: req.PaymentMethod.Token,
+			},
+			ContactEmail:   req.ContactEmail,
+			ContactPhone:   req.ContactPhone,
+			IdempotencyKey: idempotencyKey,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to create order", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*orderpb.CreateOrderResponse)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -123,14 +129,17 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 	orderID := chi.URLParam(r, "orderId")
 	userID := r.Header.Get("X-User-ID")
 
-	resp, err := h.client.GetOrder(ctx, &orderpb.GetOrderRequest{
-		OrderId: orderID,
-		UserId:  userID,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.GetOrder(ctx, &orderpb.GetOrderRequest{
+			OrderId: orderID,
+			UserId:  userID,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Order not found", http.StatusNotFound)
 		return
 	}
+	resp := result.(*orderpb.Order)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orderToJSON(resp))
@@ -144,15 +153,18 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("X-User-ID")
 	pageToken := r.URL.Query().Get("pageToken")
 
-	resp, err := h.client.ListOrders(ctx, &orderpb.ListOrdersRequest{
-		UserId:    userID,
-		PageSize:  20,
-		PageToken: pageToken,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.ListOrders(ctx, &orderpb.ListOrdersRequest{
+			UserId:    userID,
+			PageSize:  20,
+			PageToken: pageToken,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to list orders", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*orderpb.ListOrdersResponse)
 
 	orders := make([]map[string]interface{}, 0, len(resp.Orders))
 	for _, o := range resp.Orders {
@@ -180,23 +192,26 @@ func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewDecoder(r.Body).Decode(&req)
 
-	resp, err := h.client.CancelOrder(ctx, &orderpb.CancelOrderRequest{
-		OrderId: orderID,
-		UserId:  userID,
-		Reason:  req.Reason,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.CancelOrder(ctx, &orderpb.CancelOrderRequest{
+			OrderId: orderID,
+			UserId:  userID,
+			Reason:  req.Reason,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to cancel order", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*orderpb.CancelOrderResponse)
 
-	result := map[string]interface{}{
+	response := map[string]interface{}{
 		"success": resp.Success,
 		"order":   orderToJSON(resp.Order),
 	}
 
 	if resp.Refund != nil {
-		result["refund"] = map[string]interface{}{
+		response["refund"] = map[string]interface{}{
 			"refundId":    resp.Refund.RefundId,
 			"amountPaisa": resp.Refund.AmountPaisa,
 			"status":      resp.Refund.Status,
@@ -204,7 +219,7 @@ func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(response)
 }
 
 // orderToJSON converts a protobuf Order to a JSON-friendly map

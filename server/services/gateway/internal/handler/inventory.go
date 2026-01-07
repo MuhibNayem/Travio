@@ -8,6 +8,7 @@ import (
 	"time"
 
 	inventorypb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,10 +18,11 @@ import (
 type InventoryHandler struct {
 	conn   *grpc.ClientConn
 	client inventorypb.InventoryServiceClient
+	cb     *middleware.CircuitBreaker
 }
 
 // NewInventoryHandler creates an inventory handler with gRPC connection
-func NewInventoryHandler(inventoryURL string) (*InventoryHandler, error) {
+func NewInventoryHandler(inventoryURL string, cb *middleware.CircuitBreaker) (*InventoryHandler, error) {
 	conn, err := grpc.NewClient(inventoryURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -28,6 +30,7 @@ func NewInventoryHandler(inventoryURL string) (*InventoryHandler, error) {
 	return &InventoryHandler{
 		conn:   conn,
 		client: inventorypb.NewInventoryServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 
@@ -44,16 +47,19 @@ func (h *InventoryHandler) CheckAvailability(w http.ResponseWriter, r *http.Requ
 		passengers = 1
 	}
 
-	resp, err := h.client.CheckAvailability(ctx, &inventorypb.CheckAvailabilityRequest{
-		TripId:        tripID,
-		FromStationId: fromStation,
-		ToStationId:   toStation,
-		Passengers:    int32(passengers),
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.CheckAvailability(ctx, &inventorypb.CheckAvailabilityRequest{
+			TripId:        tripID,
+			FromStationId: fromStation,
+			ToStationId:   toStation,
+			Passengers:    int32(passengers),
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to check availability", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*inventorypb.CheckAvailabilityResponse)
 
 	seats := make([]map[string]interface{}, 0)
 	for _, s := range resp.Seats {
@@ -84,15 +90,18 @@ func (h *InventoryHandler) GetSeatMap(w http.ResponseWriter, r *http.Request) {
 	fromStation := r.URL.Query().Get("from")
 	toStation := r.URL.Query().Get("to")
 
-	resp, err := h.client.GetSeatMap(ctx, &inventorypb.GetSeatMapRequest{
-		TripId:        tripID,
-		FromStationId: fromStation,
-		ToStationId:   toStation,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.GetSeatMap(ctx, &inventorypb.GetSeatMapRequest{
+			TripId:        tripID,
+			FromStationId: fromStation,
+			ToStationId:   toStation,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to get seat map", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*inventorypb.GetSeatMapResponse)
 
 	rows := make([]map[string]interface{}, 0)
 	for _, row := range resp.Rows {
@@ -147,19 +156,22 @@ func (h *InventoryHandler) HoldSeats(w http.ResponseWriter, r *http.Request) {
 		userID = "anonymous"
 	}
 
-	resp, err := h.client.HoldSeats(ctx, &inventorypb.HoldSeatsRequest{
-		TripId:              req.TripID,
-		FromStationId:       req.FromStationID,
-		ToStationId:         req.ToStationID,
-		SeatIds:             req.SeatIDs,
-		UserId:              userID,
-		SessionId:           req.SessionID,
-		HoldDurationSeconds: 600, // 10 minutes
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.HoldSeats(ctx, &inventorypb.HoldSeatsRequest{
+			TripId:              req.TripID,
+			FromStationId:       req.FromStationID,
+			ToStationId:         req.ToStationID,
+			SeatIds:             req.SeatIDs,
+			UserId:              userID,
+			SessionId:           req.SessionID,
+			HoldDurationSeconds: 600, // 10 minutes
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to hold seats", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*inventorypb.HoldSeatsResponse)
 
 	w.Header().Set("Content-Type", "application/json")
 	if resp.Success {
@@ -186,14 +198,17 @@ func (h *InventoryHandler) ReleaseHold(w http.ResponseWriter, r *http.Request) {
 	holdID := chi.URLParam(r, "holdId")
 	userID := r.Header.Get("X-User-ID")
 
-	resp, err := h.client.ReleaseSeats(ctx, &inventorypb.ReleaseSeatsRequest{
-		HoldId: holdID,
-		UserId: userID,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.ReleaseSeats(ctx, &inventorypb.ReleaseSeatsRequest{
+			HoldId: holdID,
+			UserId: userID,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to release hold", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*inventorypb.ReleaseSeatsResponse)
 
 	if resp.Success {
 		w.WriteHeader(http.StatusNoContent)

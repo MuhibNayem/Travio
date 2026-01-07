@@ -7,6 +7,7 @@ import (
 	"time"
 
 	catalogpb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -15,10 +16,11 @@ import (
 type CatalogHandler struct {
 	catalogConn *grpc.ClientConn
 	client      catalogpb.CatalogServiceClient
+	cb          *middleware.CircuitBreaker
 }
 
 // NewCatalogHandler creates a catalog handler with gRPC connection
-func NewCatalogHandler(catalogURL string) (*CatalogHandler, error) {
+func NewCatalogHandler(catalogURL string, cb *middleware.CircuitBreaker) (*CatalogHandler, error) {
 	conn, err := grpc.NewClient(catalogURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -26,6 +28,7 @@ func NewCatalogHandler(catalogURL string) (*CatalogHandler, error) {
 	return &CatalogHandler{
 		catalogConn: conn,
 		client:      catalogpb.NewCatalogServiceClient(conn),
+		cb:          cb,
 	}, nil
 }
 
@@ -34,13 +37,16 @@ func (h *CatalogHandler) ListStations(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := h.client.ListStations(ctx, &catalogpb.ListStationsRequest{
-		PageSize: 100,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.ListStations(ctx, &catalogpb.ListStationsRequest{
+			PageSize: 100,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to fetch stations", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*catalogpb.ListStationsResponse)
 
 	// Convert to JSON-friendly format
 	stations := make([]map[string]interface{}, 0, len(resp.Stations))
@@ -85,17 +91,20 @@ func (h *CatalogHandler) SearchTrips(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp, err := h.client.SearchTrips(ctx, &catalogpb.SearchTripsRequest{
-		OriginCity:      originCity,
-		DestinationCity: destCity,
-		TravelDate:      travelDate,
-		VehicleType:     vehicleType,
-		PageSize:        50,
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.SearchTrips(ctx, &catalogpb.SearchTripsRequest{
+			OriginCity:      originCity,
+			DestinationCity: destCity,
+			TravelDate:      travelDate,
+			VehicleType:     vehicleType,
+			PageSize:        50,
+		})
 	})
 	if err != nil {
 		http.Error(w, "Failed to search trips", http.StatusInternalServerError)
 		return
 	}
+	resp := result.(*catalogpb.SearchTripsResponse)
 
 	// Convert to JSON-friendly format
 	results := make([]map[string]interface{}, 0, len(resp.Results))
