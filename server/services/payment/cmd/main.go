@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/payment/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
@@ -9,12 +11,32 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/payment/config"
 	"github.com/MuhibNayem/Travio/server/services/payment/internal/gateway"
 	"github.com/MuhibNayem/Travio/server/services/payment/internal/handler"
+	"github.com/MuhibNayem/Travio/server/services/payment/internal/model"
+	"github.com/MuhibNayem/Travio/server/services/payment/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/payment/internal/service"
+	"github.com/MuhibNayem/Travio/server/services/payment/internal/worker"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
 	logger.Init("payment-service")
 	cfg := config.Load()
+
+	// Database
+	logger.Info("Connecting to PostgreSQL...")
+	// Using default local credentials consistent with other services
+	dsn := "postgres://postgres:postgres@localhost:5432/travio_payment?sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		logger.Error("Failed to connect to GORM DB", "error", err)
+	} else {
+		logger.Info("Connected to DB, running migrations...")
+		_ = db.AutoMigrate(&model.Transaction{})
+	}
+
+	repo := repository.NewTransactionRepository(db)
 
 	// Initialize payment gateways
 	registry := gateway.NewRegistry()
@@ -48,8 +70,12 @@ func main() {
 	})
 	registry.Register("nagad", nagad)
 
+	// Start Reconciliation Worker
+	reconciler := worker.NewReconciler(repo, registry, 5*time.Minute)
+	go reconciler.Start(context.Background())
+
 	// Service and handler
-	paymentService := service.NewPaymentService(registry)
+	paymentService := service.NewPaymentService(registry, repo)
 	grpcHandler := handler.NewGrpcHandler(paymentService, registry)
 
 	// HTTP mux for health and IPN webhooks
