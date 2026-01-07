@@ -10,6 +10,16 @@ service IdentityService {
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc CreateOrganization(CreateOrgRequest) returns (CreateOrgResponse);
+  
+  // Role & Member Management
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+
+  // Invites
+  rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse);
+  rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
+  rpc ListInvites(ListInvitesRequest) returns (ListInvitesResponse);
 }
 
 message RegisterRequest {
@@ -56,4 +66,88 @@ message CreateOrgRequest {
 
 message CreateOrgResponse {
   string organization_id = 1;
+}
+
+// --- Member Management Messages ---
+
+message ListMembersRequest {
+  string organization_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message Member {
+  string user_id = 1;
+  string email = 2;
+  string role = 3;
+  string status = 4;
+  string joined_at = 5;
+}
+
+message ListMembersResponse {
+  repeated Member members = 1;
+  int32 total = 2;
+}
+
+message UpdateUserRoleRequest {
+  string user_id = 1;
+  string new_role = 2;
+  string organization_id = 3; // For validation
+}
+
+message UpdateUserRoleResponse {
+  bool success = 1;
+}
+
+message RemoveMemberRequest {
+  string user_id = 1;
+  string organization_id = 2; // For validation
+}
+
+message RemoveMemberResponse {
+  bool success = 1;
+}
+
+// --- Invite Messages ---
+
+message CreateInviteRequest {
+  string email = 1;
+  string role = 2;
+  string organization_id = 3;
+}
+
+message CreateInviteResponse {
+  string invite_id = 1;
+  string token = 2; // In real app, sent via email. Here returned for testing.
+}
+
+message AcceptInviteRequest {
+  string token = 1;
+  string email = 2; // Validation
+  string password = 3; // New user password
+  string name = 4; // Optional profile info
+}
+
+message AcceptInviteResponse {
+  string user_id = 1;
+  string organization_id = 2;
+  string access_token = 3; // Auto-login
+  string refresh_token = 4;
+}
+
+message ListInvitesRequest {
+  string organization_id = 1;
+}
+
+message Invite {
+  string id = 1;
+  string email = 2;
+  string role = 3;
+  string status = 4;
+  string created_at = 5;
+  string token = 6; // Only shown if permissions allow (e.g. for re-sending)
+}
+
+message ListInvitesResponse {
+  repeated Invite invites = 1;
 }

@@ -37,7 +37,9 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	orgRepo := repository.NewOrgRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	authService := service.NewAuthService(userRepo, orgRepo, refreshTokenRepo, redisRepo)
+	inviteRepo := repository.NewInviteRepository(db)
+	notifier := service.NewLogNotificationService()
+	authService := service.NewAuthService(userRepo, orgRepo, refreshTokenRepo, redisRepo, inviteRepo, notifier)
 	authHandler := handler.NewAuthHandler(authService)
 
 	mux := http.NewServeMux()

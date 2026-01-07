@@ -18,7 +18,9 @@ type User struct {
 	PasswordHash   string    `json:"-"`
 	OrganizationID string    `json:"organization_id"`
 	Role           string    `json:"role"` // "admin", "agent", "user"
+	Status         string    `json:"status"`
 	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // RefreshToken represents a stored refresh token for revocation and rotation tracking

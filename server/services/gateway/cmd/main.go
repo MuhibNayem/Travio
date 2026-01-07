@@ -187,10 +187,18 @@ func main() {
 				r.Post("/login", identityHandler.Login)
 				r.Post("/refresh", identityHandler.RefreshToken)
 				r.Post("/logout", identityHandler.Logout)
+				r.Post("/invite/accept", identityHandler.AcceptInvite)
 			})
 
 			// Organization routes - gRPC to Identity
-			r.Post("/orgs", identityHandler.CreateOrganization)
+			r.Route("/orgs", func(r chi.Router) {
+				r.Post("/", identityHandler.CreateOrganization)
+				r.Post("/invites", identityHandler.CreateInvite)
+				r.Get("/invites", identityHandler.ListInvites)
+				r.Get("/members", identityHandler.ListMembers)
+				r.Put("/members/{userId}/role", identityHandler.UpdateUserRole)
+				r.Delete("/members/{userId}", identityHandler.RemoveMember)
+			})
 		}
 
 		// Catalog routes (public)
@@ -211,9 +219,10 @@ func main() {
 			r.Get("/pricing/rules", pricingHandler.GetPricingRules)
 		}
 
-		// Operator/Vendor routes (protected)
+		// Operator/Vendor routes (protected + admin only)
 		if operatorHandler != nil {
 			r.Route("/vendors", func(r chi.Router) {
+				r.Use(middleware.RequireRole("admin"))
 				r.Post("/", operatorHandler.CreateVendor)
 				r.Get("/", operatorHandler.ListVendors)
 				r.Get("/{id}", operatorHandler.GetVendor)

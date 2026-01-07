@@ -37,14 +37,11 @@ func (h *GrpcHandler) Register(ctx context.Context, req *identityv1.RegisterRequ
 }
 
 func (h *GrpcHandler) Login(ctx context.Context, req *identityv1.LoginRequest) (*identityv1.LoginResponse, error) {
-	// Note: In production, extract metadata from gRPC context for userAgent/IP
 	tokenPair, err := h.authService.Login(req.Email, req.Password, "grpc-client", "0.0.0.0")
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
-	// Proto currently only has Token field; return access_token for now
-	// TODO: Update proto to include refresh_token and expires_in
 	return &identityv1.LoginResponse{
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
@@ -53,7 +50,6 @@ func (h *GrpcHandler) Login(ctx context.Context, req *identityv1.LoginRequest) (
 }
 
 func (h *GrpcHandler) RefreshToken(ctx context.Context, req *identityv1.RefreshTokenRequest) (*identityv1.RefreshTokenResponse, error) {
-	// Note: In production, extract metadata from gRPC context for userAgent/IP
 	tokenPair, err := h.authService.RefreshTokens(req.RefreshToken, "grpc-client", "0.0.0.0")
 	if err != nil {
 		if err == service.ErrRefreshTokenReused {
@@ -83,4 +79,100 @@ func (h *GrpcHandler) CreateOrganization(ctx context.Context, req *identityv1.Cr
 	return &identityv1.CreateOrgResponse{
 		OrganizationId: org.ID,
 	}, nil
+}
+
+// --- Member Management ---
+
+func (h *GrpcHandler) ListMembers(ctx context.Context, req *identityv1.ListMembersRequest) (*identityv1.ListMembersResponse, error) {
+	users, total, err := h.authService.ListMembers(req.OrganizationId, int(req.Page), int(req.Limit))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var members []*identityv1.Member
+	for _, u := range users {
+		members = append(members, &identityv1.Member{
+			UserId:   u.ID,
+			Email:    u.Email,
+			Role:     u.Role,
+			Status:   u.Status,
+			JoinedAt: u.CreatedAt.String(),
+		})
+	}
+
+	return &identityv1.ListMembersResponse{
+		Members: members,
+		Total:   int32(total),
+	}, nil
+}
+
+func (h *GrpcHandler) UpdateUserRole(ctx context.Context, req *identityv1.UpdateUserRoleRequest) (*identityv1.UpdateUserRoleResponse, error) {
+	err := h.authService.UpdateMemberRole(req.UserId, req.OrganizationId, req.NewRole)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &identityv1.UpdateUserRoleResponse{Success: true}, nil
+}
+
+func (h *GrpcHandler) RemoveMember(ctx context.Context, req *identityv1.RemoveMemberRequest) (*identityv1.RemoveMemberResponse, error) {
+	err := h.authService.RemoveMember(req.UserId, req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &identityv1.RemoveMemberResponse{Success: true}, nil
+}
+
+// --- Invite Management ---
+
+func (h *GrpcHandler) CreateInvite(ctx context.Context, req *identityv1.CreateInviteRequest) (*identityv1.CreateInviteResponse, error) {
+	invite, err := h.authService.CreateInvite(req.Email, req.Role, req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &identityv1.CreateInviteResponse{
+		InviteId: invite.ID,
+		Token:    invite.Token,
+	}, nil
+}
+
+func (h *GrpcHandler) AcceptInvite(ctx context.Context, req *identityv1.AcceptInviteRequest) (*identityv1.AcceptInviteResponse, error) {
+	tokenPair, user, err := h.authService.AcceptInvite(req.Token, req.Email, req.Password, req.Name)
+	if err != nil {
+		if err == service.ErrInviteNotFound {
+			return nil, status.Error(codes.NotFound, "invite not found")
+		}
+		if err == service.ErrInviteExpired {
+			return nil, status.Error(codes.FailedPrecondition, "invite expired")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &identityv1.AcceptInviteResponse{
+		UserId:         user.ID,
+		OrganizationId: user.OrganizationID,
+		AccessToken:    tokenPair.AccessToken,
+		RefreshToken:   tokenPair.RefreshToken,
+	}, nil
+}
+
+func (h *GrpcHandler) ListInvites(ctx context.Context, req *identityv1.ListInvitesRequest) (*identityv1.ListInvitesResponse, error) {
+	invites, err := h.authService.ListInvites(req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var protoInvites []*identityv1.Invite
+	for _, i := range invites {
+		protoInvites = append(protoInvites, &identityv1.Invite{
+			Id:        i.ID,
+			Email:     i.Email,
+			Role:      i.Role,
+			Status:    i.Status,
+			Token:     i.Token,
+			CreatedAt: i.CreatedAt.String(),
+		})
+	}
+
+	return &identityv1.ListInvitesResponse{Invites: protoInvites}, nil
 }

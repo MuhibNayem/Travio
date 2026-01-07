@@ -29,14 +29,18 @@ type AuthService struct {
 	OrgRepo          *repository.OrgRepository
 	RefreshTokenRepo *repository.RefreshTokenRepository
 	RedisRepo        *repository.RedisRepository
+	InviteRepo       *repository.InviteRepository
+	Notifier         NotificationService
 }
 
-func NewAuthService(userRepo *repository.UserRepository, orgRepo *repository.OrgRepository, rtRepo *repository.RefreshTokenRepository, redisRepo *repository.RedisRepository) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, orgRepo *repository.OrgRepository, rtRepo *repository.RefreshTokenRepository, redisRepo *repository.RedisRepository, inviteRepo *repository.InviteRepository, notifier NotificationService) *AuthService {
 	return &AuthService{
 		UserRepo:         userRepo,
 		OrgRepo:          orgRepo,
 		RefreshTokenRepo: rtRepo,
 		RedisRepo:        redisRepo,
+		InviteRepo:       inviteRepo,
+		Notifier:         notifier,
 	}
 }
 

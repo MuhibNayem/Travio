@@ -64,3 +64,31 @@ func (c *IdentityClient) Logout(ctx context.Context, req *identityv1.LogoutReque
 func (c *IdentityClient) CreateOrganization(ctx context.Context, req *identityv1.CreateOrgRequest) (*identityv1.CreateOrgResponse, error) {
 	return c.client.CreateOrganization(ctx, req)
 }
+
+// --- Member Management ---
+
+func (c *IdentityClient) ListMembers(ctx context.Context, req *identityv1.ListMembersRequest) (*identityv1.ListMembersResponse, error) {
+	return c.client.ListMembers(ctx, req)
+}
+
+func (c *IdentityClient) UpdateUserRole(ctx context.Context, req *identityv1.UpdateUserRoleRequest) (*identityv1.UpdateUserRoleResponse, error) {
+	return c.client.UpdateUserRole(ctx, req)
+}
+
+func (c *IdentityClient) RemoveMember(ctx context.Context, req *identityv1.RemoveMemberRequest) (*identityv1.RemoveMemberResponse, error) {
+	return c.client.RemoveMember(ctx, req)
+}
+
+// --- Invite Management ---
+
+func (c *IdentityClient) CreateInvite(ctx context.Context, req *identityv1.CreateInviteRequest) (*identityv1.CreateInviteResponse, error) {
+	return c.client.CreateInvite(ctx, req)
+}
+
+func (c *IdentityClient) AcceptInvite(ctx context.Context, req *identityv1.AcceptInviteRequest) (*identityv1.AcceptInviteResponse, error) {
+	return c.client.AcceptInvite(ctx, req)
+}
+
+func (c *IdentityClient) ListInvites(ctx context.Context, req *identityv1.ListInvitesRequest) (*identityv1.ListInvitesResponse, error) {
+	return c.client.ListInvites(ctx, req)
+}

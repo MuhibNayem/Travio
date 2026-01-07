@@ -62,6 +62,27 @@ func (r *UserRepository) FindByID(id string) (*domain.User, error) {
 	return &user, nil
 }
 
+func (r *UserRepository) Update(user *domain.User) error {
+	user.UpdatedAt = time.Now()
+	query := `UPDATE users 
+	          SET email = $1, password_hash = $2, organization_id = $3, role = $4, updated_at = $5 
+			  WHERE id = $6`
+
+	result, err := r.DB.Exec(query, user.Email, user.PasswordHash, user.OrganizationID, user.Role, user.UpdatedAt, user.ID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
 type OrgRepository struct {
 	DB *sql.DB
 }
@@ -80,4 +101,18 @@ func (r *OrgRepository) Create(org *domain.Organization) error {
 
 	_, err := r.DB.Exec(query, org.ID, org.Name, org.PlanID, org.Status, org.CreatedAt)
 	return err
+}
+
+func (r *OrgRepository) FindByID(id string) (*domain.Organization, error) {
+	query := `SELECT id, name, plan_id, status, created_at FROM organizations WHERE id = $1`
+	row := r.DB.QueryRow(query, id)
+
+	var org domain.Organization
+	if err := row.Scan(&org.ID, &org.Name, &org.PlanID, &org.Status, &org.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("organization not found")
+		}
+		return nil, err
+	}
+	return &org, nil
 }

@@ -117,3 +117,26 @@ func RequireAuth(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// RequireRole ensures the user has the specified role
+func RequireRole(role string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userRole := GetUserRole(r.Context())
+			if userRole != role {
+				logger.Info("Unauthorized access attempt", "required_role", role, "user_role", userRole)
+				http.Error(w, `{"error": "insufficient permissions"}`, http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// GetUserRole extracts user role from context
+func GetUserRole(ctx context.Context) string {
+	if v, ok := ctx.Value(UserRoleKey).(string); ok {
+		return v
+	}
+	return ""
+}
