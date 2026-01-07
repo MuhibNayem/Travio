@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -27,13 +28,15 @@ type AuthService struct {
 	UserRepo         *repository.UserRepository
 	OrgRepo          *repository.OrgRepository
 	RefreshTokenRepo *repository.RefreshTokenRepository
+	RedisRepo        *repository.RedisRepository
 }
 
-func NewAuthService(userRepo *repository.UserRepository, orgRepo *repository.OrgRepository, rtRepo *repository.RefreshTokenRepository) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, orgRepo *repository.OrgRepository, rtRepo *repository.RefreshTokenRepository, redisRepo *repository.RedisRepository) *AuthService {
 	return &AuthService{
 		UserRepo:         userRepo,
 		OrgRepo:          orgRepo,
 		RefreshTokenRepo: rtRepo,
+		RedisRepo:        redisRepo,
 	}
 }
 
@@ -178,12 +181,20 @@ func (s *AuthService) RefreshTokens(refreshTokenString, userAgent, ipAddress str
 }
 
 // Logout revokes a specific refresh token (single device logout)
-func (s *AuthService) Logout(refreshTokenString string) error {
+func (s *AuthService) Logout(ctx context.Context, refreshTokenString string) error {
 	claims, err := auth.ValidateRefreshToken(refreshTokenString)
 	if err != nil {
-		return nil // Silently succeed even if token is invalid
+		return nil // Silently succeed
 	}
-	return s.RefreshTokenRepo.Revoke(claims.ID)
+
+	// 1. DB Update (Source of Truth)
+	if err := s.RefreshTokenRepo.Revoke(claims.ID); err != nil {
+		return err
+	}
+
+	// 2. Cache Update (Immediate consistency)
+	ttl := 7 * 24 * time.Hour
+	return s.RedisRepo.BlacklistToken(ctx, claims.ID, ttl)
 }
 
 // LogoutAll revokes all refresh tokens for a user (all devices)
@@ -210,4 +221,46 @@ func (s *AuthService) CreateOrganization(name, planID string) (*domain.Organizat
 		return nil, err
 	}
 	return org, nil
+}
+
+// ValidateToken parses and validates the token, checking the blacklist cache
+func (s *AuthService) ValidateToken(ctx context.Context, tokenString string) (*auth.AccessTokenClaims, error) {
+	// 1. Parse locally (CPU cheap compared to DB)
+	claims, err := auth.ValidateAccessToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Check Blacklist Cache (Fast Redis lookup)
+	if claims.ID != "" {
+		isRevoked, err := s.RedisRepo.IsBlacklisted(ctx, claims.ID)
+		if err != nil {
+			return nil, err
+		}
+		if isRevoked {
+			return nil, auth.ErrInvalidToken
+		}
+	}
+
+	return claims, nil
+}
+
+// GetUser returns user profile with Read-Through Caching
+func (s *AuthService) GetUser(ctx context.Context, userID string) (*domain.User, error) {
+	// 1. Check Cache
+	cachedUser, err := s.RedisRepo.GetUser(ctx, userID)
+	if err == nil && cachedUser != nil {
+		return cachedUser, nil
+	}
+
+	// 2. Cache Miss - Hit DB
+	user, err := s.UserRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Populate Cache
+	_ = s.RedisRepo.CacheUser(ctx, user, 1*time.Hour)
+
+	return user, nil
 }

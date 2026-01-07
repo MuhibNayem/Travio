@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/queue/config"
@@ -20,11 +21,17 @@ func main() {
 	cfg := config.Load()
 
 	// Initialize repository
-	repo := repository.NewQueueRepository(cfg.RedisAddr)
+	repo, err := repository.NewQueueRepository(cfg.RedisAddr)
+	if err != nil {
+		logger.Error("Failed to initialize queue repository", "error", err)
+		os.Exit(1)
+	}
 	defer repo.Close()
 
 	// Initialize service
-	queueService := service.NewQueueService(repo)
+	// In production, TOKEN_SECRET should come from secure config/vault
+	tokenSecret := "travio-super-secret-key-change-in-prod"
+	queueService := service.NewQueueService(repo, tokenSecret)
 
 	// gRPC server (commented out until proto is generated)
 	// grpcHandler := handler.NewGrpcHandler(queueService)

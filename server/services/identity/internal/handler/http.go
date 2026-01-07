@@ -140,7 +140,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = h.authService.Logout(req.RefreshToken)
+	_ = h.authService.Logout(r.Context(), req.RefreshToken)
 	w.WriteHeader(http.StatusNoContent)
 }
 

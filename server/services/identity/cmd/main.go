@@ -20,16 +20,24 @@ func main() {
 
 	// Database Setup
 	logger.Info("Connecting to Postgres...")
-	db, err := sql.Open("pgx", "postgres://user:pass@localhost:5432/travio_identity?sslmode=disable")
+	db, err := sql.Open("pgx", "postgres://user:pass@localhost:5432/travio_identity?sslmode=disable") // Use config in prod
 	if err != nil {
 		logger.Error("Failed to connect to DB", "error", err)
 	}
+
+	// Redis Setup
+	logger.Info("Connecting to Redis...")
+	redisRepo, err := repository.NewRedisRepository("localhost:6379") // Use config in prod
+	if err != nil {
+		logger.Error("Failed to connect to Redis", "error", err)
+	}
+	defer redisRepo.Close()
 
 	// Dependency Injection
 	userRepo := repository.NewUserRepository(db)
 	orgRepo := repository.NewOrgRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	authService := service.NewAuthService(userRepo, orgRepo, refreshTokenRepo)
+	authService := service.NewAuthService(userRepo, orgRepo, refreshTokenRepo, redisRepo)
 	authHandler := handler.NewAuthHandler(authService)
 
 	mux := http.NewServeMux()

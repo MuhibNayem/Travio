@@ -13,8 +13,10 @@ use (
 	./services/notification
 	./services/order
 	./services/payment
+	./services/pricing
 	./services/queue
 	./services/reporting
 	./services/search
 	./services/subscription
+	./services/vendor
 )
