@@ -14,8 +14,15 @@ type Config struct {
 	PaymentURL     string
 	FulfillmentURL string
 	SearchURL      string
+	PricingURL     string
+	QueueURL       string
 	RedisURL       string
+	JWTSecret      string
 	AllowedOrigins []string
+	// mTLS for gRPC clients
+	TLSCertFile string
+	TLSKeyFile  string
+	TLSCAFile   string
 }
 
 func Load() *Config {
@@ -29,11 +36,17 @@ func Load() *Config {
 		PaymentURL:     getEnv("PAYMENT_URL", "localhost:9085"),
 		FulfillmentURL: getEnv("FULFILLMENT_URL", "localhost:9086"),
 		SearchURL:      getEnv("SEARCH_URL", "localhost:9085"),
+		PricingURL:     getEnv("PRICING_URL", "localhost:50058"),
+		QueueURL:       getEnv("QUEUE_URL", "localhost:9089"),
 		RedisURL:       getEnv("REDIS_URL", "localhost:6379"),
+		JWTSecret:      getEnv("JWT_SECRET", "travio-secret-key-change-in-production"),
 		AllowedOrigins: []string{
 			"http://localhost:5173",
 			"http://localhost:3000",
 		},
+		TLSCertFile: getEnv("TLS_CERT_FILE", ""),
+		TLSKeyFile:  getEnv("TLS_KEY_FILE", ""),
+		TLSCAFile:   getEnv("TLS_CA_FILE", ""),
 	}
 }
 

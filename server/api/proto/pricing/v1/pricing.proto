@@ -23,11 +23,11 @@ service PricingService {
 
 message CalculatePriceRequest {
   string trip_id = 1;
-  string seat_class = 2;  // e.g., "economy", "business", "first"
-  string date = 3;        // YYYY-MM-DD
+  string seat_class = 2;
+  string date = 3;
   int32 quantity = 4;
-  int64 base_price_paisa = 5;  // Base price in paisa
-  double occupancy_rate = 6;   // 0.0 to 1.0
+  int64 base_price_paisa = 5;
+  double occupancy_rate = 6;
 }
 
 message CalculatePriceResponse {
@@ -46,9 +46,9 @@ message PricingRule {
   string id = 1;
   string name = 2;
   string description = 3;
-  string condition = 4;     // expr expression, e.g., "day_of_week == 'Saturday'"
-  double multiplier = 5;    // e.g., 1.20 for 20% increase
-  int32 priority = 6;       // Lower = higher priority
+  string condition = 4;
+  double multiplier = 5;
+  int32 priority = 6;
   bool is_active = 7;
   string created_at = 8;
   string updated_at = 9;

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/queue/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/queue/internal/service"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/queue/v1"
 )
@@ -55,8 +58,18 @@ func main() {
 		}
 	}()
 
-	// Start gRPC server
-	grpcServer := grpc.NewServer()
+	// Start gRPC server with optional mTLS
+	var grpcOpts []grpc.ServerOption
+	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" && cfg.TLSCAFile != "" {
+		creds, err := loadServerTLS(cfg.TLSCertFile, cfg.TLSKeyFile, cfg.TLSCAFile)
+		if err != nil {
+			logger.Error("Failed to load TLS, running without mTLS", "error", err)
+		} else {
+			grpcOpts = append(grpcOpts, grpc.Creds(creds))
+			logger.Info("mTLS enabled for gRPC server")
+		}
+	}
+	grpcServer := grpc.NewServer(grpcOpts...)
 	grpcHandler := handler.NewGrpcHandler(queueService)
 	pb.RegisterQueueServiceServer(grpcServer, grpcHandler)
 
@@ -70,4 +83,29 @@ func main() {
 	if err := grpcServer.Serve(lis); err != nil {
 		logger.Error("gRPC server error", "error", err)
 	}
+}
+
+// loadServerTLS loads mTLS credentials
+func loadServerTLS(certFile, keyFile, caFile string) (credentials.TransportCredentials, error) {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	caCert, err := os.ReadFile(caFile)
+	if err != nil {
+		return nil, err
+	}
+
+	caPool := x509.NewCertPool()
+	caPool.AppendCertsFromPEM(caCert)
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientCAs:    caPool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	return credentials.NewTLS(config), nil
 }

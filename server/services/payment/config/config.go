@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/server"
@@ -41,6 +42,10 @@ func Load() *Config {
 			GRPCPort: 9084, HTTPPort: 8084,
 			ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second,
 			ShutdownTimeout: 30 * time.Second,
+			// mTLS: Set via environment or use defaults for development
+			TLSCertFile: getEnv("TLS_CERT_FILE", ""),
+			TLSKeyFile:  getEnv("TLS_KEY_FILE", ""),
+			TLSCAFile:   getEnv("TLS_CA_FILE", ""),
 		},
 		SSLCommerz: SSLCommerzConfig{
 			StoreID: "your_store_id", StorePasswd: "your_store_passwd", IsSandbox: true,
@@ -54,4 +59,11 @@ func Load() *Config {
 			PublicKey: "nagad_public_key", PrivateKey: "your_private_key", IsSandbox: true,
 		},
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

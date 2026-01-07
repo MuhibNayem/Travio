@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/server"
@@ -39,6 +40,10 @@ func Load() *Config {
 			ReadTimeout:     10 * time.Second,
 			WriteTimeout:    10 * time.Second,
 			ShutdownTimeout: 30 * time.Second,
+			// mTLS: Set via environment or use defaults for development
+			TLSCertFile: getEnv("TLS_CERT_FILE", ""),
+			TLSKeyFile:  getEnv("TLS_KEY_FILE", ""),
+			TLSCAFile:   getEnv("TLS_CA_FILE", ""),
 		},
 		Database: DatabaseConfig{
 			Host: "localhost", Port: 5432, User: "postgres",
@@ -54,4 +59,11 @@ func Load() *Config {
 		QRSecretKey: "your-super-secret-key-for-qr-signing",
 		CompanyName: "Travio",
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

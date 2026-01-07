@@ -48,10 +48,14 @@ func main() {
 	orderCB := middleware.NewCircuitBreaker("order-service")
 	searchCB := middleware.NewCircuitBreaker("search-service")
 	_ = searchCB // Pending Search Update
-	identityCB := middleware.NewCircuitBreaker("identity-service")
+	// Note: All services now use gRPC clients (no HTTP circuit breakers needed)
 
-	// HTTP Client for Identity Proxy with Circuit Breaker
-	identityClient := identityCB.HTTPClient(10 * time.Second)
+	// TLS config for mTLS (reads from env vars)
+	tlsCfg := client.TLSConfig{
+		CertFile: cfg.TLSCertFile,
+		KeyFile:  cfg.TLSKeyFile,
+		CAFile:   cfg.TLSCAFile,
+	}
 
 	// Initialize gRPC handlers
 	catalogHandler, err := handler.NewCatalogHandler(cfg.CatalogURL, catalogCB)
@@ -84,28 +88,127 @@ func main() {
 		searchHandler = handler.NewSearchHandler(searchClient)
 	}
 
+	// Initialize gRPC clients for all remaining services
+	identityClient, err := client.NewIdentityClient(cfg.IdentityURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to identity service", "error", err)
+	} else {
+		defer identityClient.Close()
+	}
+
+	paymentClient, err := client.NewPaymentClient(cfg.PaymentURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to payment service", "error", err)
+	} else {
+		defer paymentClient.Close()
+	}
+
+	fulfillmentClient, err := client.NewFulfillmentClient(cfg.FulfillmentURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to fulfillment service", "error", err)
+	} else {
+		defer fulfillmentClient.Close()
+	}
+
+	queueClient, err := client.NewQueueClient(cfg.QueueURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to queue service", "error", err)
+	} else {
+		defer queueClient.Close()
+	}
+
+	pricingClient, err := client.NewPricingClient(cfg.PricingURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to pricing service", "error", err)
+	} else {
+		defer pricingClient.Close()
+	}
+
+	// Initialize handlers with gRPC clients
+	var identityHandler *handler.IdentityHandler
+	if identityClient != nil {
+		identityHandler = handler.NewIdentityHandler(identityClient)
+	}
+
+	var paymentHandler *handler.PaymentHandler
+	if paymentClient != nil {
+		paymentHandler = handler.NewPaymentHandler(paymentClient)
+	}
+
+	var fulfillmentHandler *handler.FulfillmentHandler
+	if fulfillmentClient != nil {
+		fulfillmentHandler = handler.NewFulfillmentHandler(fulfillmentClient)
+	}
+
+	var queueHandler *handler.QueueHandler
+	if queueClient != nil {
+		queueHandler = handler.NewQueueHandler(queueClient)
+	}
+
+	var pricingHandler *handler.PricingHandler
+	if pricingClient != nil {
+		pricingHandler = handler.NewPricingHandler(pricingClient)
+	}
+
+	// JWT Auth config
+	jwtAuth := middleware.JWTAuth(middleware.JWTConfig{
+		Secret: cfg.JWTSecret,
+		SkipPaths: []string{
+			"/health", "/ready",
+			"/v1/auth",
+			"/v1/stations", "/v1/trips",
+			"/v1/search",
+			"/v1/pricing/calculate",
+			"/v1/queue",
+		},
+	})
+
 	// API v1 routes
 	r.Route("/v1", func(r chi.Router) {
-		// Auth routes - proxy to Identity service
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", proxyTo(identityClient, cfg.IdentityURL))
-			r.Post("/login", proxyTo(identityClient, cfg.IdentityURL))
-			r.Post("/refresh", proxyTo(identityClient, cfg.IdentityURL))
-			r.Post("/logout", proxyTo(identityClient, cfg.IdentityURL))
-			r.Post("/logout-all", proxyTo(identityClient, cfg.IdentityURL))
-			r.Get("/sessions", proxyTo(identityClient, cfg.IdentityURL))
-		})
+		// Apply JWT auth globally, but skip paths as configured
+		r.Use(jwtAuth)
 
-		// Organization routes - proxy to Identity
-		r.Post("/orgs", proxyTo(identityClient, cfg.IdentityURL))
+		// Auth routes - gRPC to Identity service (public)
+		if identityHandler != nil {
+			r.Route("/auth", func(r chi.Router) {
+				r.Post("/register", identityHandler.Register)
+				r.Post("/login", identityHandler.Login)
+				r.Post("/refresh", identityHandler.RefreshToken)
+				r.Post("/logout", identityHandler.Logout)
+			})
 
-		// Catalog routes
+			// Organization routes - gRPC to Identity
+			r.Post("/orgs", identityHandler.CreateOrganization)
+		}
+
+		// Catalog routes (public)
 		if catalogHandler != nil {
 			r.Get("/stations", catalogHandler.ListStations)
 			r.Get("/trips/search", catalogHandler.SearchTrips)
 		}
 
-		// Inventory routes
+		// Search routes (public)
+		if searchHandler != nil {
+			r.Get("/search/trips", searchHandler.SearchTrips)
+			r.Get("/search/stations", searchHandler.SearchStations)
+		}
+
+		// Pricing routes (public)
+		if pricingHandler != nil {
+			r.Post("/pricing/calculate", pricingHandler.CalculatePrice)
+			r.Get("/pricing/rules", pricingHandler.GetPricingRules)
+		}
+
+		// Queue routes (public - for waiting room)
+		if queueHandler != nil {
+			r.Post("/queue/join", queueHandler.JoinQueue)
+			r.Get("/queue/position", queueHandler.GetQueuePosition)
+			r.Post("/queue/verify", queueHandler.VerifyQueueToken)
+		}
+
+		// === PROTECTED ROUTES (require auth) ===
+
+		// Inventory routes (protected)
 		if inventoryHandler != nil {
 			r.Get("/trips/{tripId}/availability", inventoryHandler.CheckAvailability)
 			r.Get("/trips/{tripId}/seatmap", inventoryHandler.GetSeatMap)
@@ -113,7 +216,7 @@ func main() {
 			r.Delete("/holds/{holdId}", inventoryHandler.ReleaseHold)
 		}
 
-		// Order routes
+		// Order routes (protected)
 		if orderHandler != nil {
 			r.Post("/orders", orderHandler.CreateOrder)
 			r.Get("/orders", orderHandler.ListOrders)
@@ -121,13 +224,20 @@ func main() {
 			r.Post("/orders/{orderId}/cancel", orderHandler.CancelOrder)
 		}
 
-		// Search routes (OpenSearch)
-		if searchHandler != nil {
-			r.Get("/search/trips", searchHandler.SearchTrips)
-			r.Get("/search/stations", searchHandler.SearchStations)
-			// Optional: Override catalog search if desired, or keep as alternative
-			// r.Get("/trips/search", searchHandler.SearchTrips)
+		// Payment routes (protected)
+		if paymentHandler != nil {
+			r.Get("/payments/methods", paymentHandler.GetPaymentMethods)
+			r.Post("/payments", paymentHandler.ProcessPayment)
+			r.Get("/payments/{orderId}", paymentHandler.GetPaymentStatus)
 		}
+
+		// Fulfillment/Ticket routes (protected)
+		if fulfillmentHandler != nil {
+			r.Get("/tickets/{ticketId}", fulfillmentHandler.GetTicket)
+			r.Get("/tickets/{ticketId}/download", fulfillmentHandler.DownloadTicket)
+			r.Get("/orders/{orderId}/tickets", fulfillmentHandler.GetOrderTickets)
+		}
+
 	})
 
 	// Create server with timeouts
