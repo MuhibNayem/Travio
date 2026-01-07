@@ -1,46 +1,79 @@
 package main
 
 import (
-	"log"
-	"net"
+	"context"
+	"database/sql"
+	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/MuhibNayem/Travio/server/pkg/logger"
+	"github.com/MuhibNayem/Travio/server/services/pricing/config"
+	"github.com/MuhibNayem/Travio/server/services/pricing/internal/handler"
+	"github.com/MuhibNayem/Travio/server/services/pricing/internal/repository"
+	"github.com/MuhibNayem/Travio/server/services/pricing/internal/service"
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "50058" // Default port for pricing service (adjust as needed to avoid conflicts)
-	}
+	logger.Init("pricing-service")
+	cfg := config.Load()
 
-	listener, err := net.Listen("tcp", ":"+port)
+	// Connect to PostgreSQL
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPass, cfg.DBName)
+
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		logger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// Initialize repository
+	repo := repository.NewPostgresRepository(db)
+	if err := repo.InitSchema(context.Background()); err != nil {
+		logger.Error("Failed to initialize schema", "error", err)
+	}
+	if err := repo.SeedDefaultRules(context.Background()); err != nil {
+		logger.Error("Failed to seed default rules", "error", err)
 	}
 
-	s := grpc.NewServer()
+	// Initialize service
+	svc, err := service.NewPricingService(repo)
+	if err != nil {
+		logger.Error("Failed to create pricing service", "error", err)
+		os.Exit(1)
+	}
 
-	// Register service implementation here
-	// pb.RegisterPricingServiceServer(s, &server{})
+	// Start HTTP server
+	httpHandler := handler.NewHTTPHandler(svc)
+	mux := http.NewServeMux()
+	httpHandler.RegisterRoutes(mux)
 
-	reflection.Register(s)
+	httpPort := fmt.Sprintf(":%d", cfg.GRPCPort)
+	server := &http.Server{
+		Addr:    httpPort,
+		Handler: mux,
+	}
 
-	log.Printf("Pricing service listening on port %s", port)
-
-	// Graceful shutdown
 	go func() {
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-		<-sigCh
-		log.Println("Received shutdown signal")
-		s.GracefulStop()
+		logger.Info("Pricing HTTP server starting", "port", cfg.GRPCPort)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server error", "error", err)
+		}
 	}()
 
-	if err := s.Serve(listener); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+	logger.Info("Pricing service started", "port", cfg.GRPCPort)
+
+	// Graceful shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	<-sigCh
+
+	logger.Info("Shutting down pricing service")
+	server.Shutdown(context.Background())
 }

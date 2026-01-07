@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package pricing.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/pricing/v1;pricingv1";
+
+service PricingService {
+  // Calculate final price based on rules
+  rpc CalculatePrice(CalculatePriceRequest) returns (CalculatePriceResponse);
+  
+  // Admin: Get all pricing rules
+  rpc GetRules(GetRulesRequest) returns (GetRulesResponse);
+  
+  // Admin: Create a new pricing rule
+  rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+  
+  // Admin: Update a pricing rule
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
+  
+  // Admin: Delete a pricing rule
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+}
+
+message CalculatePriceRequest {
+  string trip_id = 1;
+  string seat_class = 2;  // e.g., "economy", "business", "first"
+  string date = 3;        // YYYY-MM-DD
+  int32 quantity = 4;
+  int64 base_price_paisa = 5;  // Base price in paisa
+  double occupancy_rate = 6;   // 0.0 to 1.0
+}
+
+message CalculatePriceResponse {
+  int64 final_price_paisa = 1;
+  int64 base_price_paisa = 2;
+  repeated AppliedRule applied_rules = 3;
+}
+
+message AppliedRule {
+  string rule_id = 1;
+  string rule_name = 2;
+  double multiplier = 3;
+}
+
+message PricingRule {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string condition = 4;     // expr expression, e.g., "day_of_week == 'Saturday'"
+  double multiplier = 5;    // e.g., 1.20 for 20% increase
+  int32 priority = 6;       // Lower = higher priority
+  bool is_active = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message GetRulesRequest {
+  bool include_inactive = 1;
+}
+
+message GetRulesResponse {
+  repeated PricingRule rules = 1;
+}
+
+message CreateRuleRequest {
+  string name = 1;
+  string description = 2;
+  string condition = 3;
+  double multiplier = 4;
+  int32 priority = 5;
+}
+
+message CreateRuleResponse {
+  PricingRule rule = 1;
+}
+
+message UpdateRuleRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string condition = 4;
+  double multiplier = 5;
+  int32 priority = 6;
+  bool is_active = 7;
+}
+
+message UpdateRuleResponse {
+  PricingRule rule = 1;
+}
+
+message DeleteRuleRequest {
+  string id = 1;
+}
+
+message DeleteRuleResponse {
+  bool success = 1;
+}
