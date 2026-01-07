@@ -6,11 +6,18 @@ import (
 )
 
 // BookingSaga defines the saga steps for creating a ticket booking
-// Steps: ValidateNID -> HoldSeats -> ProcessPayment -> ConfirmBooking -> SendNotification
+// Steps: CheckEntitlement -> ValidateNID -> HoldSeats -> ProcessPayment -> ConfirmBooking -> RecordUsage -> SendNotification
 func NewBookingSaga(deps *BookingDependencies, req *BookingRequest) *Saga {
 	o := NewOrchestrator(nil, nil) // Persistence and DLQ handled by execution context
 
 	saga := o.CreateSaga("booking", []*Step{
+		{
+			Name: "check_entitlement",
+			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
+				return deps.checkEntitlement(ctx, sagaCtx, req)
+			},
+			// No compensation - this is a gate, not a mutation
+		},
 		{
 			Name: "validate_nid",
 			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
@@ -129,6 +136,17 @@ type PaymentClient interface {
 
 type SubscriptionClient interface {
 	RecordUsage(ctx context.Context, orgID, eventType string, units int64, idempotencyKey string) error
+	GetEntitlement(ctx context.Context, orgID string) (*EntitlementInfo, error)
+}
+
+// EntitlementInfo contains subscription entitlement data for enforcement
+type EntitlementInfo struct {
+	Status          string
+	PlanID          string
+	PlanName        string
+	Features        map[string]string
+	UsageThisPeriod map[string]int64
+	QuotaLimits     map[string]int64
 }
 
 type NotificationClient interface {
@@ -137,6 +155,42 @@ type NotificationClient interface {
 }
 
 // --- Step Implementations ---
+
+func (d *BookingDependencies) checkEntitlement(ctx context.Context, sagaCtx *SagaContext, req *BookingRequest) error {
+	// Skip entitlement check if no subscription service
+	if d.SubscriptionService == nil {
+		return nil
+	}
+
+	ent, err := d.SubscriptionService.GetEntitlement(ctx, req.OrgID)
+	if err != nil {
+		// Fail-open: log error but allow booking to proceed
+		fmt.Printf("Warning: Entitlement check failed for org %s: %v\n", req.OrgID, err)
+		return nil
+	}
+
+	if ent == nil {
+		return fmt.Errorf("organization %s has no active subscription", req.OrgID)
+	}
+
+	// Check subscription status
+	if ent.Status != "active" && ent.Status != "trialing" {
+		return fmt.Errorf("subscription is %s, active subscription required", ent.Status)
+	}
+
+	// Check booking quota if defined
+	if limit, ok := ent.QuotaLimits["max_bookings_per_month"]; ok {
+		usage := ent.UsageThisPeriod["ticket_sale"]
+		newUsage := usage + int64(len(req.Passengers))
+		if newUsage > limit {
+			return fmt.Errorf("booking quota exceeded: %d/%d (need %d more)", usage, limit, int64(len(req.Passengers)))
+		}
+	}
+
+	sagaCtx.Set("entitlement_verified", true)
+	sagaCtx.Set("plan_name", ent.PlanName)
+	return nil
+}
 
 func (d *BookingDependencies) validateNID(ctx context.Context, sagaCtx *SagaContext, req *BookingRequest) error {
 	for _, p := range req.Passengers {

@@ -36,50 +36,39 @@ func (f *SubscriptionFetcher) Close() error {
 	return nil
 }
 
-// FetchEntitlement retrieves entitlements from the Subscription service.
+// FetchEntitlement retrieves entitlements from the Subscription service using GetEntitlement RPC.
 func (f *SubscriptionFetcher) FetchEntitlement(ctx context.Context, orgID string) (*Entitlements, error) {
-	// Get subscription
-	sub, err := f.client.GetSubscription(ctx, &subscriptionv1.GetSubscriptionRequest{
+	resp, err := f.client.GetEntitlement(ctx, &subscriptionv1.GetEntitlementRequest{
 		OrganizationId: orgID,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if sub == nil {
+	if resp == nil {
 		return nil, nil // No subscription
 	}
 
-	// Get the plan to fetch features
-	plan, err := f.client.GetPlan(ctx, &subscriptionv1.GetPlanRequest{
-		PlanId: sub.PlanId,
-	})
-	if err != nil {
-		// Return subscription without plan features
-		return &Entitlements{
-			OrganizationID: orgID,
-			PlanID:         sub.PlanId,
-			Status:         sub.Status,
-			Features:       map[string]string{},
-			QuotaLimits:    map[string]int64{},
-		}, nil
-	}
-
-	// Build quota limits from features
+	// Build quota limits from features (numeric values)
 	quotaLimits := make(map[string]int64)
-	for key, value := range plan.Features {
+	for key, value := range resp.Features {
 		if num, err := strconv.ParseInt(value, 10, 64); err == nil {
 			quotaLimits[key] = num
 		}
 	}
 
+	// Merge with explicit quota limits from response
+	for key, value := range resp.QuotaLimits {
+		quotaLimits[key] = value
+	}
+
 	return &Entitlements{
-		OrganizationID:  orgID,
-		PlanID:          sub.PlanId,
-		PlanName:        plan.Name,
-		Status:          sub.Status,
-		Features:        plan.Features,
+		OrganizationID:  resp.OrganizationId,
+		PlanID:          resp.PlanId,
+		PlanName:        resp.PlanName,
+		Status:          resp.Status,
+		Features:        resp.Features,
 		QuotaLimits:     quotaLimits,
-		UsageThisPeriod: map[string]int64{}, // TODO: Fetch from usage tracking
+		UsageThisPeriod: resp.UsageThisPeriod,
 	}, nil
 }

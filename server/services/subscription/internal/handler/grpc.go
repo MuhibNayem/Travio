@@ -137,6 +137,29 @@ func (h *GRPCHandler) RecordUsage(ctx context.Context, req *pb.RecordUsageReques
 	return &pb.RecordUsageResponse{UsageId: usageID}, nil
 }
 
+func (h *GRPCHandler) GetEntitlement(ctx context.Context, req *pb.GetEntitlementRequest) (*pb.GetEntitlementResponse, error) {
+	ent, err := h.svc.GetEntitlement(ctx, req.OrganizationId)
+	if err != nil {
+		logger.Error("Failed to get entitlement", "error", err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if ent == nil {
+		return nil, status.Error(codes.NotFound, "no active subscription found")
+	}
+
+	return &pb.GetEntitlementResponse{
+		OrganizationId:  ent.OrganizationID,
+		PlanId:          ent.PlanID,
+		PlanName:        ent.PlanName,
+		Status:          ent.Status,
+		Features:        ent.Features,
+		UsageThisPeriod: ent.UsageThisPeriod,
+		QuotaLimits:     ent.QuotaLimits,
+		PeriodStart:     ent.PeriodStart.Format(time.RFC3339),
+		PeriodEnd:       ent.PeriodEnd.Format(time.RFC3339),
+	}, nil
+}
+
 // Helpers
 
 func toProtoPlan(p *repository.Plan) *pb.Plan {

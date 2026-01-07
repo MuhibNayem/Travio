@@ -177,6 +177,24 @@ func (c *SubscriptionClient) RecordUsage(ctx context.Context, orgID, eventType s
 	return err
 }
 
+func (c *SubscriptionClient) GetEntitlement(ctx context.Context, orgID string) (*saga.EntitlementInfo, error) {
+	resp, err := c.client.GetEntitlement(ctx, &subscriptionpb.GetEntitlementRequest{
+		OrganizationId: orgID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &saga.EntitlementInfo{
+		Status:          resp.Status,
+		PlanID:          resp.PlanId,
+		PlanName:        resp.PlanName,
+		Features:        resp.Features,
+		UsageThisPeriod: resp.UsageThisPeriod,
+		QuotaLimits:     resp.QuotaLimits,
+	}, nil
+}
+
 // NotificationClient implements saga.NotificationClient
 type NotificationClient struct {
 	// In production, this would be a gRPC client to notification service
