@@ -30,6 +30,9 @@ type Ticket struct {
 	QRCodeData string `json:"qr_code_data"`
 	QRCodeURL  string `json:"qr_code_url"`
 
+	// PDF
+	PDFURL string `json:"pdf_url"`
+
 	// Status
 	Status     TicketStatus `json:"status"`
 	CreatedAt  time.Time    `json:"created_at"`

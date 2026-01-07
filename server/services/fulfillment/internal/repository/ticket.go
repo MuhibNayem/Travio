@@ -30,15 +30,15 @@ func (r *TicketRepository) Create(ctx context.Context, ticket *domain.Ticket) er
 		from_station, to_station, departure_time, arrival_time,
 		passenger_nid, passenger_name, seat_number, seat_class,
 		price_paisa, currency, qr_code_data, qr_code_url,
-		status, created_at, valid_until
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
+		status, created_at, valid_until, pdf_url
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`
 
 	_, err := r.DB.ExecContext(ctx, query,
 		ticket.ID, ticket.BookingID, ticket.OrderID, ticket.OrganizationID,
 		ticket.TripID, ticket.RouteName, ticket.FromStation, ticket.ToStation,
 		ticket.DepartureTime, ticket.ArrivalTime, ticket.PassengerNID, ticket.PassengerName,
 		ticket.SeatNumber, ticket.SeatClass, ticket.PricePaisa, ticket.Currency,
-		ticket.QRCodeData, ticket.QRCodeURL, ticket.Status, ticket.CreatedAt, ticket.ValidUntil,
+		ticket.QRCodeData, ticket.QRCodeURL, ticket.Status, ticket.CreatedAt, ticket.ValidUntil, ticket.PDFURL,
 	)
 	return err
 }
@@ -48,7 +48,7 @@ func (r *TicketRepository) GetByID(ctx context.Context, id string) (*domain.Tick
 		from_station, to_station, departure_time, arrival_time,
 		passenger_nid, passenger_name, seat_number, seat_class,
 		price_paisa, currency, qr_code_data, qr_code_url,
-		status, created_at, valid_until, is_boarded, boarded_at, boarded_by
+		status, created_at, valid_until, is_boarded, boarded_at, boarded_by, pdf_url
 		FROM tickets WHERE id = $1`
 
 	var t domain.Ticket
@@ -60,7 +60,7 @@ func (r *TicketRepository) GetByID(ctx context.Context, id string) (*domain.Tick
 		&t.FromStation, &t.ToStation, &t.DepartureTime, &t.ArrivalTime,
 		&t.PassengerNID, &t.PassengerName, &t.SeatNumber, &t.SeatClass,
 		&t.PricePaisa, &t.Currency, &t.QRCodeData, &t.QRCodeURL,
-		&t.Status, &t.CreatedAt, &t.ValidUntil, &t.IsBoarded, &boardedAt, &boardedBy,
+		&t.Status, &t.CreatedAt, &t.ValidUntil, &t.IsBoarded, &boardedAt, &boardedBy, &t.PDFURL,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -84,7 +84,7 @@ func (r *TicketRepository) ListByOrder(ctx context.Context, orderID string) ([]*
 		from_station, to_station, departure_time, arrival_time,
 		passenger_nid, passenger_name, seat_number, seat_class,
 		price_paisa, currency, qr_code_data, qr_code_url,
-		status, created_at, valid_until, is_boarded
+		status, created_at, valid_until, is_boarded, pdf_url
 		FROM tickets WHERE order_id = $1 ORDER BY seat_number`
 
 	rows, err := r.DB.QueryContext(ctx, query, orderID)
@@ -101,7 +101,7 @@ func (r *TicketRepository) ListByOrder(ctx context.Context, orderID string) ([]*
 			&t.FromStation, &t.ToStation, &t.DepartureTime, &t.ArrivalTime,
 			&t.PassengerNID, &t.PassengerName, &t.SeatNumber, &t.SeatClass,
 			&t.PricePaisa, &t.Currency, &t.QRCodeData, &t.QRCodeURL,
-			&t.Status, &t.CreatedAt, &t.ValidUntil, &t.IsBoarded,
+			&t.Status, &t.CreatedAt, &t.ValidUntil, &t.IsBoarded, &t.PDFURL,
 		); err != nil {
 			return nil, err
 		}
@@ -135,8 +135,8 @@ func (r *TicketRepository) CreateBatch(ctx context.Context, tickets []*domain.Ti
 		from_station, to_station, departure_time, arrival_time,
 		passenger_nid, passenger_name, seat_number, seat_class,
 		price_paisa, currency, qr_code_data, qr_code_url,
-		status, created_at, valid_until
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`)
+		status, created_at, valid_until, pdf_url
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (r *TicketRepository) CreateBatch(ctx context.Context, tickets []*domain.Ti
 			t.TripID, t.RouteName, t.FromStation, t.ToStation,
 			t.DepartureTime, t.ArrivalTime, t.PassengerNID, t.PassengerName,
 			t.SeatNumber, t.SeatClass, t.PricePaisa, t.Currency,
-			t.QRCodeData, t.QRCodeURL, t.Status, t.CreatedAt, t.ValidUntil,
+			t.QRCodeData, t.QRCodeURL, t.Status, t.CreatedAt, t.ValidUntil, t.PDFURL,
 		)
 		if err != nil {
 			return err

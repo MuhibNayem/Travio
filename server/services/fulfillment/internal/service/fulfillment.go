@@ -9,23 +9,27 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/pdf"
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/qr"
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/repository"
+	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/storage"
 )
 
 type FulfillmentService struct {
 	ticketRepo   *repository.TicketRepository
 	qrGenerator  *qr.Generator
 	pdfGenerator *pdf.Generator
+	storage      storage.Provider
 }
 
 func NewFulfillmentService(
 	ticketRepo *repository.TicketRepository,
 	qrGen *qr.Generator,
 	pdfGen *pdf.Generator,
+	storage storage.Provider,
 ) *FulfillmentService {
 	return &FulfillmentService{
 		ticketRepo:   ticketRepo,
 		qrGenerator:  qrGen,
 		pdfGenerator: pdfGen,
+		storage:      storage,
 	}
 }
 
@@ -108,9 +112,23 @@ func (s *FulfillmentService) GenerateTickets(ctx context.Context, req *GenerateT
 		return nil, fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
+	// Upload to MinIO (Private)
+	objectKey := fmt.Sprintf("tickets/%s-%s.pdf", req.OrderID, req.BookingID)
+	_, err = s.storage.Upload(ctx, objectKey, pdfData, "application/pdf")
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload PDF: %w", err)
+	}
+
+	// Generate a Presigned URL for the response
+	presignedURL, err := s.storage.GetURL(ctx, objectKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign URL: %w", err)
+	}
+
 	return &GenerateTicketsResp{
 		Tickets: tickets,
-		PDFData: pdfData,
+		PDFURL:  presignedURL, // Return the signed URL
+		// PDFData: nil, // Don't return bytes
 	}, nil
 }
 

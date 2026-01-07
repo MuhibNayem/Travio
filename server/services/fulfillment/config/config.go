@@ -9,8 +9,17 @@ import (
 type Config struct {
 	Server      server.Config
 	Database    DatabaseConfig
+	MinIO       MinIOConfig
 	QRSecretKey string
 	CompanyName string
+}
+
+type MinIOConfig struct {
+	Endpoint        string
+	AccessKeyID     string
+	SecretAccessKey string
+	UseSSL          bool
+	BucketName      string
 }
 
 type DatabaseConfig struct {
@@ -34,6 +43,13 @@ func Load() *Config {
 		Database: DatabaseConfig{
 			Host: "localhost", Port: 5432, User: "postgres",
 			Password: "postgres", DBName: "travio_fulfillment", SSLMode: "disable",
+		},
+		MinIO: MinIOConfig{
+			Endpoint:        "localhost:9000",
+			AccessKeyID:     "minioadmin",
+			SecretAccessKey: "minioadmin",
+			UseSSL:          false,
+			BucketName:      "tickets",
 		},
 		QRSecretKey: "your-super-secret-key-for-qr-signing",
 		CompanyName: "Travio",

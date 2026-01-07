@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/qr"
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/service"
+	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -39,8 +41,26 @@ func main() {
 	qrGenerator := qr.NewGenerator(cfg.QRSecretKey)
 	pdfGenerator := pdf.NewGenerator(cfg.CompanyName, "")
 
+	minioProvider, err := storage.NewMinIOProvider(
+		cfg.MinIO.Endpoint,
+		cfg.MinIO.AccessKeyID,
+		cfg.MinIO.SecretAccessKey,
+		cfg.MinIO.BucketName,
+		cfg.MinIO.UseSSL,
+	)
+	if err != nil {
+		logger.Error("Failed to initialize MinIO provider", "error", err)
+		os.Exit(1)
+	}
+
+	// Ensure bucket exists (Private)
+	if err := minioProvider.EnsureBucket(context.Background()); err != nil {
+		logger.Error("Failed to ensure MinIO bucket", "error", err)
+		os.Exit(1)
+	}
+
 	// Service
-	fulfillmentService := service.NewFulfillmentService(ticketRepo, qrGenerator, pdfGenerator)
+	fulfillmentService := service.NewFulfillmentService(ticketRepo, qrGenerator, pdfGenerator, minioProvider)
 	grpcHandler := handler.NewGrpcHandler(fulfillmentService)
 
 	// Kafka consumer for order events
