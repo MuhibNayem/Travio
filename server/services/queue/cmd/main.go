@@ -11,6 +11,8 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/queue/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/queue/internal/service"
 	"google.golang.org/grpc"
+
+	pb "github.com/MuhibNayem/Travio/server/api/proto/queue/v1"
 )
 
 func main() {
@@ -49,7 +51,7 @@ func main() {
 	// Start gRPC server
 	grpcServer := grpc.NewServer()
 	grpcHandler := handler.NewGrpcHandler(queueService)
-	_ = grpcHandler // Register when proto is generated
+	pb.RegisterQueueServiceServer(grpcServer, grpcHandler)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
 	if err != nil {

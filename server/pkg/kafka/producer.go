@@ -88,6 +88,7 @@ const (
 	TopicInventory     = "travio.inventory"
 	TopicFulfillment   = "travio.fulfillment"
 	TopicNotifications = "travio.notifications"
+	TopicCatalog       = "travio.catalog"
 )
 
 // Event types
@@ -105,4 +106,6 @@ const (
 	EventSeatsBooked       = "inventory.seats_booked"
 	EventTicketGenerated   = "fulfillment.ticket_generated"
 	EventNotificationSent  = "notification.sent"
+	EventTripCreated       = "trip.created"
+	EventStationCreated    = "station.created"
 )

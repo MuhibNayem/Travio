@@ -3,6 +3,7 @@ module github.com/MuhibNayem/Travio/server/services/queue
 go 1.25.3
 
 require (
+	github.com/MuhibNayem/Travio/server/api v0.0.0
 	github.com/MuhibNayem/Travio/server/pkg v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.17.2
@@ -19,4 +20,7 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/MuhibNayem/Travio/server/pkg => ../../pkg
+replace (
+	github.com/MuhibNayem/Travio/server/api => ../../api
+	github.com/MuhibNayem/Travio/server/pkg => ../../pkg
+)

@@ -13,6 +13,7 @@ type Config struct {
 	OrderURL       string
 	PaymentURL     string
 	FulfillmentURL string
+	SearchURL      string
 	RedisURL       string
 	AllowedOrigins []string
 }
@@ -27,6 +28,7 @@ func Load() *Config {
 		OrderURL:       getEnv("ORDER_URL", "localhost:9084"),
 		PaymentURL:     getEnv("PAYMENT_URL", "localhost:9085"),
 		FulfillmentURL: getEnv("FULFILLMENT_URL", "localhost:9086"),
+		SearchURL:      getEnv("SEARCH_URL", "localhost:9085"),
 		RedisURL:       getEnv("REDIS_URL", "localhost:6379"),
 		AllowedOrigins: []string{
 			"http://localhost:5173",

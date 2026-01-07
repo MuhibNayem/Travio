@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package search.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/search/v1";
+
+service SearchService {
+  rpc SearchTrips(SearchTripsRequest) returns (SearchTripsResponse);
+  rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
+}
+
+message SearchTripsRequest {
+  string query = 1;
+  string from_station_id = 2;
+  string to_station_id = 3;
+  string date = 4;
+  int32 limit = 5;
+  int32 offset = 6;
+}
+
+message SearchTripsResponse {
+  repeated TripResult results = 1;
+  int32 total = 2;
+}
+
+message TripResult {
+  string trip_id = 1;
+  string route_name = 2;
+  string departure_time = 3;
+  string arrival_time = 4;
+  int64 price_paisa = 5;
+  string operator_name = 6;
+  string vehicle_type = 7;
+  int32 available_seats = 8;
+  string from_station_name = 9;
+  string to_station_name = 10;
+}
+
+message SearchStationsRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchStationsResponse {
+  repeated StationResult results = 1;
+}
+
+message StationResult {
+  string station_id = 1;
+  string name = 2;
+  string location = 3;
+  string division = 4;
+}

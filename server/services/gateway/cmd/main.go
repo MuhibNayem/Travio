@@ -11,6 +11,7 @@ import (
 
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/gateway/config"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/client"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"github.com/go-chi/chi/v5"
@@ -62,6 +63,15 @@ func main() {
 		defer orderHandler.Close()
 	}
 
+	var searchHandler *handler.SearchHandler
+	searchClient, err := client.NewSearchClient(cfg.SearchURL)
+	if err != nil {
+		logger.Error("Failed to connect to search service", "error", err)
+	} else {
+		defer searchClient.Close()
+		searchHandler = handler.NewSearchHandler(searchClient)
+	}
+
 	// API v1 routes
 	r.Route("/v1", func(r chi.Router) {
 		// Auth routes - proxy to Identity service
@@ -97,6 +107,14 @@ func main() {
 			r.Get("/orders", orderHandler.ListOrders)
 			r.Get("/orders/{orderId}", orderHandler.GetOrder)
 			r.Post("/orders/{orderId}/cancel", orderHandler.CancelOrder)
+		}
+
+		// Search routes (OpenSearch)
+		if searchHandler != nil {
+			r.Get("/search/trips", searchHandler.SearchTrips)
+			r.Get("/search/stations", searchHandler.SearchStations)
+			// Optional: Override catalog search if desired, or keep as alternative
+			// r.Get("/trips/search", searchHandler.SearchTrips)
 		}
 	})
 
