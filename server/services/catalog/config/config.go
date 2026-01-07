@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/server"
+	"github.com/MuhibNayem/Travio/server/services/catalog/internal/utils"
 )
 
 type Config struct {
 	Server   server.Config
 	Database DatabaseConfig
+	Redis    RedisConfig
 }
 
 type DatabaseConfig struct {
@@ -20,22 +22,33 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+}
+
 func Load() *Config {
 	return &Config{
 		Server: server.Config{
-			GRPCPort:        9082,
-			HTTPPort:        8082,
+			GRPCPort:        utils.GetEnvAsInt("GRPC_PORT", 9082),
+			HTTPPort:        utils.GetEnvAsInt("HTTP_PORT", 8082),
 			ReadTimeout:     10 * time.Second,
 			WriteTimeout:    10 * time.Second,
 			ShutdownTimeout: 30 * time.Second,
 		},
 		Database: DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "postgres",
-			DBName:   "travio_catalog",
-			SSLMode:  "disable",
+			Host:     utils.GetEnv("DB_HOST", "localhost"),
+			Port:     utils.GetEnvAsInt("DB_PORT", 5432),
+			User:     utils.GetEnv("DB_USER", "postgres"),
+			Password: utils.GetEnv("DB_PASSWORD", "postgres"),
+			DBName:   utils.GetEnv("DB_NAME", "travio_catalog"),
+			SSLMode:  utils.GetEnv("DB_SSLMODE", "disable"),
+		},
+		Redis: RedisConfig{
+			Addr:     utils.GetEnv("REDIS_ADDR", "localhost:6379"),
+			Password: utils.GetEnv("REDIS_PASSWORD", ""),
+			DB:       utils.GetEnvAsInt("REDIS_DB", 0),
 		},
 	}
 }

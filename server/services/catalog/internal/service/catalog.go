@@ -12,15 +12,15 @@ import (
 
 // CatalogService handles business logic for catalog operations
 type CatalogService struct {
-	stationRepo *repository.StationRepository
-	routeRepo   *repository.RouteRepository
-	tripRepo    *repository.TripRepository
+	stationRepo repository.StationRepository
+	routeRepo   repository.RouteRepository
+	tripRepo    repository.TripRepository
 }
 
 func NewCatalogService(
-	stationRepo *repository.StationRepository,
-	routeRepo *repository.RouteRepository,
-	tripRepo *repository.TripRepository,
+	stationRepo repository.StationRepository,
+	routeRepo repository.RouteRepository,
+	tripRepo repository.TripRepository,
 ) *CatalogService {
 	return &CatalogService{
 		stationRepo: stationRepo,

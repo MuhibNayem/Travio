@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
@@ -12,6 +13,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/service"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -20,16 +22,31 @@ func main() {
 
 	// Database Setup
 	logger.Info("Connecting to Postgres...")
-	db, err := sql.Open("pgx", "postgres://user:pass@localhost:5432/travio_catalog?sslmode=disable")
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.Database.User, cfg.Database.Password, cfg.Database.Host,
+		cfg.Database.Port, cfg.Database.DBName, cfg.Database.SSLMode)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		logger.Error("Failed to connect to DB", "error", err)
 	}
 
-	// Dependency Injection
+	// Redis Setup
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
+	// Dependency Injection (With Caching Decorators)
 	stationRepo := repository.NewStationRepository(db)
+	cachedStationRepo := repository.NewCachedStationRepository(stationRepo, rdb)
+
 	routeRepo := repository.NewRouteRepository(db)
+	cachedRouteRepo := repository.NewCachedRouteRepository(routeRepo, rdb)
+
 	tripRepo := repository.NewTripRepository(db)
-	catalogService := service.NewCatalogService(stationRepo, routeRepo, tripRepo)
+
+	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, tripRepo)
 	grpcHandler := handler.NewGrpcHandler(catalogService)
 
 	// HTTP Mux (for health checks and REST fallback)

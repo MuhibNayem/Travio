@@ -19,16 +19,16 @@ var (
 	ErrDuplicateCode   = errors.New("code already exists")
 )
 
-// StationRepository handles station persistence
-type StationRepository struct {
+// PostgresStationRepository handles station persistence
+type PostgresStationRepository struct {
 	DB *sql.DB
 }
 
-func NewStationRepository(db *sql.DB) *StationRepository {
-	return &StationRepository{DB: db}
+func NewStationRepository(db *sql.DB) *PostgresStationRepository {
+	return &PostgresStationRepository{DB: db}
 }
 
-func (r *StationRepository) Create(ctx context.Context, station *domain.Station) error {
+func (r *PostgresStationRepository) Create(ctx context.Context, station *domain.Station) error {
 	station.ID = uuid.New().String()
 	station.CreatedAt = time.Now()
 	station.UpdatedAt = time.Now()
@@ -48,7 +48,7 @@ func (r *StationRepository) Create(ctx context.Context, station *domain.Station)
 	return err
 }
 
-func (r *StationRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Station, error) {
+func (r *PostgresStationRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Station, error) {
 	query := `SELECT id, organization_id, code, name, city, state, country, latitude, longitude, 
 			  timezone, address, amenities, status, created_at, updated_at 
 			  FROM stations WHERE id = $1 AND organization_id = $2`
@@ -72,7 +72,7 @@ func (r *StationRepository) GetByID(ctx context.Context, id, orgID string) (*dom
 	return &station, nil
 }
 
-func (r *StationRepository) List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error) {
+func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error) {
 	var args []interface{}
 	whereClause := "WHERE organization_id = $1"
 	args = append(args, orgID)
@@ -118,7 +118,7 @@ func (r *StationRepository) List(ctx context.Context, orgID, city string, limit,
 	return stations, total, nil
 }
 
-func (r *StationRepository) Update(ctx context.Context, station *domain.Station) error {
+func (r *PostgresStationRepository) Update(ctx context.Context, station *domain.Station) error {
 	station.UpdatedAt = time.Now()
 	amenitiesJSON, _ := json.Marshal(station.Amenities)
 
@@ -140,7 +140,7 @@ func (r *StationRepository) Update(ctx context.Context, station *domain.Station)
 	return nil
 }
 
-func (r *StationRepository) Delete(ctx context.Context, id, orgID string) error {
+func (r *PostgresStationRepository) Delete(ctx context.Context, id, orgID string) error {
 	query := `DELETE FROM stations WHERE id = $1 AND organization_id = $2`
 	result, err := r.DB.ExecContext(ctx, query, id, orgID)
 	if err != nil {
@@ -153,16 +153,16 @@ func (r *StationRepository) Delete(ctx context.Context, id, orgID string) error 
 	return nil
 }
 
-// RouteRepository handles route persistence
-type RouteRepository struct {
+// PostgresRouteRepository handles route persistence
+type PostgresRouteRepository struct {
 	DB *sql.DB
 }
 
-func NewRouteRepository(db *sql.DB) *RouteRepository {
-	return &RouteRepository{DB: db}
+func NewRouteRepository(db *sql.DB) *PostgresRouteRepository {
+	return &PostgresRouteRepository{DB: db}
 }
 
-func (r *RouteRepository) Create(ctx context.Context, route *domain.Route) error {
+func (r *PostgresRouteRepository) Create(ctx context.Context, route *domain.Route) error {
 	route.ID = uuid.New().String()
 	route.CreatedAt = time.Now()
 	route.UpdatedAt = time.Now()
@@ -182,7 +182,7 @@ func (r *RouteRepository) Create(ctx context.Context, route *domain.Route) error
 	return err
 }
 
-func (r *RouteRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Route, error) {
+func (r *PostgresRouteRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Route, error) {
 	query := `SELECT id, organization_id, code, name, origin_station_id, destination_station_id,
 			  intermediate_stops, distance_km, estimated_duration_minutes, status, created_at, updated_at
 			  FROM routes WHERE id = $1 AND organization_id = $2`
@@ -206,7 +206,7 @@ func (r *RouteRepository) GetByID(ctx context.Context, id, orgID string) (*domai
 	return &route, nil
 }
 
-func (r *RouteRepository) List(ctx context.Context, orgID, originID, destID string, limit, offset int) ([]*domain.Route, int, error) {
+func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, destID string, limit, offset int) ([]*domain.Route, int, error) {
 	var args []interface{}
 	whereClause := "WHERE organization_id = $1"
 	args = append(args, orgID)
@@ -258,16 +258,16 @@ func (r *RouteRepository) List(ctx context.Context, orgID, originID, destID stri
 	return routes, total, nil
 }
 
-// TripRepository handles trip persistence
-type TripRepository struct {
+// PostgresTripRepository handles trip persistence
+type PostgresTripRepository struct {
 	DB *sql.DB
 }
 
-func NewTripRepository(db *sql.DB) *TripRepository {
-	return &TripRepository{DB: db}
+func NewTripRepository(db *sql.DB) *PostgresTripRepository {
+	return &PostgresTripRepository{DB: db}
 }
 
-func (r *TripRepository) Create(ctx context.Context, trip *domain.Trip) error {
+func (r *PostgresTripRepository) Create(ctx context.Context, trip *domain.Trip) error {
 	trip.ID = uuid.New().String()
 	trip.CreatedAt = time.Now()
 	trip.UpdatedAt = time.Now()
@@ -290,7 +290,7 @@ func (r *TripRepository) Create(ctx context.Context, trip *domain.Trip) error {
 	return err
 }
 
-func (r *TripRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Trip, error) {
+func (r *PostgresTripRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Trip, error) {
 	query := `SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
 			  departure_time, arrival_time, total_seats, available_seats, pricing, status, segments,
 			  created_at, updated_at
@@ -317,7 +317,7 @@ func (r *TripRepository) GetByID(ctx context.Context, id, orgID string) (*domain
 	return &trip, nil
 }
 
-func (r *TripRepository) Search(ctx context.Context, orgID, originCity, destCity string, travelDate time.Time, limit, offset int) ([]*domain.Trip, int, error) {
+func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, destCity string, travelDate time.Time, limit, offset int) ([]*domain.Trip, int, error) {
 	// Complex search joining trips, routes, stations
 	query := `
 		SELECT t.id, t.organization_id, t.route_id, t.vehicle_id, t.vehicle_type, t.vehicle_class,
@@ -362,13 +362,13 @@ func (r *TripRepository) Search(ctx context.Context, orgID, originCity, destCity
 	return trips, len(trips), nil
 }
 
-func (r *TripRepository) UpdateStatus(ctx context.Context, id, orgID, status string) error {
+func (r *PostgresTripRepository) UpdateStatus(ctx context.Context, id, orgID, status string) error {
 	query := `UPDATE trips SET status = $1, updated_at = $2 WHERE id = $3 AND organization_id = $4`
 	_, err := r.DB.ExecContext(ctx, query, status, time.Now(), id, orgID)
 	return err
 }
 
-func (r *TripRepository) DecrementSeats(ctx context.Context, id string, count int) error {
+func (r *PostgresTripRepository) DecrementSeats(ctx context.Context, id string, count int) error {
 	query := `UPDATE trips SET available_seats = available_seats - $1, updated_at = $2 
 			  WHERE id = $3 AND available_seats >= $1`
 	result, err := r.DB.ExecContext(ctx, query, count, time.Now(), id)
