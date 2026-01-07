@@ -48,9 +48,11 @@ func main() {
 	})
 
 	// Dependency Injection
+	// Dependency Injection
 	scyllaRepo := repository.NewScyllaRepository(scyllaSession)
+	redisRepo := repository.NewRedisRepository(redisClient)
 	holdRepo := repository.NewHoldRepository(redisClient)
-	inventoryService := service.NewInventoryService(scyllaRepo, holdRepo)
+	inventoryService := service.NewInventoryService(scyllaRepo, holdRepo, redisRepo)
 	grpcHandler := handler.NewGrpcHandler(inventoryService)
 
 	// HTTP Mux

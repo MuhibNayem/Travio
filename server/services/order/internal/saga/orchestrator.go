@@ -7,7 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/MuhibNayem/Travio/server/services/order/internal/messaging"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // Orchestrator implements the Saga Orchestration pattern
@@ -17,12 +19,33 @@ type Orchestrator struct {
 	mu        sync.Mutex
 	sagas     map[string]*Saga
 	listeners []StatusListener
+	db        *gorm.DB
+	dlq       messaging.DLQProducer
 }
 
-func NewOrchestrator() *Orchestrator {
+func NewOrchestrator(db *gorm.DB, dlq messaging.DLQProducer) *Orchestrator {
+	// AutoMigrate the schema
+	if db != nil {
+		_ = db.AutoMigrate(&SagaInstance{})
+	}
 	return &Orchestrator{
 		sagas: make(map[string]*Saga),
+		db:    db,
+		dlq:   dlq,
 	}
+}
+
+// SagaInstance represents the persistent state of a saga
+type SagaInstance struct {
+	ID            string `gorm:"primaryKey"`
+	Name          string `gorm:"index"`
+	Status        string `gorm:"index"`
+	CurrentStep   int
+	Payload       []byte `gorm:"type:jsonb"` // Ensure Postgres support or text
+	FailureReason string
+	StartedAt     time.Time
+	CompletedAt   time.Time
+	UpdatedAt     time.Time
 }
 
 // Saga represents a distributed transaction
@@ -154,6 +177,18 @@ func (o *Orchestrator) Execute(ctx context.Context, saga *Saga) error {
 	saga.mu.Unlock()
 	o.notify(saga, nil, "saga_started")
 
+	// Persist initial state
+	if o.db != nil {
+		instance := SagaInstance{
+			ID:          saga.ID,
+			Name:        saga.Name,
+			Status:      string(saga.Status),
+			CurrentStep: -1,
+			StartedAt:   saga.StartedAt,
+		}
+		o.db.Create(&instance)
+	}
+
 	for i, step := range saga.Steps {
 		saga.mu.Lock()
 		saga.CurrentStep = i
@@ -162,6 +197,15 @@ func (o *Orchestrator) Execute(ctx context.Context, saga *Saga) error {
 		saga.mu.Unlock()
 
 		o.notify(saga, step, "step_started")
+
+		// Persist Step Update
+		if o.db != nil {
+			o.db.Model(&SagaInstance{}).Where("id = ?", saga.ID).Updates(map[string]interface{}{
+				"current_step": i,
+				"status":       "running",
+				"updated_at":   time.Now(),
+			})
+		}
 
 		// Execute the step
 		err := step.ExecuteFn(ctx, saga.Context)
@@ -193,6 +237,14 @@ func (o *Orchestrator) Execute(ctx context.Context, saga *Saga) error {
 	saga.mu.Unlock()
 	o.notify(saga, nil, "saga_completed")
 
+	if o.db != nil {
+		o.db.Model(&SagaInstance{}).Where("id = ?", saga.ID).Updates(map[string]interface{}{
+			"status":       "completed",
+			"completed_at": time.Now(),
+			"updated_at":   time.Now(),
+		})
+	}
+
 	return nil
 }
 
@@ -202,6 +254,14 @@ func (o *Orchestrator) compensate(ctx context.Context, saga *Saga, failedStepIdx
 	saga.Status = StatusCompensating
 	saga.mu.Unlock()
 	o.notify(saga, nil, "compensation_started")
+
+	if o.db != nil {
+		o.db.Model(&SagaInstance{}).Where("id = ?", saga.ID).Updates(map[string]interface{}{
+			"status":         "compensating",
+			"updated_at":     time.Now(),
+			"failure_reason": saga.FailureReason,
+		})
+	}
 
 	var compensationErrors []error
 
@@ -220,6 +280,14 @@ func (o *Orchestrator) compensate(ctx context.Context, saga *Saga, failedStepIdx
 		saga.mu.Lock()
 		if err != nil {
 			compensationErrors = append(compensationErrors, fmt.Errorf("compensation for '%s' failed: %w", step.Name, err))
+
+			// Publish to DLQ if compensation fails (unrecoverable error)
+			if o.dlq != nil {
+				// Best effort publish
+				go o.dlq.PublishError(saga.ID, step.Name, err.Error(), nil)
+				// Pass `nil` payload for now to avoid data race on saga.Context.data
+			}
+
 			// Continue compensating other steps even if one fails
 		} else {
 			step.Compensated = true
@@ -241,6 +309,18 @@ func (o *Orchestrator) compensate(ctx context.Context, saga *Saga, failedStepIdx
 	saga.mu.Unlock()
 
 	o.notify(saga, nil, "saga_compensated")
+
+	if o.db != nil {
+		finalStatus := "compensated"
+		if len(compensationErrors) > 0 {
+			finalStatus = "failed"
+		}
+		o.db.Model(&SagaInstance{}).Where("id = ?", saga.ID).Updates(map[string]interface{}{
+			"status":       finalStatus,
+			"completed_at": time.Now(),
+			"updated_at":   time.Now(),
+		})
+	}
 
 	if len(compensationErrors) > 0 {
 		return errors.Join(compensationErrors...)

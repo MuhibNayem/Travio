@@ -8,8 +8,10 @@ import (
 
 	"github.com/MuhibNayem/Travio/server/services/order/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/events"
+	"github.com/MuhibNayem/Travio/server/services/order/internal/messaging"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/saga"
+	"gorm.io/gorm"
 )
 
 const (
@@ -28,6 +30,8 @@ type OrderService struct {
 
 func NewOrderService(
 	db *sql.DB,
+	gormDB *gorm.DB,
+	dlq messaging.DLQProducer,
 	orderRepo *repository.OrderRepository,
 	sagaDeps *saga.BookingDependencies,
 ) *OrderService {
@@ -35,7 +39,7 @@ func NewOrderService(
 		db:           db,
 		orderRepo:    orderRepo,
 		sagaDeps:     sagaDeps,
-		orchestrator: saga.NewOrchestrator(),
+		orchestrator: saga.NewOrchestrator(gormDB, dlq),
 		publisher:    events.NewPublisher(db),
 	}
 }

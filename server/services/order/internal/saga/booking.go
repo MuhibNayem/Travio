@@ -8,9 +8,9 @@ import (
 // BookingSaga defines the saga steps for creating a ticket booking
 // Steps: ValidateNID -> HoldSeats -> ProcessPayment -> ConfirmBooking -> SendNotification
 func NewBookingSaga(deps *BookingDependencies, req *BookingRequest) *Saga {
-	orchestrator := NewOrchestrator()
+	o := NewOrchestrator(nil, nil) // Persistence and DLQ handled by execution context
 
-	saga := orchestrator.CreateSaga("booking", []*Step{
+	saga := o.CreateSaga("booking", []*Step{
 		{
 			Name: "validate_nid",
 			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
@@ -243,12 +243,16 @@ func (d *BookingDependencies) sendNotification(ctx context.Context, sagaCtx *Sag
 	return nil
 }
 
-// --- Cancellation Saga ---
+// NewCancellationSaga creates a new cancellation saga
+func NewCancellationSaga(
+	deps *BookingDependencies,
+	orderID, userID, bookingID, paymentID string,
+	email, phone string,
+	amount int64,
+) *Saga {
+	o := NewOrchestrator(nil, nil) // Persistence and DLQ handled by execution context
 
-func NewCancellationSaga(deps *BookingDependencies, orderID, userID, bookingID, paymentID, email, phone string, refundAmount int64) *Saga {
-	orchestrator := NewOrchestrator()
-
-	saga := orchestrator.CreateSaga("cancellation", []*Step{
+	saga := o.CreateSaga("cancellation", []*Step{
 		{
 			Name: "cancel_booking",
 			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
@@ -258,7 +262,7 @@ func NewCancellationSaga(deps *BookingDependencies, orderID, userID, bookingID, 
 		{
 			Name: "process_refund",
 			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
-				refundID, err := deps.PaymentService.Refund(ctx, paymentID, refundAmount)
+				refundID, err := deps.PaymentService.Refund(ctx, paymentID, amount)
 				if err != nil {
 					return err
 				}

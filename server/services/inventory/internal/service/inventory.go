@@ -18,12 +18,14 @@ const (
 type InventoryService struct {
 	scyllaRepo *repository.ScyllaRepository
 	holdRepo   *repository.HoldRepository
+	redisRepo  *repository.RedisRepository
 }
 
-func NewInventoryService(scyllaRepo *repository.ScyllaRepository, holdRepo *repository.HoldRepository) *InventoryService {
+func NewInventoryService(scyllaRepo *repository.ScyllaRepository, holdRepo *repository.HoldRepository, redisRepo *repository.RedisRepository) *InventoryService {
 	return &InventoryService{
 		scyllaRepo: scyllaRepo,
 		holdRepo:   holdRepo,
+		redisRepo:  redisRepo,
 	}
 }
 
@@ -95,7 +97,41 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 		return nil, err
 	}
 
-	// Check availability
+	// Optimistic Pre-Lock with Redis
+	// Purpose: Fail fast if another user is processing the same seat, protecting DB from heavy LWTs
+	lockedSeats := make([]string, 0, len(req.SeatIDs))
+	// We use a clean-up function to release locks
+	defer func() {
+		go func() {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			for _, seatID := range lockedSeats {
+				for _, segIdx := range segmentRange {
+					s.redisRepo.ReleaseSeatLock(bgCtx, req.TripID, seatID, segIdx, req.UserID)
+				}
+			}
+		}()
+	}()
+
+	for _, seatID := range req.SeatIDs {
+		// Acquire lock for ALL segments involved
+		for _, segIdx := range segmentRange {
+			acquired, err := s.redisRepo.AcquireSeatLock(ctx, req.TripID, seatID, segIdx, req.UserID, 10*time.Second)
+			if err != nil {
+				return nil, err
+			}
+			if !acquired {
+				return &HoldResult{
+					Success:       false,
+					FailureReason: "seat query contention - please retry",
+				}, nil
+			}
+		}
+		// Track successfully locked seats for deferred release
+		lockedSeats = append(lockedSeats, seatID)
+	}
+
+	// Check availability (Scylla)
 	available, unavailableReasons, err := s.scyllaRepo.CheckSeatsAvailableForSegments(ctx, req.TripID, req.SeatIDs, segmentRange)
 	if err != nil {
 		return nil, err
@@ -147,6 +183,14 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 		_ = s.scyllaRepo.ReleaseHold(ctx, req.TripID, holdID, segmentRange, req.SeatIDs)
 		return nil, err
 	}
+
+	// Invalidate Cache after successful hold
+	// We delete the whole trip cache to force refresh on next read
+	go func() {
+		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		s.redisRepo.InvalidateSeatMap(bgCtx, req.TripID)
+	}()
 
 	return &HoldResult{
 		Success:     true,
@@ -255,9 +299,27 @@ func (s *InventoryService) GetSeatMap(ctx context.Context, tripID, fromStation, 
 		return nil, err
 	}
 
-	seats, err := s.scyllaRepo.GetSeatAvailability(ctx, tripID, segmentRange)
-	if err != nil {
-		return nil, err
+	// Try Cache First (Read-Through)
+	// We cache the ENTIRE trip inventory to allow in-memory filtering for any segment range
+	seats, err := s.redisRepo.GetCachedSeatMap(ctx, tripID)
+	if err != nil || len(seats) == 0 {
+		// Cache Miss: Fetch ALL segments to warm cache for everyone
+		allSegmentIndices := make([]int, len(segments))
+		for i := range segments {
+			allSegmentIndices[i] = segments[i].SegmentIndex
+		}
+
+		seats, err = s.scyllaRepo.GetSeatAvailability(ctx, tripID, allSegmentIndices)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update Cache asynchronously
+		go func() {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			s.redisRepo.CacheSeatMap(bgCtx, tripID, seats, 5*time.Second) // Short TTL for near-realtime
+		}()
 	}
 
 	// Aggregate availability across segments
