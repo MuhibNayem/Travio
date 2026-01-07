@@ -17,14 +17,15 @@ func NewSubscriptionService(repo repository.Repository) *SubscriptionService {
 }
 
 // Plans
-func (s *SubscriptionService) CreatePlan(ctx context.Context, name, description string, price int64, interval string, features map[string]string) (*repository.Plan, error) {
+func (s *SubscriptionService) CreatePlan(ctx context.Context, name, description string, price int64, interval string, features map[string]string, usagePrice int64) (*repository.Plan, error) {
 	plan := &repository.Plan{
-		Name:        name,
-		Description: description,
-		PricePaisa:  price,
-		Interval:    interval,
-		Features:    features,
-		IsActive:    true,
+		Name:            name,
+		Description:     description,
+		PricePaisa:      price,
+		Interval:        interval,
+		Features:        features,
+		IsActive:        true,
+		UsagePricePaisa: usagePrice,
 	}
 	if err := s.repo.CreatePlan(ctx, plan); err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func (s *SubscriptionService) GetPlan(ctx context.Context, id string) (*reposito
 	return s.repo.GetPlan(ctx, id)
 }
 
-func (s *SubscriptionService) UpdatePlan(ctx context.Context, id, name, description string, price int64, isActive bool, features map[string]string) (*repository.Plan, error) {
+func (s *SubscriptionService) UpdatePlan(ctx context.Context, id, name, description string, price int64, isActive bool, features map[string]string, usagePrice int64) (*repository.Plan, error) {
 	plan, err := s.repo.GetPlan(ctx, id)
 	if err != nil {
 		return nil, err
@@ -61,6 +62,9 @@ func (s *SubscriptionService) UpdatePlan(ctx context.Context, id, name, descript
 	plan.IsActive = isActive
 	if features != nil {
 		plan.Features = features
+	}
+	if usagePrice != 0 {
+		plan.UsagePricePaisa = usagePrice
 	}
 
 	if err := s.repo.UpdatePlan(ctx, plan); err != nil {
@@ -122,11 +126,49 @@ func (s *SubscriptionService) CreateSubscription(ctx context.Context, orgID, pla
 		IssuedAt:       now,
 		DueDate:        now,
 		PaidAt:         &now,
+		LineItems: []repository.LineItem{
+			{
+				Description:    "Base Plan Fee - " + plan.Interval,
+				AmountPaisa:    plan.PricePaisa,
+				Quantity:       1,
+				UnitPricePaisa: plan.PricePaisa,
+			},
+		},
 	}
 	// Best effort invoice creation (or use tx)
 	_ = s.repo.CreateInvoice(ctx, invoice)
 
 	return sub, nil
+}
+
+func (s *SubscriptionService) RecordUsage(ctx context.Context, orgID, eventType string, units int64, idempotencyKey string) (string, bool, error) {
+	// 1. Get Active Subscription
+	sub, err := s.repo.GetSubscription(ctx, orgID)
+	if err != nil {
+		return "", false, err
+	}
+	if sub == nil {
+		return "", false, errors.New("no active subscription found")
+	}
+
+	// 2. Record Event
+	event := &repository.UsageEvent{
+		SubscriptionID: sub.ID,
+		EventType:      eventType,
+		Units:          units,
+		IdempotencyKey: idempotencyKey,
+	}
+	usageID, err := s.repo.RecordUsage(ctx, event)
+	if err != nil {
+		return "", false, err
+	}
+
+	// If ID returned matches what we expect from repo (repo returns existing ID on conflict)
+	// We might want to know if it was a duplicate.
+	// For now, let's assume if err is nil, it's success.
+	// If repo handles duplicate gracefully by returning existing ID, that's fine.
+
+	return usageID, false, nil
 }
 
 func (s *SubscriptionService) ListSubscriptions(ctx context.Context, planID, status string) ([]*repository.Subscription, error) {

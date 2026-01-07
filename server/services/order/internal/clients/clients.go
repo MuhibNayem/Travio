@@ -7,6 +7,7 @@ import (
 	inventorypb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
 	nidpb "github.com/MuhibNayem/Travio/server/api/proto/nid/v1"
 	paymentpb "github.com/MuhibNayem/Travio/server/api/proto/payment/v1"
+	subscriptionpb "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/saga"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -151,6 +152,29 @@ func (c *PaymentClient) Refund(ctx context.Context, paymentID string, amountPais
 		return "", err
 	}
 	return resp.RefundId, nil
+}
+
+// SubscriptionClient implements saga.SubscriptionClient via gRPC
+type SubscriptionClient struct {
+	client subscriptionpb.SubscriptionServiceClient
+}
+
+func NewSubscriptionClient(addr string) (*SubscriptionClient, error) {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+	return &SubscriptionClient{client: subscriptionpb.NewSubscriptionServiceClient(conn)}, nil
+}
+
+func (c *SubscriptionClient) RecordUsage(ctx context.Context, orgID, eventType string, units int64, idempotencyKey string) error {
+	_, err := c.client.RecordUsage(ctx, &subscriptionpb.RecordUsageRequest{
+		OrganizationId: orgID,
+		EventType:      eventType,
+		Units:          units,
+		IdempotencyKey: idempotencyKey,
+	})
+	return err
 }
 
 // NotificationClient implements saga.NotificationClient

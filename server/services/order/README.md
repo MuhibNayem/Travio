@@ -21,6 +21,11 @@ Implements a persistent Saga pattern to manage distributed transactions across I
 - **Persistence**: Application state is saved to Postgres `saga_instances` table at every step.
 - **Crash Recovery**: Service can resume or compensate "stuck" sagas on restart (implementation ready for recovery worker).
 
+### 3. Usage-Based Billing Integration
+Automatically tracks ticket sales for platform usage billing.
+- **Integration**: Calls `SubscriptionServer.RecordUsage` (Best Effort) on booking confirmation.
+- **Failures**: Logged but do not rollback the booking transaction (User Experience > Internal Ops).
+
 ## 🚀 Getting Started
 
 ### Prerequisites

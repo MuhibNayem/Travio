@@ -11,15 +11,32 @@ import (
 )
 
 type Plan struct {
-	ID          string
-	Name        string
-	Description string
-	PricePaisa  int64
-	Interval    string
-	Features    map[string]string
-	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID              string
+	Name            string
+	Description     string
+	PricePaisa      int64
+	Interval        string
+	Features        map[string]string
+	IsActive        bool
+	UsagePricePaisa int64
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type UsageEvent struct {
+	ID             string
+	SubscriptionID string
+	EventType      string
+	Units          int64
+	IdempotencyKey string
+	CreatedAt      time.Time
+}
+
+type LineItem struct {
+	Description    string `json:"description"`
+	AmountPaisa    int64  `json:"amount_paisa"`
+	Quantity       int64  `json:"quantity"`
+	UnitPricePaisa int64  `json:"unit_price_paisa"`
 }
 
 type Subscription struct {
@@ -38,6 +55,7 @@ type Invoice struct {
 	SubscriptionID string
 	AmountPaisa    int64
 	Status         string
+	LineItems      []LineItem
 	IssuedAt       time.Time
 	DueDate        time.Time
 	PaidAt         *time.Time
@@ -59,6 +77,10 @@ type Repository interface {
 
 	CreateInvoice(ctx context.Context, invoice *Invoice) error
 	ListInvoices(ctx context.Context, subscriptionID string) ([]*Invoice, error)
+
+	// Usage Methods
+	RecordUsage(ctx context.Context, event *UsageEvent) (string, error)
+	GetUsageForPeriod(ctx context.Context, subID string, start, end time.Time) (int64, error)
 }
 
 type PostgresRepository struct {
@@ -83,15 +105,15 @@ func (r *PostgresRepository) CreatePlan(ctx context.Context, plan *Plan) error {
 		return err
 	}
 
-	query := `INSERT INTO plans (id, name, description, price_paisa, interval, features, is_active, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	query := `INSERT INTO plans (id, name, description, price_paisa, interval, features, is_active, usage_price_paisa, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
-	_, err = r.db.ExecContext(ctx, query, plan.ID, plan.Name, plan.Description, plan.PricePaisa, plan.Interval, featuresJSON, plan.IsActive, plan.CreatedAt, plan.UpdatedAt)
+	_, err = r.db.ExecContext(ctx, query, plan.ID, plan.Name, plan.Description, plan.PricePaisa, plan.Interval, featuresJSON, plan.IsActive, plan.UsagePricePaisa, plan.CreatedAt, plan.UpdatedAt)
 	return err
 }
 
 func (r *PostgresRepository) ListPlans(ctx context.Context, includeInactive bool) ([]*Plan, error) {
-	query := `SELECT id, name, description, price_paisa, interval, features, is_active, created_at, updated_at FROM plans`
+	query := `SELECT id, name, description, price_paisa, interval, features, is_active, usage_price_paisa, created_at, updated_at FROM plans`
 	if !includeInactive {
 		query += " WHERE is_active = true"
 	}
@@ -106,7 +128,7 @@ func (r *PostgresRepository) ListPlans(ctx context.Context, includeInactive bool
 	for rows.Next() {
 		var p Plan
 		var featuresBytes []byte
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.PricePaisa, &p.Interval, &featuresBytes, &p.IsActive, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.PricePaisa, &p.Interval, &featuresBytes, &p.IsActive, &p.UsagePricePaisa, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(featuresBytes, &p.Features); err != nil {
@@ -118,12 +140,12 @@ func (r *PostgresRepository) ListPlans(ctx context.Context, includeInactive bool
 }
 
 func (r *PostgresRepository) GetPlan(ctx context.Context, id string) (*Plan, error) {
-	query := `SELECT id, name, description, price_paisa, interval, features, is_active, created_at, updated_at FROM plans WHERE id = $1`
+	query := `SELECT id, name, description, price_paisa, interval, features, is_active, usage_price_paisa, created_at, updated_at FROM plans WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var p Plan
 	var featuresBytes []byte
-	if err := row.Scan(&p.ID, &p.Name, &p.Description, &p.PricePaisa, &p.Interval, &featuresBytes, &p.IsActive, &p.CreatedAt, &p.UpdatedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.Name, &p.Description, &p.PricePaisa, &p.Interval, &featuresBytes, &p.IsActive, &p.UsagePricePaisa, &p.CreatedAt, &p.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -141,8 +163,8 @@ func (r *PostgresRepository) UpdatePlan(ctx context.Context, plan *Plan) error {
 	if err != nil {
 		return err
 	}
-	query := `UPDATE plans SET name=$1, description=$2, price_paisa=$3, features=$4, is_active=$5, updated_at=$6 WHERE id=$7`
-	_, err = r.db.ExecContext(ctx, query, plan.Name, plan.Description, plan.PricePaisa, featuresJSON, plan.IsActive, plan.UpdatedAt, plan.ID)
+	query := `UPDATE plans SET name=$1, description=$2, price_paisa=$3, features=$4, is_active=$5, usage_price_paisa=$6, updated_at=$7 WHERE id=$8`
+	_, err = r.db.ExecContext(ctx, query, plan.Name, plan.Description, plan.PricePaisa, featuresJSON, plan.IsActive, plan.UsagePricePaisa, plan.UpdatedAt, plan.ID)
 	return err
 }
 
@@ -248,15 +270,20 @@ func (r *PostgresRepository) CreateInvoice(ctx context.Context, inv *Invoice) er
 	inv.CreatedAt = time.Now()
 	inv.UpdatedAt = time.Now()
 
-	query := `INSERT INTO invoices (id, subscription_id, amount_paisa, status, issued_at, due_date, paid_at, created_at, updated_at)
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	lineItemsJSON, err := json.Marshal(inv.LineItems)
+	if err != nil {
+		return err
+	}
 
-	_, err := r.db.ExecContext(ctx, query, inv.ID, inv.SubscriptionID, inv.AmountPaisa, inv.Status, inv.IssuedAt, inv.DueDate, inv.PaidAt, inv.CreatedAt, inv.UpdatedAt)
+	query := `INSERT INTO invoices (id, subscription_id, amount_paisa, status, issued_at, due_date, paid_at, line_items, created_at, updated_at)
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+
+	_, err = r.db.ExecContext(ctx, query, inv.ID, inv.SubscriptionID, inv.AmountPaisa, inv.Status, inv.IssuedAt, inv.DueDate, inv.PaidAt, lineItemsJSON, inv.CreatedAt, inv.UpdatedAt)
 	return err
 }
 
 func (r *PostgresRepository) ListInvoices(ctx context.Context, subscriptionID string) ([]*Invoice, error) {
-	query := `SELECT id, subscription_id, amount_paisa, status, issued_at, due_date, paid_at, created_at, updated_at FROM invoices WHERE subscription_id = $1 ORDER BY issued_at DESC`
+	query := `SELECT id, subscription_id, amount_paisa, status, issued_at, due_date, paid_at, line_items, created_at, updated_at FROM invoices WHERE subscription_id = $1 ORDER BY issued_at DESC`
 	rows, err := r.db.QueryContext(ctx, query, subscriptionID)
 	if err != nil {
 		return nil, err
@@ -266,10 +293,59 @@ func (r *PostgresRepository) ListInvoices(ctx context.Context, subscriptionID st
 	var invoices []*Invoice
 	for rows.Next() {
 		var inv Invoice
-		if err := rows.Scan(&inv.ID, &inv.SubscriptionID, &inv.AmountPaisa, &inv.Status, &inv.IssuedAt, &inv.DueDate, &inv.PaidAt, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
+		var lineItemsBytes []byte
+		if err := rows.Scan(&inv.ID, &inv.SubscriptionID, &inv.AmountPaisa, &inv.Status, &inv.IssuedAt, &inv.DueDate, &inv.PaidAt, &lineItemsBytes, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
 			return nil, err
+		}
+		if lineItemsBytes != nil {
+			if err := json.Unmarshal(lineItemsBytes, &inv.LineItems); err != nil {
+				// Log error but probably don't fail entire fetch
+			}
 		}
 		invoices = append(invoices, &inv)
 	}
 	return invoices, nil
+}
+
+// Usage Methods
+
+func (r *PostgresRepository) RecordUsage(ctx context.Context, event *UsageEvent) (string, error) {
+	if event.ID == "" {
+		event.ID = uuid.New().String()
+	}
+	if event.CreatedAt.IsZero() {
+		event.CreatedAt = time.Now()
+	}
+
+	query := `INSERT INTO usage_events (id, subscription_id, event_type, units, idempotency_key, created_at)
+	          VALUES ($1, $2, $3, $4, $5, $6)
+	          ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`
+
+	// This assumes Postgres 9.5+
+	var returnedID string
+	err := r.db.QueryRowContext(ctx, query, event.ID, event.SubscriptionID, event.EventType, event.Units, event.IdempotencyKey, event.CreatedAt).Scan(&returnedID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Duplicate (ON CONFLICT DO NOTHING returned no row)
+			// Return ID of existing if we want? Or just empty id + no error
+			// Let's query existing ID
+			queryExisting := `SELECT id FROM usage_events WHERE idempotency_key = $1`
+			err := r.db.QueryRowContext(ctx, queryExisting, event.IdempotencyKey).Scan(&returnedID)
+			if err != nil {
+				return "", err
+			}
+			return returnedID, nil // Return existing ID but maybe indicate duplicate? Service logic handles it.
+		}
+		return "", err
+	}
+	return returnedID, nil
+}
+
+func (r *PostgresRepository) GetUsageForPeriod(ctx context.Context, subID string, start, end time.Time) (int64, error) {
+	query := `SELECT COALESCE(SUM(units), 0) FROM usage_events 
+	          WHERE subscription_id = $1 AND created_at >= $2 AND created_at < $3`
+
+	var total int64
+	err := r.db.QueryRowContext(ctx, query, subID, start, end).Scan(&total)
+	return total, err
 }

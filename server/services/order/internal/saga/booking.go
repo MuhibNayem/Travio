@@ -46,6 +46,17 @@ func NewBookingSaga(deps *BookingDependencies, req *BookingRequest) *Saga {
 			},
 		},
 		{
+			Name: "record_usage",
+			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
+				// Best effort - log error but don't fail saga
+				// In real world, push to DLQ or retry queue
+				if err := deps.SubscriptionService.RecordUsage(ctx, req.OrgID, "ticket_sale", int64(len(req.Passengers)), req.OrderID); err != nil {
+					fmt.Printf("Failed to record usage for order %s: %v\n", req.OrderID, err)
+				}
+				return nil
+			},
+		},
+		{
 			Name: "send_notification",
 			ExecuteFn: func(ctx context.Context, sagaCtx *SagaContext) error {
 				return deps.sendNotification(ctx, sagaCtx, req)
@@ -65,10 +76,11 @@ func NewBookingSaga(deps *BookingDependencies, req *BookingRequest) *Saga {
 
 // BookingDependencies contains service clients needed for the saga
 type BookingDependencies struct {
-	NIDService       NIDVerifier
-	InventoryService InventoryClient
-	PaymentService   PaymentClient
-	NotificationSvc  NotificationClient
+	NIDService          NIDVerifier
+	InventoryService    InventoryClient
+	PaymentService      PaymentClient
+	SubscriptionService SubscriptionClient
+	NotificationSvc     NotificationClient
 }
 
 // BookingRequest contains the booking order details
@@ -113,6 +125,10 @@ type PaymentClient interface {
 	Authorize(ctx context.Context, orderID, orgID, token string, amountPaisa int64) (string, error)
 	Capture(ctx context.Context, paymentID string) error
 	Refund(ctx context.Context, paymentID string, amountPaisa int64) (string, error)
+}
+
+type SubscriptionClient interface {
+	RecordUsage(ctx context.Context, orgID, eventType string, units int64, idempotencyKey string) error
 }
 
 type NotificationClient interface {

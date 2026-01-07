@@ -337,6 +337,8 @@ CREATE TABLE IF NOT EXISTS plans (
     interval VARCHAR(50) NOT NULL, -- 'month', 'year'
     features JSONB DEFAULT '{}',
     is_active BOOLEAN DEFAULT true,
+	-- Billing & Usage
+	usage_price_paisa BIGINT DEFAULT 0, -- Per-unit usage fee
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

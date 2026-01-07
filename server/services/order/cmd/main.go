@@ -70,12 +70,18 @@ func main() {
 
 	notificationClient := clients.NewNotificationClient()
 
+	subscriptionClient, err := clients.NewSubscriptionClient(cfg.Services.SubscriptionAddr)
+	if err != nil {
+		logger.Error("Failed to connect to subscription service", "error", err)
+	}
+
 	// Saga dependencies
 	sagaDeps := &saga.BookingDependencies{
-		NIDService:       nidClient,
-		InventoryService: inventoryClient,
-		PaymentService:   paymentClient,
-		NotificationSvc:  notificationClient,
+		NIDService:          nidClient,
+		InventoryService:    inventoryClient,
+		PaymentService:      paymentClient,
+		SubscriptionService: subscriptionClient,
+		NotificationSvc:     notificationClient,
 	}
 
 	// Repository and service

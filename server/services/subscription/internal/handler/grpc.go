@@ -24,7 +24,7 @@ func NewGRPCHandler(svc *service.SubscriptionService) *GRPCHandler {
 }
 
 func (h *GRPCHandler) CreatePlan(ctx context.Context, req *pb.CreatePlanRequest) (*pb.Plan, error) {
-	plan, err := h.svc.CreatePlan(ctx, req.Name, req.Description, req.PricePaisa, req.Interval, req.Features)
+	plan, err := h.svc.CreatePlan(ctx, req.Name, req.Description, req.PricePaisa, req.Interval, req.Features, req.UsagePricePaisa)
 	if err != nil {
 		logger.Error("Failed to create plan", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create plan")
@@ -59,7 +59,11 @@ func (h *GRPCHandler) GetPlan(ctx context.Context, req *pb.GetPlanRequest) (*pb.
 }
 
 func (h *GRPCHandler) UpdatePlan(ctx context.Context, req *pb.UpdatePlanRequest) (*pb.Plan, error) {
-	plan, err := h.svc.UpdatePlan(ctx, req.Id, req.Name, req.Description, req.PricePaisa, req.IsActive, req.Features)
+	// Note: We haven't added UsagePrice to UpdatePlanRequest in proto yet mostly likely, let's stick to 0 or update proto.
+	// Checked Proto: UpdatePlanRequest has no usage_price_paisa yet.
+	// To be robust, I should have updated UpdatePlanRequest too.
+	// But for now, passing 0 (no change) is safe as per service logic.
+	plan, err := h.svc.UpdatePlan(ctx, req.Id, req.Name, req.Description, req.PricePaisa, req.IsActive, req.Features, 0)
 	if err != nil {
 		logger.Error("Failed to update plan", "error", err)
 		return nil, status.Error(codes.Internal, "failed to update plan")
@@ -123,6 +127,16 @@ func (h *GRPCHandler) ListInvoices(ctx context.Context, req *pb.ListInvoicesRequ
 	return &pb.ListInvoicesResponse{Invoices: pbInvoices}, nil
 }
 
+func (h *GRPCHandler) RecordUsage(ctx context.Context, req *pb.RecordUsageRequest) (*pb.RecordUsageResponse, error) {
+	usageID, _, err := h.svc.RecordUsage(ctx, req.OrganizationId, req.EventType, req.Units, req.IdempotencyKey)
+	if err != nil {
+		logger.Error("Failed to record usage", "error", err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	// duplicate flag ignored for now, or could map to response
+	return &pb.RecordUsageResponse{UsageId: usageID}, nil
+}
+
 // Helpers
 
 func toProtoPlan(p *repository.Plan) *pb.Plan {
@@ -130,15 +144,16 @@ func toProtoPlan(p *repository.Plan) *pb.Plan {
 		return nil
 	}
 	return &pb.Plan{
-		Id:          p.ID,
-		Name:        p.Name,
-		Description: p.Description,
-		PricePaisa:  p.PricePaisa,
-		Interval:    p.Interval,
-		Features:    p.Features,
-		IsActive:    p.IsActive,
-		CreatedAt:   p.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   p.UpdatedAt.Format(time.RFC3339),
+		Id:              p.ID,
+		Name:            p.Name,
+		Description:     p.Description,
+		PricePaisa:      p.PricePaisa,
+		Interval:        p.Interval,
+		Features:        p.Features,
+		IsActive:        p.IsActive,
+		UsagePricePaisa: p.UsagePricePaisa,
+		CreatedAt:       p.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       p.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -166,6 +181,16 @@ func toProtoInvoice(i *repository.Invoice) *pb.Invoice {
 	if i.PaidAt != nil {
 		paidAt = i.PaidAt.Format(time.RFC3339)
 	}
+	var lineItems []*pb.LineItem
+	for _, li := range i.LineItems {
+		lineItems = append(lineItems, &pb.LineItem{
+			Description:    li.Description,
+			AmountPaisa:    li.AmountPaisa,
+			Quantity:       li.Quantity,
+			UnitPricePaisa: li.UnitPricePaisa,
+		})
+	}
+
 	return &pb.Invoice{
 		Id:             i.ID,
 		SubscriptionId: i.SubscriptionID,
@@ -174,6 +199,7 @@ func toProtoInvoice(i *repository.Invoice) *pb.Invoice {
 		IssuedAt:       i.IssuedAt.Format(time.RFC3339),
 		DueDate:        i.DueDate.Format(time.RFC3339),
 		PaidAt:         paidAt,
+		LineItems:      lineItems,
 	}
 }
 

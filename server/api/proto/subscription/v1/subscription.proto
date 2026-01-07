@@ -19,6 +19,14 @@ service SubscriptionService {
 
   // Billing
   rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse);
+  rpc RecordUsage(RecordUsageRequest) returns (RecordUsageResponse);
+}
+
+message LineItem {
+  string description = 1;
+  int64 amount_paisa = 2;
+  int64 quantity = 3;
+  int64 unit_price_paisa = 4;
 }
 
 message Invoice {
@@ -29,6 +37,19 @@ message Invoice {
   string issued_at = 5;
   string due_date = 6;
   string paid_at = 7;
+  repeated LineItem line_items = 8;
+}
+
+message RecordUsageRequest {
+  string organization_id = 1;
+  string event_type = 2; // e.g. "ticket_sale"
+  int64 units = 3;
+  string idempotency_key = 4;
+}
+
+message RecordUsageResponse {
+  string usage_id = 1;
+  bool duplicate = 2; // True if idempotency key matched existing
 }
 
 message ListInvoicesRequest {
@@ -68,6 +89,7 @@ message Plan {
   bool is_active = 7;
   string created_at = 8;
   string updated_at = 9;
+  int64 usage_price_paisa = 10;
 }
 
 message Subscription {
@@ -87,6 +109,7 @@ message CreatePlanRequest {
   int64 price_paisa = 3;
   string interval = 4;
   map<string, string> features = 5;
+  int64 usage_price_paisa = 6;
 }
 
 message ListPlansRequest {

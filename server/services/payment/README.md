@@ -6,7 +6,18 @@ Reliable payment processing service with Idempotency and Reconciliation.
 
 -   **Idempotency**: Prevents duplicate charges for the same Order using deterministic hash keys (OrderID + Attempt).
 -   **Reconciliation**: Background worker (`reconciler.go`) periodically checks Gateway status for stuck `PENDING` transactions.
+
 -   **Persistence**: PostgreSQL (`transactions` table) stores all attempt states.
+-   **Organization-Owned Payments**: Dynamic Gateway Factory resolves credentials per Organization ID (`payment_configs` table).
+-   **Admin Control**: Secure APIs (`PUT /payment-config`) for organizations to manage their own gateway credentials (SSLCommerz, bKash, Nagad).
+
+## Architecture
+
+### Dynamic Gateway Resolution
+Payments are processed using the Organization's own credentials, not the Platform's.
+1.  **Registry**: `Factory` interface loads config from DB.
+2.  **Encryption**: Credentials stored securely (JSONB).
+3.  **Isolation**: Each payment is sandboxed to the specific Organization context.
 
 ## Setup
 

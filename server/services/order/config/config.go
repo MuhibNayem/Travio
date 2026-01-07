@@ -28,6 +28,7 @@ type ServicesConfig struct {
 	PaymentAddr      string
 	NIDAddr          string
 	NotificationAddr string
+	SubscriptionAddr string
 }
 
 func Load() *Config {
@@ -52,6 +53,7 @@ func Load() *Config {
 			PaymentAddr:      getEnv("PAYMENT_URL", "localhost:9085"),
 			NIDAddr:          getEnv("IDENTITY_URL", "localhost:9081"),
 			NotificationAddr: getEnv("NOTIFICATION_URL", "localhost:9090"),
+			SubscriptionAddr: getEnv("SUBSCRIPTION_URL", "localhost:50060"),
 		},
 	}
 }
