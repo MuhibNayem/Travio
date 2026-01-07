@@ -63,8 +63,9 @@ func (h *HTTPHandler) handleRules(w http.ResponseWriter, r *http.Request) {
 
 func (h *HTTPHandler) getRules(w http.ResponseWriter, r *http.Request) {
 	includeInactive := r.URL.Query().Get("include_inactive") == "true"
+	organizationID := r.URL.Query().Get("organization_id")
 
-	rules, err := h.svc.GetRules(r.Context(), includeInactive)
+	rules, err := h.svc.GetRules(r.Context(), includeInactive, organizationID)
 	if err != nil {
 		logger.Error("Failed to get rules", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/services/pricing/internal/engine"
@@ -11,15 +12,16 @@ import (
 
 // PricingRule represents a pricing rule in the database
 type PricingRule struct {
-	ID          string
-	Name        string
-	Description string
-	Condition   string
-	Multiplier  float64
-	Priority    int
-	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID             string
+	OrganizationID *string // Nullable
+	Name           string
+	Description    string
+	Condition      string
+	Multiplier     float64
+	Priority       int
+	IsActive       bool
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // Repository interface for pricing rules
@@ -46,6 +48,7 @@ func (r *PostgresRepository) InitSchema(ctx context.Context) error {
 	query := `
 		CREATE TABLE IF NOT EXISTS pricing_rules (
 			id VARCHAR(36) PRIMARY KEY,
+			organization_id VARCHAR(36),
 			name VARCHAR(255) NOT NULL,
 			description TEXT,
 			condition TEXT NOT NULL,
@@ -56,6 +59,7 @@ func (r *PostgresRepository) InitSchema(ctx context.Context) error {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE INDEX IF NOT EXISTS idx_pricing_rules_active ON pricing_rules(is_active, priority);
+		CREATE INDEX IF NOT EXISTS idx_pricing_rules_org ON pricing_rules(organization_id);
 	`
 	_, err := r.db.ExecContext(ctx, query)
 	return err
@@ -71,49 +75,54 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 
 	defaultRules := []*PricingRule{
 		{
-			ID:          uuid.New().String(),
-			Name:        "Weekend Surge",
-			Description: "20% increase on weekends",
-			Condition:   `day_of_week == "Saturday" || day_of_week == "Sunday"`,
-			Multiplier:  1.20,
-			Priority:    10,
-			IsActive:    true,
+			ID:             uuid.New().String(),
+			OrganizationID: nil,
+			Name:           "Weekend Surge",
+			Description:    "20% increase on weekends",
+			Condition:      `day_of_week == "Saturday" || day_of_week == "Sunday"`,
+			Multiplier:     1.20,
+			Priority:       10,
+			IsActive:       true,
 		},
 		{
-			ID:          uuid.New().String(),
-			Name:        "Early Bird Discount",
-			Description: "15% off for bookings 30+ days in advance",
-			Condition:   `days_until_departure > 30`,
-			Multiplier:  0.85,
-			Priority:    20,
-			IsActive:    true,
+			ID:             uuid.New().String(),
+			OrganizationID: nil,
+			Name:           "Early Bird Discount",
+			Description:    "15% off for bookings 30+ days in advance",
+			Condition:      `days_until_departure > 30`,
+			Multiplier:     0.85,
+			Priority:       20,
+			IsActive:       true,
 		},
 		{
-			ID:          uuid.New().String(),
-			Name:        "Last Minute Surge",
-			Description: "50% increase for bookings within 3 days",
-			Condition:   `days_until_departure < 3`,
-			Multiplier:  1.50,
-			Priority:    5,
-			IsActive:    true,
+			ID:             uuid.New().String(),
+			OrganizationID: nil,
+			Name:           "Last Minute Surge",
+			Description:    "50% increase for bookings within 3 days",
+			Condition:      `days_until_departure < 3`,
+			Multiplier:     1.50,
+			Priority:       5,
+			IsActive:       true,
 		},
 		{
-			ID:          uuid.New().String(),
-			Name:        "High Demand Surge",
-			Description: "25% increase when occupancy > 80%",
-			Condition:   `occupancy_rate > 0.8`,
-			Multiplier:  1.25,
-			Priority:    15,
-			IsActive:    true,
+			ID:             uuid.New().String(),
+			OrganizationID: nil,
+			Name:           "High Demand Surge",
+			Description:    "25% increase when occupancy > 80%",
+			Condition:      `occupancy_rate > 0.8`,
+			Multiplier:     1.25,
+			Priority:       15,
+			IsActive:       true,
 		},
 		{
-			ID:          uuid.New().String(),
-			Name:        "Business Class Premium",
-			Description: "40% premium for business class",
-			Condition:   `seat_class == "business"`,
-			Multiplier:  1.40,
-			Priority:    1,
-			IsActive:    true,
+			ID:             uuid.New().String(),
+			OrganizationID: nil,
+			Name:           "Business Class Premium",
+			Description:    "40% premium for business class",
+			Condition:      `seat_class == "business"`,
+			Multiplier:     1.40,
+			Priority:       1,
+			IsActive:       true,
 		},
 	}
 
@@ -126,18 +135,30 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 }
 
 func (r *PostgresRepository) GetActiveRules(ctx context.Context) ([]*PricingRule, error) {
-	return r.GetAllRules(ctx, false)
+	// Get ALL rules (inactive=false, orgID="") so we can cache everything
+	return r.GetAllRules(ctx, false, "")
 }
 
-func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bool) ([]*PricingRule, error) {
-	query := `SELECT id, name, description, condition, multiplier, priority, is_active, created_at, updated_at 
-	          FROM pricing_rules`
+func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bool, organizationID string) ([]*PricingRule, error) {
+	query := `SELECT id, organization_id, name, description, condition, multiplier, priority, is_active, created_at, updated_at 
+	          FROM pricing_rules WHERE 1=1`
+
+	args := []interface{}{}
+	argIdx := 1
+
 	if !includeInactive {
-		query += " WHERE is_active = true"
+		query += " AND is_active = true"
 	}
+
+	if organizationID != "" {
+		query += fmt.Sprintf(" AND organization_id = $%d", argIdx)
+		args = append(args, organizationID)
+		argIdx++
+	}
+
 	query += " ORDER BY priority ASC"
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +167,7 @@ func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bo
 	var rules []*PricingRule
 	for rows.Next() {
 		var rule PricingRule
-		if err := rows.Scan(&rule.ID, &rule.Name, &rule.Description, &rule.Condition, &rule.Multiplier, &rule.Priority, &rule.IsActive, &rule.CreatedAt, &rule.UpdatedAt); err != nil {
+		if err := rows.Scan(&rule.ID, &rule.OrganizationID, &rule.Name, &rule.Description, &rule.Condition, &rule.Multiplier, &rule.Priority, &rule.IsActive, &rule.CreatedAt, &rule.UpdatedAt); err != nil {
 			return nil, err
 		}
 		rules = append(rules, &rule)
@@ -161,9 +182,9 @@ func (r *PostgresRepository) CreateRule(ctx context.Context, rule *PricingRule) 
 	rule.CreatedAt = time.Now()
 	rule.UpdatedAt = time.Now()
 
-	query := `INSERT INTO pricing_rules (id, name, description, condition, multiplier, priority, is_active, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.Priority, rule.IsActive, rule.CreatedAt, rule.UpdatedAt)
+	query := `INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, priority, is_active, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.OrganizationID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.Priority, rule.IsActive, rule.CreatedAt, rule.UpdatedAt)
 	return err
 }
 

@@ -29,6 +29,7 @@ type CalculatePriceRequest struct {
 	Quantity       int32   `json:"quantity"`
 	BasePricePaisa int64   `json:"base_price_paisa"`
 	OccupancyRate  float64 `json:"occupancy_rate"`
+	OrganizationID string  `json:"organization_id"`
 }
 
 // CalculatePriceResponse for JSON/HTTP compatibility
@@ -54,6 +55,7 @@ func (h *GRPCHandler) CalculatePrice(ctx context.Context, req *CalculatePriceReq
 		Quantity:       int(req.Quantity),
 		BasePricePaisa: req.BasePricePaisa,
 		OccupancyRate:  req.OccupancyRate,
+		OrganizationID: req.OrganizationID,
 	})
 	if err != nil {
 		return nil, err
@@ -81,8 +83,8 @@ type GetRulesResponse struct {
 }
 
 // GetRules returns all pricing rules
-func (h *GRPCHandler) GetRules(ctx context.Context, includeInactive bool) (*GetRulesResponse, error) {
-	rules, err := h.svc.GetRules(ctx, includeInactive)
+func (h *GRPCHandler) GetRules(ctx context.Context, includeInactive bool, organizationID string) (*GetRulesResponse, error) {
+	rules, err := h.svc.GetRules(ctx, includeInactive, organizationID)
 	if err != nil {
 		return nil, err
 	}

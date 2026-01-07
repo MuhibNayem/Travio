@@ -271,6 +271,7 @@ CREATE INDEX IF NOT EXISTS idx_tickets_passenger_nid ON tickets(passenger_nid);
 
 CREATE TABLE IF NOT EXISTS pricing_rules (
     id VARCHAR(36) PRIMARY KEY,
+    organization_id UUID, -- Nullable for Global Rules
     name VARCHAR(255) NOT NULL,
     description TEXT,
     condition TEXT NOT NULL,
@@ -281,16 +282,15 @@ CREATE TABLE IF NOT EXISTS pricing_rules (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
-
 CREATE INDEX IF NOT EXISTS idx_pricing_rules_active ON pricing_rules(is_active, priority);
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_org ON pricing_rules(organization_id);
 
 -- Seed default pricing rules
-INSERT INTO pricing_rules (id, name, description, condition, multiplier, priority, is_active) VALUES
-    (gen_random_uuid()::text, 'Weekend Surge', '20% increase on weekends', 'day_of_week == "Saturday" || day_of_week == "Friday"', 1.20, 10, true),
-    (gen_random_uuid()::text, 'Early Bird', '15% off for 30+ days advance', 'days_until_departure > 30', 0.85, 20, true),
-    (gen_random_uuid()::text, 'Last Minute', '10% increase for < 24h', 'hours_until_departure < 24', 1.10, 5, true),
-    (gen_random_uuid()::text, 'Business Class', '40% premium', 'seat_class == "business"', 1.40, 1, true)
+INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, priority, is_active) VALUES
+    (gen_random_uuid()::text, NULL, 'Weekend Surge', '20% increase on weekends', 'day_of_week == "Saturday" || day_of_week == "Friday"', 1.20, 10, true),
+    (gen_random_uuid()::text, NULL, 'Early Bird', '15% off for 30+ days advance', 'days_until_departure > 30', 0.85, 20, true),
+    (gen_random_uuid()::text, NULL, 'Last Minute', '10% increase for < 24h', 'hours_until_departure < 24', 1.10, 5, true),
+    (gen_random_uuid()::text, NULL, 'Business Class', '40% premium', 'seat_class == "business"', 1.40, 1, true)
 ON CONFLICT DO NOTHING;
 
 -- ==============================================================================
