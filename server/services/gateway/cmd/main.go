@@ -124,6 +124,13 @@ func main() {
 		defer pricingClient.Close()
 	}
 
+	operatorClient, err := client.NewOperatorClient(cfg.OperatorURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to operator service", "error", err)
+	} else {
+		defer operatorClient.Close()
+	}
+
 	// Initialize handlers with gRPC clients
 	var identityHandler *handler.IdentityHandler
 	if identityClient != nil {
@@ -148,6 +155,11 @@ func main() {
 	var pricingHandler *handler.PricingHandler
 	if pricingClient != nil {
 		pricingHandler = handler.NewPricingHandler(pricingClient)
+	}
+
+	var operatorHandler *handler.OperatorHandler
+	if operatorClient != nil {
+		operatorHandler = handler.NewOperatorHandler(operatorClient)
 	}
 
 	// JWT Auth config
@@ -197,6 +209,17 @@ func main() {
 		if pricingHandler != nil {
 			r.Post("/pricing/calculate", pricingHandler.CalculatePrice)
 			r.Get("/pricing/rules", pricingHandler.GetPricingRules)
+		}
+
+		// Operator/Vendor routes (protected)
+		if operatorHandler != nil {
+			r.Route("/vendors", func(r chi.Router) {
+				r.Post("/", operatorHandler.CreateVendor)
+				r.Get("/", operatorHandler.ListVendors)
+				r.Get("/{id}", operatorHandler.GetVendor)
+				r.Put("/{id}", operatorHandler.UpdateVendor)
+				r.Delete("/{id}", operatorHandler.DeleteVendor)
+			})
 		}
 
 		// Queue routes (public - for waiting room)

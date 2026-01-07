@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package vendor.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/vendor/v1";
+
+service VendorService {
+  rpc CreateVendor(CreateVendorRequest) returns (CreateVendorResponse);
+  rpc GetVendor(GetVendorRequest) returns (GetVendorResponse);
+  rpc UpdateVendor(UpdateVendorRequest) returns (UpdateVendorResponse);
+  rpc ListVendors(ListVendorsRequest) returns (ListVendorsResponse);
+  rpc DeleteVendor(DeleteVendorRequest) returns (DeleteVendorResponse);
+}
+
+message Vendor {
+  string id = 1;
+  string name = 2;
+  string contact_email = 3;
+  string contact_phone = 4;
+  string address = 5;
+  string status = 6; // active, inactive, suspended
+  double commission_rate = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message CreateVendorRequest {
+  string name = 1;
+  string contact_email = 2;
+  string contact_phone = 3;
+  string address = 4;
+  double commission_rate = 5;
+}
+
+message CreateVendorResponse {
+  Vendor vendor = 1;
+}
+
+message GetVendorRequest {
+  string id = 1;
+}
+
+message GetVendorResponse {
+  Vendor vendor = 1;
+}
+
+message UpdateVendorRequest {
+  string id = 1;
+  string name = 2;
+  string contact_email = 3;
+  string contact_phone = 4;
+  string address = 5;
+  string status = 6;
+  double commission_rate = 7;
+}
+
+message UpdateVendorResponse {
+  Vendor vendor = 1;
+}
+
+message ListVendorsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message ListVendorsResponse {
+  repeated Vendor vendors = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message DeleteVendorRequest {
+  string id = 1;
+}
+
+message DeleteVendorResponse {
+  bool success = 1;
+}

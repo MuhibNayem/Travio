@@ -280,4 +280,24 @@ INSERT INTO pricing_rules (id, name, description, condition, multiplier, priorit
     (gen_random_uuid()::text, 'Business Class', '40% premium', 'seat_class == "business"', 1.40, 1, true)
 ON CONFLICT DO NOTHING;
 
+-- ==============================================================================
+-- 7. VENDOR SERVICE (travio_vendor)
+-- ==============================================================================
+\c travio_operator
+
+CREATE TABLE IF NOT EXISTS vendors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(50),
+    address TEXT,
+    status VARCHAR(50) DEFAULT 'active', -- active, inactive, suspended
+    commission_rate DOUBLE PRECISION DEFAULT 0.0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vendors_email ON vendors(contact_email);
+CREATE INDEX IF NOT EXISTS idx_vendors_status ON vendors(status);
+
 \echo 'Master database initialization complete!'

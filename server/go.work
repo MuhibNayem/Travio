@@ -18,5 +18,5 @@ use (
 	./services/reporting
 	./services/search
 	./services/subscription
-	./services/vendor
+	./services/operator
 )

@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_MULTIPLE_DATABASES}
+      POSTGRES_MULTIPLE_DATABASES: "travio_identity,travio_catalog,travio_inventory,travio_order,travio_payment,travio_fulfillment,travio_pricing,travio_notification,travio_operator"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -436,6 +436,32 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${PRICING_HTTP_PORT:-8058}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  vendor:
+    build:
+      context: ./server
+      dockerfile: services/operator/Dockerfile
+    container_name: travio-operator
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=travio_operator
+      - HTTP_PORT=${OPERATOR_HTTP_PORT:-8059}
+      - GRPC_PORT=${OPERATOR_GRPC_PORT:-50059}
+    ports:
+      - "${OPERATOR_HTTP_PORT:-8059}:${OPERATOR_HTTP_PORT:-8059}"
+      - "${OPERATOR_GRPC_PORT:-50059}:${OPERATOR_GRPC_PORT:-50059}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${OPERATOR_HTTP_PORT:-8059}/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
