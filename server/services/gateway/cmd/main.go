@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -188,6 +189,11 @@ func proxyTo(client *http.Client, target string) http.HandlerFunc {
 
 		resp, err := client.Do(proxyReq)
 		if err != nil {
+			fmt.Printf("Proxy error: %v\n", err)
+			if strings.Contains(err.Error(), "circuit breaker is open") {
+				http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+				return
+			}
 			http.Error(w, "Upstream error", http.StatusBadGateway)
 			return
 		}

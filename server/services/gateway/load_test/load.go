@@ -9,7 +9,7 @@ import (
 
 // Config
 const (
-	TargetURL = "http://localhost:8080/v1/auth/login" // Example endpoint
+	TargetURL = "http://localhost:8888/v1/auth/sessions" // Example endpoint
 	TotalReqs = 100
 	Workers   = 10
 )

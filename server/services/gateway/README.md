@@ -144,10 +144,10 @@ go run load_test/load.go
 🚀 Starting Gateway Resiliency Load Test...
 Target: http://localhost:8080/v1/auth/login
 ...
-[200]: 45 requests
-[503]: 55 requests
+[502]: 5 requests
+[503]: 95 requests
    -> Circuit Breaker ACTIVATED (Service Unavailable)
-✅ Load Test Completed
+✅ Load Test Completed in 1.07s
 ```
 
 ---
