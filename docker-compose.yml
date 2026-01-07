@@ -500,6 +500,32 @@ services:
       timeout: 5s
       retries: 3
 
+  subscription:
+    build:
+      context: ./server
+      dockerfile: services/subscription/Dockerfile
+    container_name: travio-subscription
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=travio_subscription
+      - HTTP_PORT=${SUBSCRIPTION_HTTP_PORT:-8060}
+      - GRPC_PORT=${SUBSCRIPTION_GRPC_PORT:-50060}
+    ports:
+      - "${SUBSCRIPTION_HTTP_PORT:-8060}:${SUBSCRIPTION_HTTP_PORT:-8060}"
+      - "${SUBSCRIPTION_GRPC_PORT:-50060}:${SUBSCRIPTION_GRPC_PORT:-50060}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SUBSCRIPTION_HTTP_PORT:-8060}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   gateway:
     build:
       context: ./server
@@ -516,6 +542,7 @@ services:
       - QUEUE_URL=queue:${QUEUE_GRPC_PORT:-9087}
       - SEARCH_URL=search:${SEARCH_GRPC_PORT:-9088}
       - PRICING_URL=pricing:${PRICING_GRPC_PORT:-50058}
+      - SUBSCRIPTION_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
       - REDIS_URL=redis:${REDIS_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_PORT=${GATEWAY_HTTP_PORT}
@@ -539,6 +566,8 @@ services:
       search:
         condition: service_healthy
       pricing:
+        condition: service_healthy
+      subscription:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${GATEWAY_HTTP_PORT}/health" ]
