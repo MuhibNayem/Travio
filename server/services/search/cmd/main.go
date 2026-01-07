@@ -16,6 +16,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/search/internal/indexer"
 	"github.com/MuhibNayem/Travio/server/services/search/internal/searcher"
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 )
 
@@ -51,12 +52,20 @@ func main() {
 	}
 	defer consumer.Stop()
 
-	// Initialize Searcher
-	searcher := searcher.New(osClient)
+	// Initialize Redis for caching
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+
+	// Initialize Searcher with Redis
+	search := searcher.New(osClient, rdb)
 
 	// Start gRPC server
-	grpcHandler := handler.NewGrpcHandler(searcher)
+	grpcHandler := handler.NewGrpcHandler(search)
 	grpcServer := grpc.NewServer()
+
 	pb.RegisterSearchServiceServer(grpcServer, grpcHandler)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))

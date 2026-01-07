@@ -69,6 +69,7 @@ func (c *EventConsumer) handleOrderConfirmed(ctx context.Context, event *kafka.E
 			"order_id":   payload.OrderID,
 			"booking_id": payload.BookingID,
 			"total":      float64(payload.TotalPaisa) / 100,
+			"logo_url":   "https://travio.com/assets/logo.png", // CDN URL for production
 		},
 	})
 	if err != nil {
@@ -116,6 +117,7 @@ func (c *EventConsumer) handleOrderCancelled(ctx context.Context, event *kafka.E
 				"order_id":      payload.OrderID,
 				"refund_amount": float64(payload.RefundAmount) / 100,
 				"reason":        payload.Reason,
+				"logo_url":      "https://travio.com/assets/logo.png",
 			},
 		})
 	}
@@ -157,6 +159,7 @@ func (c *EventConsumer) handleTicketGenerated(ctx context.Context, event *kafka.
 				"ticket_id":  payload.TicketID,
 				"booking_id": payload.BookingID,
 				"qr_url":     payload.QRCodeURL,
+				"logo_url":   "https://travio.com/assets/logo.png",
 			},
 		})
 	}

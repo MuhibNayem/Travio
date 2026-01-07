@@ -10,13 +10,22 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/notification/internal/service"
 )
 
+const (
+	EmailRatePerSecond = 10 // SES default is ~14/s
+	SMSRatePerSecond   = 5  // Twilio default is ~10/s
+)
+
 func main() {
 	logger.Init("notification-service")
 	logger.Info("Notification service starting")
 
-	// Initialize providers (use console for dev, real providers in production)
-	emailProvider := provider.NewConsoleEmailProvider()
-	smsProvider := provider.NewConsoleSMSProvider()
+	// Initialize base providers (use console for dev, real providers in production)
+	baseEmailProvider := provider.NewConsoleEmailProvider()
+	baseSMSProvider := provider.NewConsoleSMSProvider()
+
+	// Wrap with rate limiters to prevent provider suspension
+	emailProvider := provider.NewRateLimitedEmailProvider(baseEmailProvider, EmailRatePerSecond)
+	smsProvider := provider.NewRateLimitedSMSProvider(baseSMSProvider, SMSRatePerSecond)
 
 	// Create notification service
 	notificationSvc := service.NewNotificationService(emailProvider, smsProvider)
@@ -40,7 +49,7 @@ func main() {
 		return
 	}
 
-	logger.Info("Notification service started, listening for events")
+	logger.Info("Notification service started", "email_rps", EmailRatePerSecond, "sms_rps", SMSRatePerSecond)
 
 	// Block forever (or until signal)
 	select {}

@@ -1,15 +1,22 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"embed"
+	"html/template"
 
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 )
+
+//go:embed templates/*.tmpl
+var templateFS embed.FS
 
 // NotificationService handles sending notifications
 type NotificationService struct {
 	emailProvider EmailProvider
 	smsProvider   SMSProvider
+	templates     *template.Template
 }
 
 // EmailProvider interface for email sending
@@ -38,16 +45,22 @@ type SMSRequest struct {
 
 // NewNotificationService creates a new notification service
 func NewNotificationService(emailProvider EmailProvider, smsProvider SMSProvider) *NotificationService {
+	// Parse all embedded templates
+	tmpl, err := template.ParseFS(templateFS, "templates/*.tmpl")
+	if err != nil {
+		logger.Error("failed to parse templates", "error", err)
+	}
+
 	return &NotificationService{
 		emailProvider: emailProvider,
 		smsProvider:   smsProvider,
+		templates:     tmpl,
 	}
 }
 
 // SendEmail sends an email notification
 func (s *NotificationService) SendEmail(ctx context.Context, req *EmailRequest) error {
-	// TODO: Implement template rendering
-	body := renderTemplate(req.Template, req.Data)
+	body := s.renderTemplate(req.Template, req.Data)
 
 	if s.emailProvider != nil {
 		if err := s.emailProvider.Send(ctx, req.To, req.Subject, body); err != nil {
@@ -73,17 +86,18 @@ func (s *NotificationService) SendSMS(ctx context.Context, req *SMSRequest) erro
 	return nil
 }
 
-// renderTemplate renders a notification template
-func renderTemplate(templateName string, data map[string]interface{}) string {
-	// Placeholder - would use html/template in production
-	switch templateName {
-	case "order_confirmed":
-		return "Your order has been confirmed! Thank you for booking with Travio."
-	case "order_cancelled":
-		return "Your order has been cancelled. A refund will be processed."
-	case "ticket_ready":
-		return "Your ticket is ready! Please check your email for the QR code."
-	default:
+// renderTemplate renders a notification template using text/template
+func (s *NotificationService) renderTemplate(templateName string, data map[string]interface{}) string {
+	if s.templates == nil {
 		return "Notification from Travio"
 	}
+
+	var buf bytes.Buffer
+	tmplFile := templateName + ".tmpl"
+	if err := s.templates.ExecuteTemplate(&buf, tmplFile, data); err != nil {
+		logger.Error("failed to render template", "template", templateName, "error", err)
+		return "Notification from Travio"
+	}
+
+	return buf.String()
 }

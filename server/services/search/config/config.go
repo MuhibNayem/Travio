@@ -11,6 +11,9 @@ type Config struct {
 	KafkaBrokers  []string
 	GroupID       string
 	GRPCPort      int
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
 }
 
 func Load() *Config {
@@ -19,6 +22,9 @@ func Load() *Config {
 		KafkaBrokers:  strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
 		GroupID:       getEnv("KAFKA_GROUP_ID", "search-service"),
 		GRPCPort:      getEnvInt("GRPC_PORT", 9085),
+		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+		RedisDB:       getEnvInt("REDIS_DB", 0),
 	}
 }
 

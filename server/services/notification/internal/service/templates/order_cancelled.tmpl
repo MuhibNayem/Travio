@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Cancelled</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px 16px 0 0;">
+                            <img src="{{.logo_url}}" alt="Travio" style="height: 50px; margin-bottom: 8px;" />
+                            <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">Your Journey, Our Priority</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Cancel Icon -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <div style="width: 80px; height: 80px; margin: 0 auto; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 40px; line-height: 80px;">✕</span>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px; text-align: center;">
+                            <h2 style="margin: 0 0 10px 0; color: #1a1a2e; font-size: 24px; font-weight: 600;">Order Cancelled</h2>
+                            <p style="margin: 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
+                                Your order has been cancelled. We're sorry to see you go and hope to serve you again soon.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Order Details Card -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                                    <span style="color: #6b7280; font-size: 14px;">Order ID</span>
+                                                    <div style="color: #1a1a2e; font-size: 16px; font-weight: 600; margin-top: 4px;">{{.order_id}}</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 16px 0 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                                    <span style="color: #6b7280; font-size: 14px;">Reason</span>
+                                                    <div style="color: #1a1a2e; font-size: 16px; font-weight: 600; margin-top: 4px;">{{.reason}}</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 16px 0 0 0;">
+                                                    <span style="color: #6b7280; font-size: 14px;">Refund Amount</span>
+                                                    <div style="color: #10b981; font-size: 24px; font-weight: 700; margin-top: 4px;">BDT {{.refund_amount}}</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Info Box -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3c7; border-radius: 12px; border-left: 4px solid #f59e0b;">
+                                <tr>
+                                    <td style="padding: 16px 20px;">
+                                        <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.5;">
+                                            💳 Your refund will be processed within 5-7 business days to your original payment method.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; background-color: #f8fafc; border-radius: 0 0 16px 16px; text-align: center;">
+                            <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">Questions about your refund? Contact support@travio.com</p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">© 2026 Travio. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

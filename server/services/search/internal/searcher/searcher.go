@@ -3,18 +3,37 @@ package searcher
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/redis/go-redis/v9"
+)
+
+const (
+	TripCacheTTL    = 5 * time.Minute
+	StationCacheTTL = 1 * time.Hour
 )
 
 type Searcher struct {
 	client *opensearch.Client
+	rdb    *redis.Client
 }
 
-func New(client *opensearch.Client) *Searcher {
-	return &Searcher{client: client}
+func New(client *opensearch.Client, rdb *redis.Client) *Searcher {
+	return &Searcher{client: client, rdb: rdb}
+}
+
+// generateCacheKey creates a deterministic hash for the query parameters
+func generateCacheKey(prefix string, params ...interface{}) string {
+	h := sha256.New()
+	for _, p := range params {
+		h.Write([]byte(fmt.Sprintf("%v", p)))
+	}
+	return prefix + ":" + hex.EncodeToString(h.Sum(nil))[:16]
 }
 
 type TripDocument struct {
@@ -34,6 +53,23 @@ type TripDocument struct {
 }
 
 func (s *Searcher) SearchTrips(ctx context.Context, query, fromID, toID, date string, limit, offset int) ([]TripDocument, int64, error) {
+	// Generate cache key
+	cacheKey := generateCacheKey("trips", query, fromID, toID, date, limit, offset)
+
+	// Check Redis cache
+	if s.rdb != nil {
+		cached, err := s.rdb.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var result struct {
+				Trips []TripDocument `json:"trips"`
+				Total int64          `json:"total"`
+			}
+			if json.Unmarshal([]byte(cached), &result) == nil {
+				return result.Trips, result.Total, nil
+			}
+		}
+	}
+
 	// Build query
 	mustClauses := []map[string]interface{}{}
 
@@ -108,6 +144,15 @@ func (s *Searcher) SearchTrips(ctx context.Context, query, fromID, toID, date st
 		trips = append(trips, trip)
 	}
 
+	// Cache the result
+	if s.rdb != nil {
+		cacheData, _ := json.Marshal(struct {
+			Trips []TripDocument `json:"trips"`
+			Total int64          `json:"total"`
+		}{Trips: trips, Total: total})
+		s.rdb.Set(ctx, cacheKey, cacheData, TripCacheTTL)
+	}
+
 	return trips, total, nil
 }
 
@@ -119,6 +164,20 @@ type StationDocument struct {
 }
 
 func (s *Searcher) SearchStations(ctx context.Context, query string, limit int) ([]StationDocument, error) {
+	// Generate cache key
+	cacheKey := generateCacheKey("stations", query, limit)
+
+	// Check Redis cache
+	if s.rdb != nil {
+		cached, err := s.rdb.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var stations []StationDocument
+			if json.Unmarshal([]byte(cached), &stations) == nil {
+				return stations, nil
+			}
+		}
+	}
+
 	searchBody := map[string]interface{}{
 		"query": map[string]interface{}{
 			"multi_match": map[string]interface{}{
@@ -159,6 +218,12 @@ func (s *Searcher) SearchStations(ctx context.Context, query string, limit int) 
 		var station StationDocument
 		json.Unmarshal(sourceBytes, &station)
 		stations = append(stations, station)
+	}
+
+	// Cache the result
+	if s.rdb != nil {
+		cacheData, _ := json.Marshal(stations)
+		s.rdb.Set(ctx, cacheKey, cacheData, StationCacheTTL)
 	}
 
 	return stations, nil
