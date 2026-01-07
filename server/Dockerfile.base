@@ -1,0 +1,42 @@
+# ==============================================================================
+# TRAVIO - Go Service Base Dockerfile
+# ==============================================================================
+# Multi-stage build for minimal production image
+
+FROM golang:1.25.3-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Build the service
+ARG SERVICE_NAME
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/service ./services/${SERVICE_NAME}/cmd/main.go
+
+# ==============================================================================
+# Production image
+# ==============================================================================
+FROM alpine:3.19
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/service /app/service
+
+# Run as non-root
+RUN adduser -D -u 1000 appuser
+USER appuser
+
+EXPOSE 8080 9080
+
+ENTRYPOINT ["/app/service"]

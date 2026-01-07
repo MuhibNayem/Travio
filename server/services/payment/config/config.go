@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/server"
@@ -9,9 +10,19 @@ import (
 
 type Config struct {
 	Server     server.Config
+	Database   DatabaseConfig
 	SSLCommerz SSLCommerzConfig
 	BKash      BKashConfig
 	Nagad      NagadConfig
+}
+
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
 }
 
 type SSLCommerzConfig struct {
@@ -39,7 +50,8 @@ type NagadConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: server.Config{
-			GRPCPort: 9084, HTTPPort: 8084,
+			GRPCPort:    getEnvInt("GRPC_PORT", 9085),
+			HTTPPort:    getEnvInt("HTTP_PORT", 8085),
 			ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second,
 			ShutdownTimeout: 30 * time.Second,
 			// mTLS: Set via environment or use defaults for development
@@ -47,8 +59,18 @@ func Load() *Config {
 			TLSKeyFile:  getEnv("TLS_KEY_FILE", ""),
 			TLSCAFile:   getEnv("TLS_CA_FILE", ""),
 		},
+		Database: DatabaseConfig{
+			Host:     getEnv("POSTGRES_HOST", "localhost"),
+			Port:     getEnvInt("POSTGRES_PORT", 5432),
+			User:     getEnv("POSTGRES_USER", "postgres"),
+			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
+			DBName:   getEnv("POSTGRES_DB", "travio_payment"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
 		SSLCommerz: SSLCommerzConfig{
-			StoreID: "your_store_id", StorePasswd: "your_store_passwd", IsSandbox: true,
+			StoreID:     getEnv("SSLCOMMERZ_STORE_ID", "your_store_id"),
+			StorePasswd: getEnv("SSLCOMMERZ_STORE_PASSWD", "your_store_passwd"),
+			IsSandbox:   getEnvBool("SSLCOMMERZ_SANDBOX", true),
 		},
 		BKash: BKashConfig{
 			AppKey: "your_app_key", AppSecret: "your_app_secret",
@@ -64,6 +86,24 @@ func Load() *Config {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
+	}
+	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
 	}
 	return fallback
 }

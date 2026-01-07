@@ -1,25 +1,16 @@
+# TRAVIO - Pricing Service Dockerfile
 FROM golang:1.25.3-alpine AS builder
-
 WORKDIR /app
-
-# Copy shared modules
-COPY api ./api
-COPY pkg ./pkg
-
-# Copy service module
-COPY services/pricing ./services/pricing
-
-# Build the binary
-WORKDIR /app/services/pricing
+RUN apk add --no-cache git ca-certificates
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go build -o /app/pricing-service ./cmd/main.go
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/service ./services/pricing/cmd/main.go
 
-FROM alpine:3.18
-
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 1000 appuser
 WORKDIR /app
-
-COPY --from=builder /app/pricing-service .
-
-EXPOSE 8080 50051
-
-CMD ["./pricing-service"]
+COPY --from=builder /app/service /app/service
+USER appuser
+EXPOSE 8058 50058
+ENTRYPOINT ["/app/service"]

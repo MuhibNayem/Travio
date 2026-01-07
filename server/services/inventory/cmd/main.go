@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/redis/go-redis/v9"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/database/scylladb"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/inventory/config"
@@ -22,16 +22,18 @@ func main() {
 
 	// ScyllaDB Connection
 	logger.Info("Connecting to ScyllaDB...")
-	cluster := gocql.NewCluster(cfg.ScyllaDB.Hosts...)
-	cluster.Keyspace = cfg.ScyllaDB.Keyspace
-	cluster.Consistency = gocql.Quorum
-	cluster.Timeout = cfg.ScyllaDB.Timeout
-	cluster.ConnectTimeout = 10 * time.Second
+	scyllaCfg := scylladb.Config{
+		Hosts:          cfg.ScyllaDB.Hosts,
+		Keyspace:       cfg.ScyllaDB.Keyspace,
+		Consistency:    "QUORUM",
+		Timeout:        cfg.ScyllaDB.Timeout,
+		ConnectTimeout: 10 * time.Second,
+	}
 
-	scyllaSession, err := cluster.CreateSession()
+	scyllaSession, err := scylladb.NewSession(scyllaCfg)
 	if err != nil {
 		logger.Error("Failed to connect to ScyllaDB", "error", err)
-		// Don't crash in scaffold mode - will fail at runtime
+		// Don't crash in scaffold mode - will fail at runtime if DB needed
 	}
 	defer func() {
 		if scyllaSession != nil {

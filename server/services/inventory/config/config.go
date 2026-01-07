@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"strings"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/server"
@@ -26,6 +28,11 @@ type RedisConfig struct {
 }
 
 func Load() *Config {
+	scyllaHosts := []string{"localhost:9042"}
+	if env := os.Getenv("SCYLLA_HOSTS"); env != "" {
+		scyllaHosts = strings.Split(env, ",")
+	}
+
 	return &Config{
 		Server: server.Config{
 			GRPCPort:        9083,
@@ -35,7 +42,7 @@ func Load() *Config {
 			ShutdownTimeout: 30 * time.Second,
 		},
 		ScyllaDB: ScyllaDBConfig{
-			Hosts:       []string{"localhost:9042"},
+			Hosts:       scyllaHosts,
 			Keyspace:    "travio_inventory",
 			Consistency: "QUORUM",
 			Timeout:     5 * time.Second,

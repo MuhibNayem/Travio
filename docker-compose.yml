@@ -29,6 +29,7 @@ services:
     image: redis:7-alpine
     container_name: travio-redis
     restart: unless-stopped
+    command: redis-server --appendonly yes
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
@@ -117,6 +118,42 @@ services:
       timeout: 10s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    container_name: travio-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  scylla:
+    image: scylladb/scylla:5.2.0
+    container_name: travio-scylla
+    restart: unless-stopped
+    # Developer optimizations to reduce resource usage
+    command: --smp 1 --memory 1G --overprovisioned 1 --api-address 0.0.0.0
+    ports:
+      - "${SCYLLA_PORT:-9042}:9042"
+      - "9160:9160"
+    volumes:
+      - scylla_data:/var/lib/scylla
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE CLUSTER' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   # ===========================================
   # Backend Services
   # ===========================================
@@ -180,6 +217,248 @@ services:
       timeout: 5s
       retries: 3
 
+  inventory:
+    build:
+      context: ./server
+      dockerfile: services/inventory/Dockerfile
+    container_name: travio-inventory
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - REDIS_URL=redis:${REDIS_PORT}
+      - SCYLLA_HOSTS=scylla
+      - HOLD_TTL_SECONDS=${HOLD_TTL_SECONDS:-600}
+      - HTTP_PORT=${INVENTORY_HTTP_PORT:-8083}
+      - GRPC_PORT=${INVENTORY_GRPC_PORT:-9083}
+    ports:
+      - "${INVENTORY_HTTP_PORT:-8083}:${INVENTORY_HTTP_PORT:-8083}"
+      - "${INVENTORY_GRPC_PORT:-9083}:${INVENTORY_GRPC_PORT:-9083}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${INVENTORY_HTTP_PORT:-8083}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  order:
+    build:
+      context: ./server
+      dockerfile: services/order/Dockerfile
+    container_name: travio-order
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - KAFKA_BROKERS=kafka:29092
+      - INVENTORY_URL=inventory:${INVENTORY_GRPC_PORT:-9083}
+      - PAYMENT_URL=payment:${PAYMENT_GRPC_PORT:-9085}
+      - HTTP_PORT=${ORDER_HTTP_PORT:-8084}
+      - GRPC_PORT=${ORDER_GRPC_PORT:-9084}
+    ports:
+      - "${ORDER_HTTP_PORT:-8084}:${ORDER_HTTP_PORT:-8084}"
+      - "${ORDER_GRPC_PORT:-9084}:${ORDER_GRPC_PORT:-9084}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      inventory:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${ORDER_HTTP_PORT:-8084}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  payment:
+    build:
+      context: ./server
+      dockerfile: services/payment/Dockerfile
+    container_name: travio-payment
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - SSLCOMMERZ_STORE_ID=${SSLCOMMERZ_STORE_ID}
+      - SSLCOMMERZ_STORE_PASSWD=${SSLCOMMERZ_STORE_PASSWD}
+      - SSLCOMMERZ_SANDBOX=${SSLCOMMERZ_SANDBOX:-true}
+      - HTTP_PORT=${PAYMENT_HTTP_PORT:-8085}
+      - GRPC_PORT=${PAYMENT_GRPC_PORT:-9085}
+    ports:
+      - "${PAYMENT_HTTP_PORT:-8085}:${PAYMENT_HTTP_PORT:-8085}"
+      - "${PAYMENT_GRPC_PORT:-9085}:${PAYMENT_GRPC_PORT:-9085}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${PAYMENT_HTTP_PORT:-8085}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  fulfillment:
+    build:
+      context: ./server
+      dockerfile: services/fulfillment/Dockerfile
+    container_name: travio-fulfillment
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_SSLMODE=disable
+      - KAFKA_BROKERS=kafka:29092
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-tickets}
+      - MINIO_USE_SSL=false
+      - QR_SECRET_KEY=${QR_SECRET_KEY}
+      - COMPANY_NAME=${COMPANY_NAME:-Travio}
+      - HTTP_PORT=${FULFILLMENT_HTTP_PORT:-8086}
+      - GRPC_PORT=${FULFILLMENT_GRPC_PORT:-9086}
+    ports:
+      - "${FULFILLMENT_HTTP_PORT:-8086}:${FULFILLMENT_HTTP_PORT:-8086}"
+      - "${FULFILLMENT_GRPC_PORT:-9086}:${FULFILLMENT_GRPC_PORT:-9086}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${FULFILLMENT_HTTP_PORT:-8086}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  queue:
+    build:
+      context: ./server
+      dockerfile: services/queue/Dockerfile
+    container_name: travio-queue
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis:${REDIS_PORT}
+      - TOKEN_SECRET=${QUEUE_TOKEN_SECRET}
+      - MAX_CONCURRENT_USERS=${MAX_CONCURRENT_USERS:-1000}
+      - HTTP_PORT=${QUEUE_HTTP_PORT:-8087}
+      - GRPC_PORT=${QUEUE_GRPC_PORT:-9087}
+    ports:
+      - "${QUEUE_HTTP_PORT:-8087}:${QUEUE_HTTP_PORT:-8087}"
+      - "${QUEUE_GRPC_PORT:-9087}:${QUEUE_GRPC_PORT:-9087}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${QUEUE_HTTP_PORT:-8087}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  search:
+    build:
+      context: ./server
+      dockerfile: services/search/Dockerfile
+    container_name: travio-search
+    restart: unless-stopped
+    environment:
+      - OPENSEARCH_URL=http://opensearch:9200
+      - TRIPS_INDEX=${TRIPS_INDEX:-trips}
+      - STATIONS_INDEX=${STATIONS_INDEX:-stations}
+      - HTTP_PORT=${SEARCH_HTTP_PORT:-8088}
+      - GRPC_PORT=${SEARCH_GRPC_PORT:-9088}
+    ports:
+      - "${SEARCH_HTTP_PORT:-8088}:${SEARCH_HTTP_PORT:-8088}"
+      - "${SEARCH_GRPC_PORT:-9088}:${SEARCH_GRPC_PORT:-9088}"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SEARCH_HTTP_PORT:-8088}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  pricing:
+    build:
+      context: ./server
+      dockerfile: services/pricing/Dockerfile
+    container_name: travio-pricing
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - HTTP_PORT=${PRICING_HTTP_PORT:-8058}
+      - GRPC_PORT=${PRICING_GRPC_PORT:-50058}
+    ports:
+      - "${PRICING_HTTP_PORT:-8058}:${PRICING_HTTP_PORT:-8058}"
+      - "${PRICING_GRPC_PORT:-50058}:${PRICING_GRPC_PORT:-50058}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${PRICING_HTTP_PORT:-8058}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  notification:
+    build:
+      context: ./server
+      dockerfile: services/notification/Dockerfile
+    container_name: travio-notification
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - KAFKA_BROKERS=kafka:29092
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+      - HTTP_PORT=${NOTIFICATION_HTTP_PORT:-8090}
+      - GRPC_PORT=${NOTIFICATION_GRPC_PORT:-9090}
+    ports:
+      - "${NOTIFICATION_HTTP_PORT:-8090}:${NOTIFICATION_HTTP_PORT:-8090}"
+      - "${NOTIFICATION_GRPC_PORT:-9090}:${NOTIFICATION_GRPC_PORT:-9090}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${NOTIFICATION_HTTP_PORT:-8090}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   gateway:
     build:
       context: ./server
@@ -187,12 +466,17 @@ services:
     container_name: travio-gateway
     restart: unless-stopped
     environment:
-      - IDENTITY_URL=http://identity:${IDENTITY_HTTP_PORT}
+      - IDENTITY_URL=identity:${IDENTITY_GRPC_PORT}
       - CATALOG_URL=catalog:${CATALOG_GRPC_PORT}
       - INVENTORY_URL=inventory:${INVENTORY_GRPC_PORT:-9083}
       - ORDER_URL=order:${ORDER_GRPC_PORT:-9084}
+      - PAYMENT_URL=payment:${PAYMENT_GRPC_PORT:-9085}
+      - FULFILLMENT_URL=fulfillment:${FULFILLMENT_GRPC_PORT:-9086}
+      - QUEUE_URL=queue:${QUEUE_GRPC_PORT:-9087}
+      - SEARCH_URL=search:${SEARCH_GRPC_PORT:-9088}
+      - PRICING_URL=pricing:${PRICING_GRPC_PORT:-50058}
       - REDIS_URL=redis:${REDIS_PORT}
-      - KAFKA_BROKERS=kafka:29092
+      - JWT_SECRET=${JWT_SECRET}
       - HTTP_PORT=${GATEWAY_HTTP_PORT}
     ports:
       - "${GATEWAY_HTTP_PORT}:${GATEWAY_HTTP_PORT}"
@@ -201,8 +485,25 @@ services:
         condition: service_healthy
       catalog:
         condition: service_healthy
-      kafka:
+      inventory:
         condition: service_healthy
+      order:
+        condition: service_healthy
+      payment:
+        condition: service_healthy
+      fulfillment:
+        condition: service_healthy
+      queue:
+        condition: service_healthy
+      search:
+        condition: service_healthy
+      pricing:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${GATEWAY_HTTP_PORT}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # ===========================================
   # Frontend
@@ -221,9 +522,12 @@ services:
     environment:
       - VITE_API_URL=${VITE_API_URL}
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   redis_data:
   opensearch_data:
+  minio_data:
+  scylla_data:

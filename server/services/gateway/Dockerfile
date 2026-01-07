@@ -1,21 +1,16 @@
-FROM golang:1.22-alpine AS builder
-
+# TRAVIO - Gateway Service Dockerfile
+FROM golang:1.25.3-alpine AS builder
 WORKDIR /app
-
-# Copy go.work and dependencies first for better caching
-COPY go.work go.work.sum ./
-COPY api ./api
-COPY pkg ./pkg
-COPY services/gateway ./services/gateway
-
-WORKDIR /app/services/gateway
+RUN apk add --no-cache git ca-certificates
+COPY go.mod go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -o /gateway-service ./cmd/main.go
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/service ./services/gateway/cmd/main.go
 
-FROM alpine:latest
-RUN apk --no-cache add wget ca-certificates
-WORKDIR /root/
-COPY --from=builder /gateway-service .
-
-EXPOSE 8080
-CMD ["./gateway-service"]
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 1000 appuser
+WORKDIR /app
+COPY --from=builder /app/service /app/service
+USER appuser
+EXPOSE 8888
+ENTRYPOINT ["/app/service"]

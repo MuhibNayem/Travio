@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/server"
@@ -31,25 +33,41 @@ type ServicesConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: server.Config{
-			GRPCPort:        9085,
-			HTTPPort:        8085,
+			GRPCPort:        getEnvInt("GRPC_PORT", 9084),
+			HTTPPort:        getEnvInt("HTTP_PORT", 8084),
 			ReadTimeout:     10 * time.Second,
 			WriteTimeout:    10 * time.Second,
 			ShutdownTimeout: 30 * time.Second,
 		},
 		Database: DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "postgres",
-			DBName:   "travio_order",
-			SSLMode:  "disable",
+			Host:     getEnv("POSTGRES_HOST", "localhost"),
+			Port:     getEnvInt("POSTGRES_PORT", 5432),
+			User:     getEnv("POSTGRES_USER", "postgres"),
+			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
+			DBName:   getEnv("POSTGRES_DB", "travio_order"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		Services: ServicesConfig{
-			InventoryAddr:    "localhost:9083",
-			PaymentAddr:      "localhost:9084",
-			NIDAddr:          "localhost:9086",
-			NotificationAddr: "localhost:9087",
+			InventoryAddr:    getEnv("INVENTORY_URL", "localhost:9083"),
+			PaymentAddr:      getEnv("PAYMENT_URL", "localhost:9085"),
+			NIDAddr:          getEnv("IDENTITY_URL", "localhost:9081"),
+			NotificationAddr: getEnv("NOTIFICATION_URL", "localhost:9090"),
 		},
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
+	}
+	return fallback
 }
