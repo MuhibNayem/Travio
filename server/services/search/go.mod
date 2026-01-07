@@ -3,8 +3,10 @@ module github.com/MuhibNayem/Travio/server/services/search
 go 1.25.3
 
 require (
+	github.com/MuhibNayem/Travio/server/api v0.0.0-20260107213724-9e1bd5afa1a6
 	github.com/MuhibNayem/Travio/server/pkg v0.0.0
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
+	github.com/redis/go-redis/v9 v9.17.2
 	google.golang.org/grpc v1.78.0
 )
 
@@ -28,7 +30,6 @@ require (
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	github.com/redis/go-redis/v9 v9.17.2 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
