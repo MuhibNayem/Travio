@@ -14,11 +14,13 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_MULTIPLE_DATABASES}
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./server/scripts/create-multiple-postgresql-databases.sh:/docker-entrypoint-initdb.d/create-multiple-postgresql-databases.sh:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
@@ -154,6 +156,17 @@ services:
       timeout: 10s
       retries: 5
 
+  scylla-init:
+    image: scylladb/scylla:5.2.0
+    container_name: travio-scylla-init
+    depends_on:
+      scylla:
+        condition: service_healthy
+    volumes:
+      - ./server/scripts/init-scylla.sh:/init-scylla.sh
+      - ./server/services/inventory/migrations/001_initial_schema.cql:/schema.cql
+    entrypoint: ["/bin/bash", "/init-scylla.sh", "scylla", "/schema.cql"]
+
   # ===========================================
   # Backend Services
   # ===========================================
@@ -169,7 +182,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_identity
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - JWT_SECRET=${JWT_SECRET}
@@ -202,7 +215,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_catalog
       - HTTP_PORT=${CATALOG_HTTP_PORT}
       - GRPC_PORT=${CATALOG_GRPC_PORT}
     ports:
@@ -228,9 +241,9 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_inventory
       - REDIS_URL=redis:${REDIS_PORT}
-      - SCYLLA_HOSTS=scylla
+      - SCYLLA_HOSTS=${SCYLLA_HOST:-scylla}
       - HOLD_TTL_SECONDS=${HOLD_TTL_SECONDS:-600}
       - HTTP_PORT=${INVENTORY_HTTP_PORT:-8083}
       - GRPC_PORT=${INVENTORY_GRPC_PORT:-9083}
@@ -261,7 +274,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_order
       - KAFKA_BROKERS=kafka:29092
       - INVENTORY_URL=inventory:${INVENTORY_GRPC_PORT:-9083}
       - PAYMENT_URL=payment:${PAYMENT_GRPC_PORT:-9085}
@@ -294,7 +307,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_payment
       - SSLCOMMERZ_STORE_ID=${SSLCOMMERZ_STORE_ID}
       - SSLCOMMERZ_STORE_PASSWD=${SSLCOMMERZ_STORE_PASSWD}
       - SSLCOMMERZ_SANDBOX=${SSLCOMMERZ_SANDBOX:-true}
@@ -323,7 +336,7 @@ services:
       - DB_PORT=5432
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB}
+      - DB_NAME=travio_fulfillment
       - DB_SSLMODE=disable
       - KAFKA_BROKERS=kafka:29092
       - MINIO_ENDPOINT=minio:9000
@@ -410,7 +423,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_pricing
       - HTTP_PORT=${PRICING_HTTP_PORT:-8058}
       - GRPC_PORT=${PRICING_GRPC_PORT:-50058}
     ports:
@@ -436,7 +449,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=travio_notification
       - KAFKA_BROKERS=kafka:29092
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
