@@ -1,7 +1,7 @@
 <script lang="ts">
     import * as Command from "$lib/components/ui/command";
     import * as Popover from "$lib/components/ui/popover";
-    import { Button } from "$lib/components/ui/button";
+    import * as Button from "$lib/components/ui/button";
     import { Check, ChevronsUpDown, Loader2 } from "@lucide/svelte";
     import { cn } from "$lib/utils";
     import { tick, type Snippet } from "svelte";
@@ -34,7 +34,6 @@
     let triggerRef = $state<HTMLButtonElement>(null!);
 
     // Find selected label based on value
-    // We use a derived value to ensure it updates when value or items change
     let selectedLabel = $derived(
         items.find(
             (item: { value: string; label: string }) => item.value === value,
