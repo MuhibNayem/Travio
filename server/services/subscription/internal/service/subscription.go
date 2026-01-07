@@ -190,3 +190,8 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, orgID stri
 func (s *SubscriptionService) ListInvoices(ctx context.Context, subscriptionID string) ([]*repository.Invoice, error) {
 	return s.repo.ListInvoices(ctx, subscriptionID)
 }
+
+// Entitlement Check
+func (s *SubscriptionService) GetEntitlement(ctx context.Context, orgID string) (*repository.Entitlement, error) {
+	return s.repo.GetEntitlement(ctx, orgID)
+}

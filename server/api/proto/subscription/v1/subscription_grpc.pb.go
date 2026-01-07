@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: subscription/v1/subscription.proto
+// source: subscription.proto
 
 package v1
 
@@ -29,6 +29,7 @@ const (
 	SubscriptionService_ListSubscriptions_FullMethodName  = "/subscription.v1.SubscriptionService/ListSubscriptions"
 	SubscriptionService_ListInvoices_FullMethodName       = "/subscription.v1.SubscriptionService/ListInvoices"
 	SubscriptionService_RecordUsage_FullMethodName        = "/subscription.v1.SubscriptionService/RecordUsage"
+	SubscriptionService_GetEntitlement_FullMethodName     = "/subscription.v1.SubscriptionService/GetEntitlement"
 )
 
 // SubscriptionServiceClient is the client API for SubscriptionService service.
@@ -48,6 +49,8 @@ type SubscriptionServiceClient interface {
 	// Billing
 	ListInvoices(ctx context.Context, in *ListInvoicesRequest, opts ...grpc.CallOption) (*ListInvoicesResponse, error)
 	RecordUsage(ctx context.Context, in *RecordUsageRequest, opts ...grpc.CallOption) (*RecordUsageResponse, error)
+	// Entitlement Check (for enforcement)
+	GetEntitlement(ctx context.Context, in *GetEntitlementRequest, opts ...grpc.CallOption) (*GetEntitlementResponse, error)
 }
 
 type subscriptionServiceClient struct {
@@ -158,6 +161,16 @@ func (c *subscriptionServiceClient) RecordUsage(ctx context.Context, in *RecordU
 	return out, nil
 }
 
+func (c *subscriptionServiceClient) GetEntitlement(ctx context.Context, in *GetEntitlementRequest, opts ...grpc.CallOption) (*GetEntitlementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEntitlementResponse)
+	err := c.cc.Invoke(ctx, SubscriptionService_GetEntitlement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SubscriptionServiceServer is the server API for SubscriptionService service.
 // All implementations must embed UnimplementedSubscriptionServiceServer
 // for forward compatibility.
@@ -175,6 +188,8 @@ type SubscriptionServiceServer interface {
 	// Billing
 	ListInvoices(context.Context, *ListInvoicesRequest) (*ListInvoicesResponse, error)
 	RecordUsage(context.Context, *RecordUsageRequest) (*RecordUsageResponse, error)
+	// Entitlement Check (for enforcement)
+	GetEntitlement(context.Context, *GetEntitlementRequest) (*GetEntitlementResponse, error)
 	mustEmbedUnimplementedSubscriptionServiceServer()
 }
 
@@ -214,6 +229,9 @@ func (UnimplementedSubscriptionServiceServer) ListInvoices(context.Context, *Lis
 }
 func (UnimplementedSubscriptionServiceServer) RecordUsage(context.Context, *RecordUsageRequest) (*RecordUsageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RecordUsage not implemented")
+}
+func (UnimplementedSubscriptionServiceServer) GetEntitlement(context.Context, *GetEntitlementRequest) (*GetEntitlementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEntitlement not implemented")
 }
 func (UnimplementedSubscriptionServiceServer) mustEmbedUnimplementedSubscriptionServiceServer() {}
 func (UnimplementedSubscriptionServiceServer) testEmbeddedByValue()                             {}
@@ -416,6 +434,24 @@ func _SubscriptionService_RecordUsage_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SubscriptionService_GetEntitlement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEntitlementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionServiceServer).GetEntitlement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionService_GetEntitlement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionServiceServer).GetEntitlement(ctx, req.(*GetEntitlementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SubscriptionService_ServiceDesc is the grpc.ServiceDesc for SubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -463,7 +499,11 @@ var SubscriptionService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RecordUsage",
 			Handler:    _SubscriptionService_RecordUsage_Handler,
 		},
+		{
+			MethodName: "GetEntitlement",
+			Handler:    _SubscriptionService_GetEntitlement_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "subscription/v1/subscription.proto",
+	Metadata: "subscription.proto",
 }

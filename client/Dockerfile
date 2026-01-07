@@ -26,10 +26,8 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy built assets and dependencies
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
+# Copy the prepared app with build output and dependencies
+COPY --from=builder /app ./
 
 EXPOSE 5173
 

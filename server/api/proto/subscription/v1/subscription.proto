@@ -20,6 +20,9 @@ service SubscriptionService {
   // Billing
   rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse);
   rpc RecordUsage(RecordUsageRequest) returns (RecordUsageResponse);
+
+  // Entitlement Check (for enforcement)
+  rpc GetEntitlement(GetEntitlementRequest) returns (GetEntitlementResponse);
 }
 
 message LineItem {
@@ -135,4 +138,21 @@ message GetSubscriptionRequest {
 
 message CancelSubscriptionRequest {
   string organization_id = 1;
+}
+
+// Entitlement messages for enforcement
+message GetEntitlementRequest {
+  string organization_id = 1;
+}
+
+message GetEntitlementResponse {
+  string organization_id = 1;
+  string plan_id = 2;
+  string plan_name = 3;
+  string status = 4; // "active", "past_due", "canceled", "trialing"
+  map<string, string> features = 5;
+  map<string, int64> usage_this_period = 6;
+  map<string, int64> quota_limits = 7;
+  string period_start = 8;
+  string period_end = 9;
 }

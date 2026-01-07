@@ -81,6 +81,22 @@ type Repository interface {
 	// Usage Methods
 	RecordUsage(ctx context.Context, event *UsageEvent) (string, error)
 	GetUsageForPeriod(ctx context.Context, subID string, start, end time.Time) (int64, error)
+
+	// Entitlement Check
+	GetEntitlement(ctx context.Context, organizationID string) (*Entitlement, error)
+}
+
+// Entitlement represents the combined subscription and plan data for enforcement
+type Entitlement struct {
+	OrganizationID  string
+	PlanID          string
+	PlanName        string
+	Status          string
+	Features        map[string]string
+	QuotaLimits     map[string]int64
+	UsageThisPeriod map[string]int64
+	PeriodStart     time.Time
+	PeriodEnd       time.Time
 }
 
 type PostgresRepository struct {
@@ -348,4 +364,92 @@ func (r *PostgresRepository) GetUsageForPeriod(ctx context.Context, subID string
 	var total int64
 	err := r.db.QueryRowContext(ctx, query, subID, start, end).Scan(&total)
 	return total, err
+}
+
+// GetEntitlement fetches subscription + plan data in a single query for entitlement checks.
+func (r *PostgresRepository) GetEntitlement(ctx context.Context, organizationID string) (*Entitlement, error) {
+	query := `
+		SELECT 
+			s.organization_id,
+			s.plan_id,
+			p.name as plan_name,
+			s.status,
+			p.features,
+			s.current_period_start,
+			s.current_period_end
+		FROM subscriptions s
+		INNER JOIN plans p ON s.plan_id = p.id
+		WHERE s.organization_id = $1 AND s.status != 'canceled'
+		ORDER BY s.created_at DESC
+		LIMIT 1
+	`
+
+	var ent Entitlement
+	var featuresJSON []byte
+	err := r.db.QueryRowContext(ctx, query, organizationID).Scan(
+		&ent.OrganizationID,
+		&ent.PlanID,
+		&ent.PlanName,
+		&ent.Status,
+		&featuresJSON,
+		&ent.PeriodStart,
+		&ent.PeriodEnd,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No subscription found
+		}
+		return nil, fmt.Errorf("failed to get entitlement: %w", err)
+	}
+
+	// Parse features
+	if len(featuresJSON) > 0 {
+		if err := json.Unmarshal(featuresJSON, &ent.Features); err != nil {
+			ent.Features = make(map[string]string)
+		}
+	} else {
+		ent.Features = make(map[string]string)
+	}
+
+	// Build quota limits from numeric features
+	ent.QuotaLimits = make(map[string]int64)
+	for key, value := range ent.Features {
+		if num, err := parseInt64(value); err == nil {
+			ent.QuotaLimits[key] = num
+		}
+	}
+
+	// Fetch usage for current period
+	ent.UsageThisPeriod = make(map[string]int64)
+
+	// Get subscription ID for usage query
+	var subID string
+	subQuery := `SELECT id FROM subscriptions WHERE organization_id = $1 AND status != 'canceled' ORDER BY created_at DESC LIMIT 1`
+	if err := r.db.QueryRowContext(ctx, subQuery, organizationID).Scan(&subID); err == nil {
+		// Get ticket_sale usage
+		usageQuery := `SELECT event_type, COALESCE(SUM(units), 0) 
+		               FROM usage_events 
+		               WHERE subscription_id = $1 AND created_at >= $2 AND created_at < $3
+		               GROUP BY event_type`
+		rows, err := r.db.QueryContext(ctx, usageQuery, subID, ent.PeriodStart, ent.PeriodEnd)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var eventType string
+				var units int64
+				if err := rows.Scan(&eventType, &units); err == nil {
+					ent.UsageThisPeriod[eventType] = units
+				}
+			}
+		}
+	}
+
+	return &ent, nil
+}
+
+// parseInt64 safely parses a string to int64
+func parseInt64(s string) (int64, error) {
+	var n int64
+	_, err := fmt.Sscanf(s, "%d", &n)
+	return n, err
 }

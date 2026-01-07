@@ -1,8 +1,6 @@
 FROM golang:1.25.3-alpine AS builder
 
 WORKDIR /app
-
-COPY go.work go.work.sum ./
 COPY pkg ./pkg
 COPY api ./api
 COPY services/operator ./services/operator

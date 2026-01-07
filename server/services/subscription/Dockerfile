@@ -3,6 +3,7 @@ FROM golang:1.25.3-alpine AS builder
 WORKDIR /app
 
 COPY pkg ./pkg
+COPY api ./api
 COPY services/subscription ./services/subscription
 
 WORKDIR /app/services/subscription
