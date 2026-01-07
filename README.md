@@ -231,9 +231,11 @@ We strictly follow DDD principles.
 
 3.  **Run Services**:
     ```bash
-    go run server/services/gateway/cmd/main.go
-    # (Or use make start-all)
+    # Run from project root
+    docker compose up --build -d
     ```
+
+    > **Note**: This will spin up 20+ containers (Postgres, ScyllaDB, Redis, Kafka, and Microservices). Ensure you have at least 8GB RAM available.
 
 4.  **Explore**:
     *   API Docs: `http://localhost:8080/docs`
