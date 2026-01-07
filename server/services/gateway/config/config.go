@@ -6,20 +6,21 @@ import (
 )
 
 type Config struct {
-	HTTPPort       int
-	IdentityURL    string
-	CatalogURL     string
-	InventoryURL   string
-	OrderURL       string
-	PaymentURL     string
-	FulfillmentURL string
-	SearchURL      string
-	PricingURL     string
-	OperatorURL    string
-	QueueURL       string
-	RedisURL       string
-	JWTSecret      string
-	AllowedOrigins []string
+	HTTPPort        int
+	IdentityURL     string
+	CatalogURL      string
+	InventoryURL    string
+	OrderURL        string
+	PaymentURL      string
+	FulfillmentURL  string
+	SearchURL       string
+	PricingURL      string
+	OperatorURL     string
+	SubscriptionURL string
+	QueueURL        string
+	RedisURL        string
+	JWTSecret       string
+	AllowedOrigins  []string
 	// mTLS for gRPC clients
 	TLSCertFile string
 	TLSKeyFile  string
@@ -29,19 +30,20 @@ type Config struct {
 func Load() *Config {
 	port, _ := strconv.Atoi(getEnv("HTTP_PORT", "8080"))
 	return &Config{
-		HTTPPort:       port,
-		IdentityURL:    getEnv("IDENTITY_URL", "localhost:8081"),
-		CatalogURL:     getEnv("CATALOG_URL", "localhost:9082"),
-		InventoryURL:   getEnv("INVENTORY_URL", "localhost:9083"),
-		OrderURL:       getEnv("ORDER_URL", "localhost:9084"),
-		PaymentURL:     getEnv("PAYMENT_URL", "localhost:9085"),
-		FulfillmentURL: getEnv("FULFILLMENT_URL", "localhost:9086"),
-		SearchURL:      getEnv("SEARCH_URL", "localhost:9085"),
-		PricingURL:     getEnv("PRICING_SERVICE_URL", "localhost:50058"),
-		OperatorURL:    getEnv("OPERATOR_SERVICE_URL", "localhost:50059"),
-		QueueURL:       getEnv("QUEUE_URL", "localhost:9089"),
-		RedisURL:       getEnv("REDIS_URL", "localhost:6379"),
-		JWTSecret:      getEnv("JWT_SECRET", "travio-secret-key-change-in-production"),
+		HTTPPort:        port,
+		IdentityURL:     getEnv("IDENTITY_URL", "localhost:8081"),
+		CatalogURL:      getEnv("CATALOG_URL", "localhost:9082"),
+		InventoryURL:    getEnv("INVENTORY_URL", "localhost:9083"),
+		OrderURL:        getEnv("ORDER_URL", "localhost:9084"),
+		PaymentURL:      getEnv("PAYMENT_URL", "localhost:9085"),
+		FulfillmentURL:  getEnv("FULFILLMENT_URL", "localhost:9086"),
+		SearchURL:       getEnv("SEARCH_URL", "localhost:9085"),
+		PricingURL:      getEnv("PRICING_SERVICE_URL", "localhost:50058"),
+		OperatorURL:     getEnv("OPERATOR_SERVICE_URL", "localhost:50059"),
+		SubscriptionURL: getEnv("SUBSCRIPTION_SERVICE_URL", "localhost:50060"),
+		QueueURL:        getEnv("QUEUE_URL", "localhost:9089"),
+		RedisURL:        getEnv("REDIS_URL", "localhost:6379"),
+		JWTSecret:       getEnv("JWT_SECRET", "travio-secret-key-change-in-production"),
 		AllowedOrigins: []string{
 			"http://localhost:5173",
 			"http://localhost:3000",

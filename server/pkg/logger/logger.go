@@ -30,6 +30,15 @@ func Debug(msg string, args ...any) {
 	Log.Debug(msg, args...)
 }
 
+func Warn(msg string, args ...any) {
+	Log.Warn(msg, args...)
+}
+
+func Fatal(msg string, args ...any) {
+	Log.Error(msg, args...)
+	os.Exit(1)
+}
+
 func WithCtx(ctx context.Context) *slog.Logger {
 	// In a real implementation, extract trace_id from context
 	return Log

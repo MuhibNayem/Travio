@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package subscription.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1";
+
+service SubscriptionService {
+  // Plan Management
+  rpc CreatePlan(CreatePlanRequest) returns (Plan);
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
+  rpc GetPlan(GetPlanRequest) returns (Plan);
+  rpc UpdatePlan(UpdatePlanRequest) returns (Plan);
+
+  // Subscription Management
+  rpc CreateSubscription(CreateSubscriptionRequest) returns (Subscription);
+  rpc GetSubscription(GetSubscriptionRequest) returns (Subscription);
+  rpc CancelSubscription(CancelSubscriptionRequest) returns (Subscription);
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+
+  // Billing
+  rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse);
+}
+
+message Invoice {
+  string id = 1;
+  string subscription_id = 2;
+  int64 amount_paisa = 3;
+  string status = 4; // "paid", "open", "void", "uncollectible"
+  string issued_at = 5;
+  string due_date = 6;
+  string paid_at = 7;
+}
+
+message ListInvoicesRequest {
+  string subscription_id = 1;
+  string organization_id = 2; // Optional: Get all invoices for an org
+}
+
+message ListInvoicesResponse {
+  repeated Invoice invoices = 1;
+}
+
+message UpdatePlanRequest {
+  string id = 1;
+  string name = 2;           
+  string description = 3;    
+  int64 price_paisa = 4;     
+  map<string, string> features = 5; 
+  bool is_active = 6; // To handle boolean updates correctly, we might need a separate message or wrapper, but for MVP sticking to defaults.
+}
+
+message ListSubscriptionsRequest {
+  string plan_id = 1;       // Optional: Filter by plan
+  string status = 2;        // Optional: Filter by status
+}
+
+message ListSubscriptionsResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+message Plan {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 price_paisa = 4;
+  string interval = 5; // "month", "year"
+  map<string, string> features = 6;
+  bool is_active = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message Subscription {
+  string id = 1;
+  string organization_id = 2;
+  string plan_id = 3;
+  string status = 4; // "active", "canceled", "past_due", "trialing"
+  string current_period_start = 5;
+  string current_period_end = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message CreatePlanRequest {
+  string name = 1;
+  string description = 2;
+  int64 price_paisa = 3;
+  string interval = 4;
+  map<string, string> features = 5;
+}
+
+message ListPlansRequest {
+  bool include_inactive = 1;
+}
+
+message ListPlansResponse {
+  repeated Plan plans = 1;
+}
+
+message GetPlanRequest {
+  string plan_id = 1;
+}
+
+message CreateSubscriptionRequest {
+  string organization_id = 1;
+  string plan_id = 2;
+}
+
+message GetSubscriptionRequest {
+  string organization_id = 1;
+}
+
+message CancelSubscriptionRequest {
+  string organization_id = 1;
+}

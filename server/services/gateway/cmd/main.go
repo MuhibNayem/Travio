@@ -131,6 +131,13 @@ func main() {
 		defer operatorClient.Close()
 	}
 
+	subscriptionClient, err := client.NewSubscriptionClient(cfg.SubscriptionURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to subscription service", "error", err)
+	} else {
+		defer subscriptionClient.Close()
+	}
+
 	// Initialize handlers with gRPC clients
 	var identityHandler *handler.IdentityHandler
 	if identityClient != nil {
@@ -160,6 +167,11 @@ func main() {
 	var operatorHandler *handler.OperatorHandler
 	if operatorClient != nil {
 		operatorHandler = handler.NewOperatorHandler(operatorClient)
+	}
+
+	var subscriptionHandler *handler.SubscriptionHandler
+	if subscriptionClient != nil {
+		subscriptionHandler = handler.NewSubscriptionHandler(subscriptionClient)
 	}
 
 	// JWT Auth config
@@ -228,6 +240,32 @@ func main() {
 				r.Get("/{id}", operatorHandler.GetVendor)
 				r.Put("/{id}", operatorHandler.UpdateVendor)
 				r.Delete("/{id}", operatorHandler.DeleteVendor)
+			})
+		}
+
+		// Subscription routes
+		if subscriptionHandler != nil {
+			r.Route("/plans", func(r chi.Router) {
+				r.Get("/", subscriptionHandler.ListPlans)
+				r.Get("/{id}", subscriptionHandler.GetPlan)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireRole("admin"))
+					r.Post("/", subscriptionHandler.CreatePlan)
+					r.Put("/", subscriptionHandler.UpdatePlan)
+				})
+			})
+
+			r.Route("/subscriptions", func(r chi.Router) {
+				r.Post("/", subscriptionHandler.CreateSubscription)
+				r.Get("/{orgID}", subscriptionHandler.GetSubscription)
+				r.Post("/{orgID}/cancel", subscriptionHandler.CancelSubscription)
+
+				r.Get("/{subID}/invoices", subscriptionHandler.ListInvoices)
+
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireRole("admin"))
+					r.Get("/", subscriptionHandler.ListSubscriptions)
+				})
 			})
 		}
 
