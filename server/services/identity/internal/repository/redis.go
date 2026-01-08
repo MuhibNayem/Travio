@@ -10,6 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const (
+	tokenBlacklistChannel = "identity:token:blacklist"
+)
+
 type RedisRepository struct {
 	Client *redis.Client
 }
@@ -66,14 +70,32 @@ func (r *RedisRepository) InvalidateUser(ctx context.Context, userID string) err
 	return r.Client.Del(ctx, key).Err()
 }
 
-// --- Token Blacklist (Revocation) ---
+// --- Token Blacklist (Revocation) with Pub/Sub ---
 
+// BlacklistToken adds a token to the blacklist with TTL synced to token expiry.
+// Also publishes to a channel for distributed invalidation.
 func (r *RedisRepository) BlacklistToken(ctx context.Context, jti string, ttl time.Duration) error {
 	key := fmt.Sprintf("identity:revoked:%s", jti)
-	// We just need existence, so value "1" is fine
-	return r.Client.Set(ctx, key, "1", ttl).Err()
+
+	// Use pipeline for atomic operation
+	pipe := r.Client.Pipeline()
+	pipe.Set(ctx, key, "1", ttl)
+	pipe.Publish(ctx, tokenBlacklistChannel, jti)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
+// BlacklistTokenWithExpiry blacklists a token using the actual token expiry time.
+func (r *RedisRepository) BlacklistTokenWithExpiry(ctx context.Context, jti string, expiresAt time.Time) error {
+	ttl := time.Until(expiresAt)
+	if ttl <= 0 {
+		// Token already expired, no need to blacklist
+		return nil
+	}
+	return r.BlacklistToken(ctx, jti, ttl)
+}
+
+// IsBlacklisted checks if a single token is blacklisted.
 func (r *RedisRepository) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
 	key := fmt.Sprintf("identity:revoked:%s", jti)
 	exists, err := r.Client.Exists(ctx, key).Result()
@@ -81,4 +103,91 @@ func (r *RedisRepository) IsBlacklisted(ctx context.Context, jti string) (bool, 
 		return false, err
 	}
 	return exists > 0, nil
+}
+
+// AreBlacklisted performs batch blacklist check for multiple tokens.
+// Returns a map of jti -> isBlacklisted.
+func (r *RedisRepository) AreBlacklisted(ctx context.Context, jtis []string) (map[string]bool, error) {
+	if len(jtis) == 0 {
+		return map[string]bool{}, nil
+	}
+
+	keys := make([]string, len(jtis))
+	for i, jti := range jtis {
+		keys[i] = fmt.Sprintf("identity:revoked:%s", jti)
+	}
+
+	// Use MGET for batch check
+	results, err := r.Client.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	blacklisted := make(map[string]bool, len(jtis))
+	for i, jti := range jtis {
+		blacklisted[jti] = results[i] != nil
+	}
+	return blacklisted, nil
+}
+
+// BlacklistUserTokens revokes all tokens for a user by pattern.
+func (r *RedisRepository) BlacklistUserTokens(ctx context.Context, userID string, ttl time.Duration) error {
+	pattern := fmt.Sprintf("identity:token:%s:*", userID)
+
+	// Scan for all tokens belonging to user
+	iter := r.Client.Scan(ctx, 0, pattern, 100).Iterator()
+	pipe := r.Client.Pipeline()
+	count := 0
+
+	for iter.Next(ctx) {
+		key := iter.Val()
+		pipe.Set(ctx, fmt.Sprintf("identity:revoked:%s", key), "1", ttl)
+		pipe.Del(ctx, key)
+		count++
+
+		// Execute in batches of 100
+		if count >= 100 {
+			if _, err := pipe.Exec(ctx); err != nil {
+				return err
+			}
+			pipe = r.Client.Pipeline()
+			count = 0
+		}
+	}
+
+	if err := iter.Err(); err != nil {
+		return err
+	}
+
+	if count > 0 {
+		_, err := pipe.Exec(ctx)
+		return err
+	}
+
+	return nil
+}
+
+// SubscribeToBlacklist returns a channel that receives blacklisted token JTIs.
+// Used for distributed cache invalidation.
+func (r *RedisRepository) SubscribeToBlacklist(ctx context.Context) <-chan string {
+	pubsub := r.Client.Subscribe(ctx, tokenBlacklistChannel)
+	ch := make(chan string)
+
+	go func() {
+		defer close(ch)
+		defer pubsub.Close()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg := <-pubsub.Channel():
+				if msg != nil {
+					ch <- msg.Payload
+				}
+			}
+		}
+	}()
+
+	return ch
 }

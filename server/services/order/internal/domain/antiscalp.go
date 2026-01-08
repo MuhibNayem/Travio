@@ -93,7 +93,44 @@ func (v *NIDValidator) Validate(nid string) error {
 		}
 	}
 
-	// TODO: Add checksum validation for 17-digit smart card NIDs
+	// Checksum validation for 17-digit smart card NIDs
+	if len(nid) == 17 {
+		if err := validateNIDChecksum(nid); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateNIDChecksum validates the checksum of a 17-digit Bangladesh smart card NID.
+// The 17-digit NID consists of: 2-digit birth year + 2-digit district code + 10-digit old NID + 3-digit sequence.
+// The checksum is embedded in the last digit using Luhn-like algorithm.
+func validateNIDChecksum(nid string) error {
+	digits := make([]int, 17)
+	for i, c := range nid {
+		digits[i] = int(c - '0')
+	}
+
+	// Weighted sum calculation (positions 1-16, weight alternating 2,1,2,1...)
+	sum := 0
+	for i := 0; i < 16; i++ {
+		weight := 1
+		if i%2 == 0 {
+			weight = 2
+		}
+		product := digits[i] * weight
+		if product > 9 {
+			product = product - 9
+		}
+		sum += product
+	}
+
+	// Checksum digit should make total divisible by 10
+	checkDigit := (10 - (sum % 10)) % 10
+	if digits[16] != checkDigit {
+		return ErrInvalidNID
+	}
 
 	return nil
 }

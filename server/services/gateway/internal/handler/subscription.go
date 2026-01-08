@@ -6,6 +6,7 @@ import (
 
 	subscriptionv1 "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/client"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -90,7 +91,12 @@ func (h *SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// TODO: Verify organization ownership from context/token if strict
+	// Verify organization ownership from JWT claims
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID != "" && orgID != req.OrganizationId {
+		http.Error(w, "Unauthorized: organization mismatch", http.StatusForbidden)
+		return
+	}
 
 	resp, err := h.client.CreateSubscription(r.Context(), &req)
 	if err != nil {

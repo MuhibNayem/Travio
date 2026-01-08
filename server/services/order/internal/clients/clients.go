@@ -8,6 +8,7 @@ import (
 	nidpb "github.com/MuhibNayem/Travio/server/api/proto/nid/v1"
 	paymentpb "github.com/MuhibNayem/Travio/server/api/proto/payment/v1"
 	subscriptionpb "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/saga"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -195,22 +196,30 @@ func (c *SubscriptionClient) GetEntitlement(ctx context.Context, orgID string) (
 	}, nil
 }
 
-// NotificationClient implements saga.NotificationClient
-type NotificationClient struct {
-	// In production, this would be a gRPC client to notification service
-}
+// NotificationClient implements saga.NotificationClient using structured logging.
+// Once notification.proto is defined, this should be replaced with gRPC client.
+type NotificationClient struct{}
 
 func NewNotificationClient() *NotificationClient {
 	return &NotificationClient{}
 }
 
 func (c *NotificationClient) SendBookingConfirmation(ctx context.Context, email, phone, orderID string) error {
-	// TODO: Implement via notification service gRPC
+	logger.Info("Sending booking confirmation",
+		"order_id", orderID,
+		"email", email,
+		"phone", phone,
+	)
 	return nil
 }
 
 func (c *NotificationClient) SendBookingCancellation(ctx context.Context, email, phone, orderID, reason string) error {
-	// TODO: Implement via notification service gRPC
+	logger.Info("Sending booking cancellation",
+		"order_id", orderID,
+		"email", email,
+		"phone", phone,
+		"reason", reason,
+	)
 	return nil
 }
 

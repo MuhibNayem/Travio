@@ -94,8 +94,8 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 		return nil, fmt.Errorf("failed to get payment config for organization %s: %w", err)
 	}
 
-	// Instantiate Gateway client
-	gw, err := factory.Create(payConfig.Credentials, false) // TODO: Handle Sandbox flag properly
+	// Instantiate Gateway client using sandbox flag from org config
+	gw, err := factory.Create(payConfig.Credentials, payConfig.IsSandbox)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway instance: %w", err)
 	}
