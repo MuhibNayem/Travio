@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package fraud.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/fraud/v1;fraudpb";
+
+// FraudService provides fraud detection and document verification.
+service FraudService {
+  // AnalyzeBooking analyzes a booking for fraud indicators.
+  rpc AnalyzeBooking(AnalyzeBookingRequest) returns (AnalyzeBookingResponse);
+  
+  // VerifyDocument verifies a document image for authenticity.
+  rpc VerifyDocument(VerifyDocumentRequest) returns (VerifyDocumentResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+}
+
+message AnalyzeBookingRequest {
+  string order_id = 1;
+  string organization_id = 2;
+  string user_id = 3;
+  string trip_id = 4;
+  
+  // Passenger details
+  repeated string passenger_nids = 5;
+  repeated string passenger_names = 6;
+  int32 passenger_count = 7;
+  
+  // Booking behavior
+  int64 booking_timestamp = 8;
+  string ip_address = 9;
+  string user_agent = 10;
+  string payment_method = 11;
+  int64 total_amount_paisa = 12;
+  
+  // Historical context
+  int32 bookings_last_24_hours = 13;
+  int32 bookings_last_week = 14;
+  int32 previous_fraud_flags = 15;
+}
+
+message AnalyzeBookingResponse {
+  // Risk score from 0-100 (higher = more risky)
+  int32 risk_score = 1;
+  // Risk level: low, medium, high, critical
+  string risk_level = 2;
+  // Confidence in the analysis (0-100)
+  int32 confidence = 3;
+  // Whether the transaction should be blocked
+  bool should_block = 4;
+  // Specific risk factors identified
+  repeated RiskFactor risk_factors = 5;
+  // Human-readable summary
+  string summary = 6;
+  // Model used for analysis
+  string model = 7;
+}
+
+message RiskFactor {
+  string code = 1;
+  string description = 2;
+  string severity = 3; // low, medium, high
+  int32 score = 4;     // Contribution to total score
+}
+
+message VerifyDocumentRequest {
+  // Document type: nid, passport
+  string document_type = 1;
+  // Base64 encoded document image
+  bytes document_image = 2;
+  // MIME type of the image
+  string image_mime_type = 3;
+  // Expected NID for validation
+  string expected_nid = 4;
+  // Expected name for validation
+  string expected_name = 5;
+  // Organization ID
+  string organization_id = 6;
+}
+
+message VerifyDocumentResponse {
+  bool is_authentic = 1;
+  int32 confidence = 2;
+  string extracted_nid = 3;
+  string extracted_name = 4;
+  // Tampering score 0-100 (higher = more tampering)
+  int32 tampering_score = 5;
+  repeated string issues = 6;
+  string summary = 7;
+}
