@@ -5,6 +5,7 @@ go 1.25.3
 require (
 	github.com/MuhibNayem/Travio/server/api v0.0.0
 	github.com/MuhibNayem/Travio/server/pkg v0.0.0
+	github.com/MuhibNayem/Travio/server/pkg/entitlement v0.0.0-20260107231921-4b2f95ebcb2e
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.3

@@ -1,3 +1,5 @@
+github.com/MuhibNayem/Travio/server/pkg/entitlement v0.0.0-20260107231921-4b2f95ebcb2e h1:cgkPXYOn1hX02bnBKKdZoE10SBGRY1B+JNy7xvlX5cQ=
+github.com/MuhibNayem/Travio/server/pkg/entitlement v0.0.0-20260107231921-4b2f95ebcb2e/go.mod h1:V29BwBekSArf6xF0oO5GF8ZPO1QKC4xsNfgxpdvaidM=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=

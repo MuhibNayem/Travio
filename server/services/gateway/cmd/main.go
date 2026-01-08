@@ -38,6 +38,10 @@ func main() {
 	defer rateLimiter.Close()
 	r.Use(rateLimiter.Middleware)
 
+	// Entitlement enforcement (requires active subscription for protected routes)
+	entitlementMW := middleware.NewEntitlementMiddleware(cfg.RedisURL)
+	r.Use(entitlementMW.Middleware)
+
 	// Health endpoints (no auth required)
 	r.Get("/health", handler.Health)
 	r.Get("/ready", handler.Ready)

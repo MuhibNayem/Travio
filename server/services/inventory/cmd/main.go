@@ -2,18 +2,21 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/database/scylladb"
+	"github.com/MuhibNayem/Travio/server/pkg/entitlement"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/inventory/config"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/service"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -49,7 +52,26 @@ func main() {
 		DB:       cfg.Redis.DB,
 	})
 
-	// Dependency Injection
+	// Entitlement Checker Setup
+	var entitlementInterceptor grpc.UnaryServerInterceptor
+	subscriptionAddr := os.Getenv("SUBSCRIPTION_URL")
+	if subscriptionAddr == "" {
+		subscriptionAddr = "localhost:50060"
+	}
+	fetcher, err := entitlement.NewSubscriptionFetcher(subscriptionAddr)
+	if err != nil {
+		logger.Warn("Failed to connect to subscription service for entitlement", "error", err)
+	} else {
+		checker := entitlement.NewCachedChecker(redisClient, fetcher, entitlement.DefaultConfig())
+		entitlementInterceptor = entitlement.UnaryServerInterceptor(entitlement.InterceptorConfig{
+			Checker:                   checker,
+			SkipMethods:               []string{"GetTrip", "ListTrips", "GetSeatMap", "Health"}, // Read operations skip
+			RequireActiveSubscription: true,
+			QuotaKey:                  entitlement.FeatureMaxTripsPerMonth,
+		})
+		logger.Info("Entitlement enforcement enabled for Inventory Service")
+	}
+
 	// Dependency Injection
 	scyllaRepo := repository.NewScyllaRepository(scyllaSession)
 	redisRepo := repository.NewRedisRepository(redisClient)
@@ -64,8 +86,12 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	// Start servers
-	srv := server.New(cfg.Server)
+	// Start servers with entitlement interceptor
+	var serverOpts []grpc.ServerOption
+	if entitlementInterceptor != nil {
+		serverOpts = append(serverOpts, grpc.UnaryInterceptor(entitlementInterceptor))
+	}
+	srv := server.NewWithOptions(cfg.Server, serverOpts...)
 	pb.RegisterInventoryServiceServer(srv.GRPC(), grpcHandler)
 
 	logger.Info("Inventory service starting", "grpc_port", cfg.Server.GRPCPort, "http_port", cfg.Server.HTTPPort)
