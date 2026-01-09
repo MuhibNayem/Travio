@@ -7,12 +7,14 @@ RUN apk add --no-cache git ca-certificates
 WORKDIR /app
 
 # Copy go workspace files
-COPY go.work go.work.sum ./
 
 # Copy module files
 COPY pkg/go.mod pkg/go.sum ./pkg/
 COPY api/go.mod api/go.sum ./api/
 COPY services/reporting/go.mod services/reporting/go.sum ./services/reporting/
+
+# Init new go.work since we only copied specific services
+RUN go work init ./pkg ./api ./services/reporting
 
 # Download dependencies
 RUN cd services/reporting && go mod download

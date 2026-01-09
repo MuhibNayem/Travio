@@ -235,6 +235,12 @@ We strictly follow DDD principles.
     docker compose up --build -d
     ```
 
+    or 
+
+    ```bash
+    docker compose --env-file .env.dev up --build -d
+    ```
+
     > **Note**: This will spin up 20+ containers (Postgres, ScyllaDB, Redis, Kafka, and Microservices). Ensure you have at least 8GB RAM available.
 
 4.  **Explore**:
