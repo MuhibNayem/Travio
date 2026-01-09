@@ -167,6 +167,29 @@ services:
       - ./server/services/inventory/migrations/001_initial_schema.cql:/schema.cql
     entrypoint: ["/bin/bash", "/init-scylla.sh", "scylla", "/schema.cql"]
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.1
+    container_name: travio-clickhouse
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_DB=${CLICKHOUSE_DATABASE:-travio_analytics}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+    ports:
+      - "8123:8123"   # HTTP interface
+      - "9000:9000"   # Native TCP
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ===========================================
   # Backend Services
   # ===========================================
@@ -526,6 +549,73 @@ services:
       timeout: 5s
       retries: 3
 
+  fraud:
+    build:
+      context: ./server
+      dockerfile: services/fraud/Dockerfile
+    container_name: travio-fraud
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis:${REDIS_PORT}
+      - ZAI_API_KEY=${ZAI_API_KEY}
+      - ZAI_BASE_URL=${ZAI_BASE_URL:-https://api.z.ai/api/paas/v4}
+      - FRAUD_THRESHOLD=${FRAUD_THRESHOLD:-70}
+      - FRAUD_CACHE_TTL=${FRAUD_CACHE_TTL:-5m}
+      - PROFILE_ENABLED=${PROFILE_ENABLED:-true}
+      - PROFILE_DEVIATION_THRESHOLD=${PROFILE_DEVIATION_THRESHOLD:-2.0}
+      - FRAUD_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/travio_fraud?sslmode=disable
+      - RAG_ENABLED=${RAG_ENABLED:-true}
+      - RAG_TOP_K=${RAG_TOP_K:-5}
+      - RAG_SIMILARITY_THRESHOLD=${RAG_SIMILARITY_THRESHOLD:-0.7}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENSEARCH_URL=http://opensearch:9200
+      - GRPC_PORT=${FRAUD_GRPC_PORT:-50090}
+    ports:
+      - "${FRAUD_GRPC_PORT:-50090}:${FRAUD_GRPC_PORT:-50090}"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  reporting:
+    build:
+      context: ./server
+      dockerfile: services/reporting/Dockerfile
+    container_name: travio-reporting
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DATABASE=${CLICKHOUSE_DATABASE:-travio_analytics}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_ENABLED=${KAFKA_ENABLED:-true}
+      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-true}
+      - REPORT_BATCH_SIZE=${REPORT_BATCH_SIZE:-10000}
+      - REPORT_FLUSH_INTERVAL=${REPORT_FLUSH_INTERVAL:-5s}
+      - GRPC_PORT=${REPORTING_GRPC_PORT:-50091}
+    ports:
+      - "${REPORTING_GRPC_PORT:-50091}:${REPORTING_GRPC_PORT:-50091}"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   gateway:
     build:
       context: ./server
@@ -543,6 +633,8 @@ services:
       - SEARCH_URL=search:${SEARCH_GRPC_PORT:-9088}
       - PRICING_URL=pricing:${PRICING_GRPC_PORT:-50058}
       - SUBSCRIPTION_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
+      - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
+      - REPORTING_URL=reporting:${REPORTING_GRPC_PORT:-50091}
       - REDIS_URL=redis:${REDIS_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_PORT=${GATEWAY_HTTP_PORT}
@@ -568,6 +660,10 @@ services:
       pricing:
         condition: service_healthy
       subscription:
+        condition: service_healthy
+      fraud:
+        condition: service_healthy
+      reporting:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${GATEWAY_HTTP_PORT}/health" ]
@@ -601,3 +697,4 @@ volumes:
   opensearch_data:
   minio_data:
   scylla_data:
+  clickhouse_data:

@@ -142,6 +142,20 @@ func main() {
 		defer subscriptionClient.Close()
 	}
 
+	fraudClient, err := client.NewFraudClient(cfg.FraudURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to fraud service", "error", err)
+	} else {
+		defer fraudClient.Close()
+	}
+
+	reportingClient, err := client.NewReportingClient(cfg.ReportingURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to reporting service", "error", err)
+	} else {
+		defer reportingClient.Close()
+	}
+
 	// Initialize handlers with gRPC clients
 	var identityHandler *handler.IdentityHandler
 	if identityClient != nil {
@@ -176,6 +190,16 @@ func main() {
 	var subscriptionHandler *handler.SubscriptionHandler
 	if subscriptionClient != nil {
 		subscriptionHandler = handler.NewSubscriptionHandler(subscriptionClient)
+	}
+
+	var fraudHandler *handler.FraudHandler
+	if fraudClient != nil {
+		fraudHandler = handler.NewFraudHandler(fraudClient)
+	}
+
+	var reportingHandler *handler.ReportingHandler
+	if reportingClient != nil {
+		reportingHandler = handler.NewReportingHandler(reportingClient)
 	}
 
 	// JWT Auth config
@@ -317,6 +341,16 @@ func main() {
 			r.Get("/tickets/{ticketId}", fulfillmentHandler.GetTicket)
 			r.Get("/tickets/{ticketId}/download", fulfillmentHandler.DownloadTicket)
 			r.Get("/orders/{orderId}/tickets", fulfillmentHandler.GetOrderTickets)
+		}
+
+		// Fraud routes (protected)
+		if fraudHandler != nil {
+			fraudHandler.RegisterRoutes(r)
+		}
+
+		// Reporting routes (protected)
+		if reportingHandler != nil {
+			reportingHandler.RegisterRoutes(r)
 		}
 
 	})

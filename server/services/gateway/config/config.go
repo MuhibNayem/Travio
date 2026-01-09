@@ -22,9 +22,11 @@ type Config struct {
 	JWTSecret       string
 	AllowedOrigins  []string
 	// mTLS for gRPC clients
-	TLSCertFile string
-	TLSKeyFile  string
-	TLSCAFile   string
+	TLSCertFile  string
+	TLSKeyFile   string
+	TLSCAFile    string
+	FraudURL     string
+	ReportingURL string
 }
 
 func Load() *Config {
@@ -43,6 +45,8 @@ func Load() *Config {
 		SubscriptionURL: getEnv("SUBSCRIPTION_SERVICE_URL", "localhost:50060"),
 		QueueURL:        getEnv("QUEUE_URL", "localhost:9089"),
 		RedisURL:        getEnv("REDIS_URL", "localhost:6379"),
+		FraudURL:        getEnv("FRAUD_URL", "localhost:50090"),
+		ReportingURL:    getEnv("REPORTING_URL", "localhost:50091"),
 		JWTSecret:       getEnv("JWT_SECRET", "travio-secret-key-change-in-production"),
 		AllowedOrigins: []string{
 			"http://localhost:5173",
