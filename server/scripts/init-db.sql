@@ -521,10 +521,13 @@ CREATE INDEX IF NOT EXISTS idx_tickets_user ON support_tickets(user_id);
 CREATE TABLE IF NOT EXISTS assets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
-    type VARCHAR(50) NOT NULL, -- bus, train, launch
-    registration_number VARCHAR(100),
+    name VARCHAR(255),
+    license_plate VARCHAR(50),
+    vin VARCHAR(100),
+    make VARCHAR(100),
     model VARCHAR(255),
-    capacity INTEGER,
+    year INTEGER,
+    type VARCHAR(50) NOT NULL, -- bus, train, launch
     status VARCHAR(50) DEFAULT 'active',
     config JSONB DEFAULT '{}', -- Layout config
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

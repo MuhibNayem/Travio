@@ -106,8 +106,26 @@ func (s *AuthService) Login(email, password, userAgent, ipAddress string) (*Toke
 		return nil, ErrInvalidCredentials
 	}
 
+	// Fetch Org Name (Cache-Aside pattern)
+	var orgName string
+	if user.OrganizationID != "" {
+		ctx := context.Background() // Or pass specific context if available
+		// 1. Try Cache
+		cachedOrg, err := s.RedisRepo.GetOrg(ctx, user.OrganizationID)
+		if err == nil && cachedOrg != nil {
+			orgName = cachedOrg.Name
+		} else {
+			// 2. Cache Miss - Hit DB
+			if org, err := s.OrgRepo.FindByID(user.OrganizationID); err == nil {
+				orgName = org.Name
+				// 3. Populate Cache (1 hour TTL)
+				_ = s.RedisRepo.CacheOrg(ctx, org, 1*time.Hour)
+			}
+		}
+	}
+
 	// Generate Access Token
-	accessToken, err := auth.GenerateAccessToken(user.ID, user.OrganizationID, user.Role)
+	accessToken, err := auth.GenerateAccessToken(user.ID, user.OrganizationID, user.Role, user.Name, user.Email, orgName)
 	if err != nil {
 		logger.Error("Failed to generate access token", "user_id", user.ID, "error", err)
 		return nil, err
@@ -179,8 +197,23 @@ func (s *AuthService) RefreshTokens(refreshTokenString, userAgent, ipAddress str
 		return nil, err
 	}
 
+	// Fetch Org Name (Cache-Aside pattern)
+	var orgName string
+	if user.OrganizationID != "" {
+		ctx := context.Background()
+		cachedOrg, err := s.RedisRepo.GetOrg(ctx, user.OrganizationID)
+		if err == nil && cachedOrg != nil {
+			orgName = cachedOrg.Name
+		} else {
+			if org, err := s.OrgRepo.FindByID(user.OrganizationID); err == nil {
+				orgName = org.Name
+				_ = s.RedisRepo.CacheOrg(ctx, org, 1*time.Hour)
+			}
+		}
+	}
+
 	// Generate new Access Token
-	newAccessToken, err := auth.GenerateAccessToken(user.ID, user.OrganizationID, user.Role)
+	newAccessToken, err := auth.GenerateAccessToken(user.ID, user.OrganizationID, user.Role, user.Name, user.Email, orgName)
 	if err != nil {
 		return nil, err
 	}

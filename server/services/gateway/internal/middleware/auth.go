@@ -85,7 +85,7 @@ func JWTAuth(config JWTConfig) func(http.Handler) http.Handler {
 			if userID, ok := claims["sub"].(string); ok {
 				ctx = context.WithValue(ctx, UserIDKey, userID)
 			}
-			if orgID, ok := claims["org_id"].(string); ok {
+			if orgID, ok := claims["oid"].(string); ok {
 				ctx = context.WithValue(ctx, OrgIDKey, orgID)
 			}
 			if role, ok := claims["role"].(string); ok {

@@ -648,6 +648,8 @@ services:
       - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
       - REPORTING_URL=reporting:${REPORTING_GRPC_PORT:-50091}
       - EVENTS_URL=events:${EVENTS_SERVICE_GRPC_PORT:-9091}
+      - FLEET_URL=fleet:${FLEET_GRPC_PORT:-9093}
+      - CRM_URL=crm:${CRM_GRPC_PORT:-9094}
       - REDIS_URL=redis:${REDIS_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_PORT=${GATEWAY_HTTP_PORT}

@@ -70,6 +70,39 @@ func (r *RedisRepository) InvalidateUser(ctx context.Context, userID string) err
 	return r.Client.Del(ctx, key).Err()
 }
 
+// --- Org Caching ---
+
+func (r *RedisRepository) CacheOrg(ctx context.Context, org *domain.Organization, ttl time.Duration) error {
+	data, err := json.Marshal(org)
+	if err != nil {
+		return err
+	}
+	key := fmt.Sprintf("identity:org:%s", org.ID)
+	return r.Client.Set(ctx, key, data, ttl).Err()
+}
+
+func (r *RedisRepository) GetOrg(ctx context.Context, orgID string) (*domain.Organization, error) {
+	key := fmt.Sprintf("identity:org:%s", orgID)
+	data, err := r.Client.Get(ctx, key).Bytes()
+	if err == redis.Nil {
+		return nil, nil // Cache miss
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var org domain.Organization
+	if err := json.Unmarshal(data, &org); err != nil {
+		return nil, err
+	}
+	return &org, nil
+}
+
+func (r *RedisRepository) InvalidateOrg(ctx context.Context, orgID string) error {
+	key := fmt.Sprintf("identity:org:%s", orgID)
+	return r.Client.Del(ctx, key).Err()
+}
+
 // --- Token Blacklist (Revocation) with Pub/Sub ---
 
 // BlacklistToken adds a token to the blacklist with TTL synced to token expiry.

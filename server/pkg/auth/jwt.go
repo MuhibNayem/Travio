@@ -32,6 +32,9 @@ type AccessTokenClaims struct {
 	UserID         string `json:"uid"`
 	OrganizationID string `json:"oid"`
 	Role           string `json:"role"`
+	Name           string `json:"name"`
+	Email          string `json:"email"`
+	OrgName        string `json:"org_name,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -44,12 +47,15 @@ type RefreshTokenClaims struct {
 // --- Token Generation ---
 
 // GenerateAccessToken creates a short-lived Access Token (15 min)
-func GenerateAccessToken(userID, orgID, role string) (string, error) {
+func GenerateAccessToken(userID, orgID, role, name, email, orgName string) (string, error) {
 	jti := uuid.New().String()
 	claims := AccessTokenClaims{
 		UserID:         userID,
 		OrganizationID: orgID,
 		Role:           role,
+		Name:           name,
+		Email:          email,
+		OrgName:        orgName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenTTL)),

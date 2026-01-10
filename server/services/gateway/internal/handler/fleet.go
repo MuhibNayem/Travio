@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -70,14 +69,26 @@ func (h *FleetHandler) GetAsset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(asset)
+	respBytes, err := protojson.Marshal(asset)
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBytes)
 }
 
 func (h *FleetHandler) UpdateAssetStatus(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	var req fleetv1.UpdateAssetStatusRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := protojson.Unmarshal(body, &req); err != nil {
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	req.Id = id
@@ -89,21 +100,25 @@ func (h *FleetHandler) UpdateAssetStatus(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(asset)
+	respBytes, err := protojson.Marshal(asset)
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBytes)
 }
 
 func (h *FleetHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
-	// orgID should come from token (or query param if admin/operator handling multiple orgs)
-	// For now, let's assume "organization_id" query param or extract from context if auth middleware sets it.
-	// Since we are in Gateway, we usually rely on claims.
-	// However, simple implementation: query param or header?
-	// Let's use query param if provided, otherwise assume caller handles it or it's global?
-	// ACTUALLY: Backend requires OrgID.
-	// Let's take it from query param "organization_id".
-	orgID := r.URL.Query().Get("organization_id")
+	// 1. Try to get Org ID from Context (JWT)
+	orgID := middleware.GetOrgID(r.Context())
+
+	// 2. If not in context (e.g. admin overriding), check query param?
+	// For now, enforce context for security unless empty.
 	if orgID == "" {
-		// Try to fallback to user's org if available in context?
-		// For now http 400 if missing.
+		orgID = r.URL.Query().Get("organization_id")
+	}
+
+	if orgID == "" {
 		http.Error(w, "organization_id is required", http.StatusBadRequest)
 		return
 	}
@@ -119,15 +134,27 @@ func (h *FleetHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respBytes, err := protojson.Marshal(resp)
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBytes)
 }
 
 // --- Location ---
 
 func (h *FleetHandler) UpdateLocation(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	var req fleetv1.UpdateLocationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := protojson.Unmarshal(body, &req); err != nil {
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -138,7 +165,12 @@ func (h *FleetHandler) UpdateLocation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respBytes, err := protojson.Marshal(resp)
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBytes)
 }
 
 func (h *FleetHandler) GetLocation(w http.ResponseWriter, r *http.Request) {
@@ -150,5 +182,10 @@ func (h *FleetHandler) GetLocation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(loc)
+	respBytes, err := protojson.Marshal(loc)
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBytes)
 }
