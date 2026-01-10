@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -26,19 +27,20 @@ func main() {
 
 	// Database
 	logger.Info("Connecting to PostgreSQL...")
-	// Using default local credentials consistent with other services
-	dsn := "postgres://postgres:postgres@localhost:5432/travio_payment?sslmode=disable"
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.DBName,
+		cfg.Database.SSLMode,
+	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Error("Failed to connect to GORM DB", "error", err)
 	} else {
 		logger.Info("Connected to DB, running migrations...")
-		_ = db.AutoMigrate(&model.Transaction{})
-		// Ensure payment_configs table? Actually we rely on init-db.sql, but GORM AutoMigrate is safer
-		// Define PaymentConfig in model? Repository defines it in internal/repository/config.go but better if it was in internal/model.
-		// For now, let's skip auto-migrating PaymentConfig unless we move it to model package.
-		// It's defined in repository package, so we can't reference it easily here without import cycle or weirdness.
-		// Assuming init-db.sql handles it.
+		_ = db.AutoMigrate(&model.Transaction{}, &model.PaymentConfig{})
 	}
 
 	repo := repository.NewTransactionRepository(db)
@@ -57,7 +59,6 @@ func main() {
 	go reconciler.Start(context.Background())
 	// logger.Warn("Reconciliation worker temporarily disabled during dynamic gateway refactor")
 
-	// Service and handler
 	// Service and handler
 	paymentService := service.NewPaymentService(registry, repo, configRepo)
 	grpcHandler := handler.NewGrpcHandler(paymentService, registry, repo, configRepo)

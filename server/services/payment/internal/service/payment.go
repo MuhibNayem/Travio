@@ -96,7 +96,6 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 	}
 
 	// Instantiate Gateway client using sandbox flag from org config
-	// Instantiate Gateway client using sandbox flag from org config
 	gw, err := factory.Create(payConfig.Credentials, payConfig.IsSandbox)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway instance: %w", err)
@@ -159,7 +158,6 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, gatewayName, transac
 	}
 
 	// 3. Create Gateway
-	// 3. Create Gateway
 	// DEV MODE BYPASS
 	if os.Getenv("APP_ENV") == "development" {
 		return &gateway.PaymentStatus{
@@ -198,7 +196,6 @@ func (s *PaymentService) CapturePayment(ctx context.Context, gatewayName, transa
 		return nil, fmt.Errorf("failed to get payment config: %w", err)
 	}
 
-	// 3. Create Gateway
 	// 3. Create Gateway
 	// DEV MODE BYPASS
 	if os.Getenv("APP_ENV") == "development" {
@@ -290,7 +287,7 @@ func (s *PaymentService) UpdatePaymentConfig(ctx context.Context, organizationID
 		return fmt.Errorf("failed to marshal credentials: %w", err)
 	}
 
-	config := &repository.PaymentConfig{
+	config := &model.PaymentConfig{
 		OrganizationID: organizationID,
 		Gateway:        gatewayName,
 		Credentials:    credsJSON,
@@ -304,6 +301,6 @@ func (s *PaymentService) UpdatePaymentConfig(ctx context.Context, organizationID
 	return nil
 }
 
-func (s *PaymentService) GetPaymentConfig(ctx context.Context, organizationID string) (*repository.PaymentConfig, error) {
+func (s *PaymentService) GetPaymentConfig(ctx context.Context, organizationID string) (*model.PaymentConfig, error) {
 	return s.configRepo.GetConfig(ctx, organizationID)
 }
