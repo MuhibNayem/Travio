@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -59,6 +60,72 @@ func main() {
 	// 3. Init Layers
 	repo := repository.NewPostgresRepository(db)
 	svc := service.NewSubscriptionService(repo)
+
+	// Seed Market-Fit Plans (Bangladesh Context)
+	ctx := context.Background()
+	plans := []struct {
+		ID       string
+		Name     string
+		Desc     string
+		Price    int64
+		Features map[string]string
+		IsActive bool
+	}{
+		{
+			ID:    "plan_free",
+			Name:  "Shuru (Starter)",
+			Desc:  "Perfect for single bus owners. 3 Round Trips/Day included.",
+			Price: 0,
+			Features: map[string]string{
+				"max_trips_per_month": "180", // 6 trips/day * 30 = 180 (3 Round Trips)
+				"max_schedule_days":   "10",  // 10 days in advance
+				"commission_rate":     "5.0", // 5% platform fee on online sales
+				"counter_sales":       "unlimited",
+				"analytics":           "basic",
+			},
+		},
+		{
+			ID:    "plan_pro",
+			Name:  "Goti (Growth)",
+			Desc:  "For growing fleets (up to 10 buses). Lower fees & SMS alerts.",
+			Price: 250000, // 2,500 BDT
+			Features: map[string]string{
+				"max_trips_per_month": "1200", // ~40 trips/day (20 Round Trips)
+				"max_schedule_days":   "30",   // 30 days in advance
+				"commission_rate":     "2.5",  // 2.5% platform fee
+				"counter_sales":       "unlimited",
+				"analytics":           "advanced",
+				"sms_alerts":          "true",
+			},
+		},
+		{
+			ID:    "plan_enterprise",
+			Name:  "Bishal (Enterprise)",
+			Desc:  "Unlimited scale for national carriers. Dedicated support.",
+			Price: 1500000, // 15,000 BDT
+			Features: map[string]string{
+				"max_trips_per_month": "-1",  // Unlimited
+				"max_schedule_days":   "90",  // 90 days in advance
+				"commission_rate":     "1.0", // 1% platform fee
+				"counter_sales":       "unlimited",
+				"analytics":           "enterprise",
+				"sms_alerts":          "true",
+				"api_access":          "true",
+				"custom_branding":     "true",
+			},
+		},
+	}
+
+	for _, p := range plans {
+		if existing, _ := svc.GetPlan(ctx, p.ID); existing == nil {
+			_, err := svc.CreatePlan(ctx, p.ID, p.Name, p.Desc, p.Price, "month", p.Features, 0)
+			if err != nil {
+				logger.Error("Failed to seed plan", "id", p.ID, "error", err)
+			} else {
+				logger.Info("Seeded plan", "id", p.ID, "name", p.Name)
+			}
+		}
+	}
 
 	// 4. Start HTTP health server for Docker healthchecks
 	go func() {

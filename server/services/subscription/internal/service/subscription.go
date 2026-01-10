@@ -17,8 +17,11 @@ func NewSubscriptionService(repo repository.Repository) *SubscriptionService {
 }
 
 // Plans
-func (s *SubscriptionService) CreatePlan(ctx context.Context, name, description string, price int64, interval string, features map[string]string, usagePrice int64) (*repository.Plan, error) {
+
+// Plans
+func (s *SubscriptionService) CreatePlan(ctx context.Context, id, name, description string, price int64, interval string, features map[string]string, usagePrice int64) (*repository.Plan, error) {
 	plan := &repository.Plan{
+		ID:              id, // Allow setting ID for seeding
 		Name:            name,
 		Description:     description,
 		PricePaisa:      price,

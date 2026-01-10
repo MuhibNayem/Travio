@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/entitlement"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/catalog/config"
@@ -46,7 +49,24 @@ func main() {
 
 	tripRepo := repository.NewTripRepository(db)
 
-	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, tripRepo)
+	// Entitlement Checker Setup
+	subFetcher, err := entitlement.NewSubscriptionFetcher(cfg.SubscriptionURL)
+	if err != nil {
+		logger.Error("Failed to connect to subscription service", "error", err)
+		// We might want to fail hard here in production, but for now we continue (will fail open/closed based on config)
+	} else {
+		defer subFetcher.Close()
+	}
+
+	entConfig := entitlement.DefaultConfig()
+	entConfig.Enabled = true
+	entConfig.FailOpen = true // Allow traffic if subscription service is down (availability over consistency)
+	entConfig.CacheTTL = 5 * time.Minute
+
+	entChecker := entitlement.NewCachedChecker(rdb, subFetcher, entConfig)
+	entChecker.StartInvalidationListener(context.Background())
+
+	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, tripRepo, entChecker)
 	grpcHandler := handler.NewGrpcHandler(catalogService)
 
 	// HTTP Mux (for health checks and REST fallback)

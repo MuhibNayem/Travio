@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	Server   server.Config
-	Database DatabaseConfig
-	Redis    RedisConfig
+	Server          server.Config
+	Database        DatabaseConfig
+	Redis           RedisConfig
+	SubscriptionURL string
 }
 
 type DatabaseConfig struct {
@@ -50,5 +51,6 @@ func Load() *Config {
 			Password: utils.GetEnv("REDIS_PASSWORD", ""),
 			DB:       utils.GetEnvAsInt("REDIS_DB", 0),
 		},
+		SubscriptionURL: utils.GetEnv("SUBSCRIPTION_SERVICE_URL", "localhost:50060"),
 	}
 }

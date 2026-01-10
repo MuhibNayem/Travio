@@ -51,7 +51,7 @@
 <Popover.Root bind:open>
     <Popover.Trigger bind:ref={triggerRef}>
         {#snippet child({ props })}
-            <Button
+            <Button.Root
                 variant="glass"
                 size="xl"
                 role="combobox"
@@ -70,7 +70,7 @@
                 {/if}
                 <span class="truncate flex-1 text-left">{selectedLabel}</span>
                 <ChevronsUpDown class="opacity-50 ml-2 h-4 w-4 shrink-0" />
-            </Button>
+            </Button.Root>
         {/snippet}
     </Popover.Trigger>
     <Popover.Content class={cn("p-0", width)}>

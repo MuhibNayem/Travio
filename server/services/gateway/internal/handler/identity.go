@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	identityv1 "github.com/MuhibNayem/Travio/server/api/proto/identity/v1"
+	subscriptionv1 "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/client"
 	"github.com/go-chi/chi/v5"
@@ -12,12 +13,16 @@ import (
 
 // IdentityHandler handles auth/identity requests via gRPC
 type IdentityHandler struct {
-	client *client.IdentityClient
+	client    *client.IdentityClient
+	subClient *client.SubscriptionClient
 }
 
 // NewIdentityHandler creates a new identity handler with gRPC client
-func NewIdentityHandler(identityClient *client.IdentityClient) *IdentityHandler {
-	return &IdentityHandler{client: identityClient}
+func NewIdentityHandler(identityClient *client.IdentityClient, subClient *client.SubscriptionClient) *IdentityHandler {
+	return &IdentityHandler{
+		client:    identityClient,
+		subClient: subClient,
+	}
 }
 
 // Register handles user registration
@@ -104,11 +109,40 @@ func (h *IdentityHandler) CreateOrganization(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Default to Free Tier if no plan selected
+	if req.PlanId == "" {
+		req.PlanId = "plan_free"
+	}
+
+	// 1. Create Organization in Identity Service
 	resp, err := h.client.CreateOrganization(r.Context(), &req)
 	if err != nil {
 		logger.Error("Failed to create organization", "error", err)
 		http.Error(w, `{"error": "identity service unavailable"}`, http.StatusServiceUnavailable)
 		return
+	}
+
+	// 2. Create Subscription in Subscription Service
+	// We use the PlanID from the request (which is now guaranteed to be set)
+	logger.Info("Creating subscription for organization", "org_id", resp.OrganizationId, "plan_id", req.PlanId)
+	subReq := &subscriptionv1.CreateSubscriptionRequest{
+		OrganizationId: resp.OrganizationId,
+		PlanId:         req.PlanId,
+	}
+
+	_, subErr := h.subClient.CreateSubscription(r.Context(), subReq)
+	if subErr != nil {
+		// Critical Error: Org created but subscription failed.
+		// In a real system, we might want to rollback the Org or queue a retry.
+		// For now, we log an error. The user will be blocked by EntitlementMiddleware until fixed.
+		logger.Error("Failed to create default subscription for new org",
+			"org_id", resp.OrganizationId,
+			"plan_id", req.PlanId,
+			"error", subErr)
+	} else {
+		logger.Info("Created default subscription for new org",
+			"org_id", resp.OrganizationId,
+			"plan_id", req.PlanId)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

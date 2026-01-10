@@ -159,7 +159,7 @@ func main() {
 	// Initialize handlers with gRPC clients
 	var identityHandler *handler.IdentityHandler
 	if identityClient != nil {
-		identityHandler = handler.NewIdentityHandler(identityClient)
+		identityHandler = handler.NewIdentityHandler(identityClient, subscriptionClient)
 	}
 
 	var paymentHandler *handler.PaymentHandler
@@ -244,7 +244,9 @@ func main() {
 		// Catalog routes (public)
 		if catalogHandler != nil {
 			r.Get("/stations", catalogHandler.ListStations)
+			r.Get("/stations/{stationId}", catalogHandler.GetStation)
 			r.Get("/trips/search", catalogHandler.SearchTrips)
+			r.Get("/trips/{tripId}", catalogHandler.GetTrip)
 		}
 
 		// Search routes (public)
@@ -305,6 +307,11 @@ func main() {
 		}
 
 		// === PROTECTED ROUTES (require auth) ===
+
+		// Catalog Routes (Protected - Operator Actions)
+		if catalogHandler != nil {
+			r.Post("/trips", catalogHandler.CreateTrip)
+		}
 
 		// Inventory routes (protected)
 		if inventoryHandler != nil {

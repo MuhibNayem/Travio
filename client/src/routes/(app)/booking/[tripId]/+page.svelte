@@ -4,55 +4,143 @@
 
 <script lang="ts">
     import { page } from "$app/stores";
-    import { MOCK_TRIPS } from "$lib/mocks/data";
+    import { goto } from "$app/navigation";
     import SeatMap from "$lib/components/blocks/SeatMap.svelte";
-    import { Badge } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
-    import { Separator } from "$lib/components/ui/separator"; // Need to make sure this exists or just use hr
-    import type { Seat, SeatStatus } from "$lib/types/transport";
-    import { CreditCard, ShieldCheck } from "@lucide/svelte";
+    import { Separator } from "$lib/components/ui/separator";
+    import type { Seat, SeatStatus, Trip } from "$lib/types/transport";
+    import { CreditCard, ShieldCheck, Loader } from "@lucide/svelte";
+    import { searchApi } from "$lib/api/search";
+    import { inventoryApi } from "$lib/api/inventory";
+    import { catalogApi } from "$lib/api/catalog";
+    import { toast } from "svelte-sonner";
 
     let tripId = $derived($page.params.tripId);
-    let trip = $derived(MOCK_TRIPS.find((t) => t.id === tripId));
+    let fromId = $derived($page.url.searchParams.get("from") || "");
+    let toId = $derived($page.url.searchParams.get("to") || "");
+
+    let trip = $state<Trip | null>(null);
+    let fromStationName = $state<string>("Unknown Origin");
+    let toStationName = $state<string>("Unknown Destination");
+    let layout = $state<Seat[][]>([]);
+    let isLoading = $state(true);
+    let isHolding = $state(false);
 
     let selectedSeats = $state<Seat[]>([]);
 
-    // Mock Layout Generator (10 rows, 4 seats)
-    function generateLayout(): Seat[][] {
-        const rows = 10;
-        const layout: Seat[][] = [];
-        const chars = ["A", "B", "C", "D"];
-
-        for (let i = 1; i <= rows; i++) {
-            const row: Seat[] = [];
-            for (let j = 0; j < 4; j++) {
-                // Randomly book some seats
-                const isBooked = Math.random() < 0.3;
-                row.push({
-                    id: `${i}${chars[j]}`,
-                    label: `${chars[j]}${i}`,
-                    status: isBooked ? "booked" : "available",
-                    price: trip?.price || 500,
-                });
-            }
-            layout.push(row);
+    async function getStationName(id: string): Promise<string> {
+        if (!id) return "";
+        try {
+            const s = await catalogApi.getStation(id);
+            return s.name; // assuming optional chaining if needed, but s defined
+        } catch {
+            return id;
         }
-        return layout;
     }
 
-    let layout = $state(generateLayout());
+    async function fetchData() {
+        if (!tripId) return;
+        isLoading = true;
+        try {
+            // Parallel fetch for details
+            const [tripData, originName, destName] = await Promise.all([
+                searchApi.getTrip(tripId),
+                getStationName(fromId),
+                getStationName(toId),
+            ]);
+
+            fromStationName = originName || "Unknown";
+            toStationName = destName || "Unknown";
+
+            // Map tripData (snake_case) to Trip (camelCase)
+            const t = tripData as any;
+            trip = {
+                id: t.id,
+                routeId: t.route_id,
+                type: (t.vehicle_type || "bus") as any,
+                operator: t.operator_name || "Travio Partner",
+                vehicleName: t.vehicle_class || "Standard",
+                departureTime: t.departure_time,
+                arrivalTime: t.arrival_time || t.departure_time,
+                price: t.pricing?.base_price_paisa
+                    ? t.pricing.base_price_paisa / 100
+                    : 0,
+                class: t.vehicle_class,
+                availableSeats: t.total_seats,
+                totalSeats: t.total_seats,
+            };
+
+            // Fetch SeatMap
+            if (fromId && toId) {
+                const mapResp = await inventoryApi.getSeatMap(
+                    tripId,
+                    fromId,
+                    toId,
+                );
+                layout = mapResp.rows.map((r) =>
+                    r.seats.map((s) => ({
+                        id: s.seat_id,
+                        label: s.seat_number,
+                        status: s.status.toLowerCase() as SeatStatus,
+                        price: s.price_paisa / 100,
+                    })),
+                );
+            }
+        } catch (error) {
+            console.error("Failed to load booking data", error);
+            toast.error("Failed to load trip details");
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    $effect(() => {
+        if (tripId) fetchData();
+    });
+
     let total = $derived(selectedSeats.reduce((acc, s) => acc + s.price, 0));
     let tax = $derived(total * 0.05); // 5% tax
     let grandTotal = $derived(total + tax);
 
-    function handleCheckout() {
-        alert("Proceeding to payment gateway...\nAmount: ৳" + grandTotal);
+    async function handleCheckout() {
+        if (selectedSeats.length === 0 || !tripId) return;
+        isHolding = true;
+        try {
+            const sessionId = crypto.randomUUID();
+            const holdResp = await inventoryApi.holdSeats({
+                trip_id: tripId,
+                from_station_id: fromId,
+                to_station_id: toId,
+                seat_ids: selectedSeats.map((s) => s.id),
+                session_id: sessionId,
+            });
+
+            if (holdResp.success) {
+                toast.success("Seats held successfully!");
+                goto(`/checkout/${holdResp.hold_id}`);
+            } else {
+                toast.error("Failed to hold seats: " + holdResp.failure_reason);
+                fetchData(); // Refresh map
+            }
+        } catch (error) {
+            console.error("Checkout failed", error);
+            toast.error("System error during checkout");
+        } finally {
+            isHolding = false;
+        }
     }
 </script>
 
 <div class="min-h-screen bg-muted/30 pb-32 pt-20">
     <div class="container mx-auto max-w-6xl px-4">
-        {#if trip}
+        {#if isLoading}
+            <div
+                class="flex h-[50vh] flex-col items-center justify-center gap-4"
+            >
+                <Loader class="animate-spin text-primary" size={48} />
+                <p class="text-muted-foreground">Loading trip details...</p>
+            </div>
+        {:else if trip}
             <div class="mb-8">
                 <Button
                     variant="ghost"
@@ -66,8 +154,10 @@
                         <h1 class="text-3xl font-bold">
                             {trip.operator} - {trip.vehicleName}
                         </h1>
-                        <p class="text-xl text-muted-foreground mt-1">
-                            Bus (AC Business) • Dhaka to Chittagong
+                        <p
+                            class="text-xl text-muted-foreground mt-1 capitalize"
+                        >
+                            {trip.type} ({trip.class}) • {fromStationName} to {toStationName}
                         </p>
                     </div>
                     <div class="text-right">
@@ -141,11 +231,17 @@
 
                         <Button
                             size="lg"
-                            class="w-full font-bold h-14 text-lg rounded-xl shadow-xl shadow-primary/20"
-                            disabled={selectedSeats.length === 0}
+                            class="w-full font-bold h-14 text-lg rounded-xl shadow-xl shadow-primary/20 gap-2"
+                            disabled={selectedSeats.length === 0 || isHolding}
                             onclick={handleCheckout}
                         >
-                            Proceed to Pay
+                            {#if isHolding}
+                                <Loader class="animate-spin" size={20} />
+                                Holding Seats...
+                            {:else}
+                                <CreditCard size={20} />
+                                Proceed to Pay
+                            {/if}
                         </Button>
 
                         <div

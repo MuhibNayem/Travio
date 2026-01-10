@@ -24,7 +24,7 @@ func NewGRPCHandler(svc *service.SubscriptionService) *GRPCHandler {
 }
 
 func (h *GRPCHandler) CreatePlan(ctx context.Context, req *pb.CreatePlanRequest) (*pb.Plan, error) {
-	plan, err := h.svc.CreatePlan(ctx, req.Name, req.Description, req.PricePaisa, req.Interval, req.Features, req.UsagePricePaisa)
+	plan, err := h.svc.CreatePlan(ctx, "", req.Name, req.Description, req.PricePaisa, req.Interval, req.Features, req.UsagePricePaisa)
 	if err != nil {
 		logger.Error("Failed to create plan", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create plan")

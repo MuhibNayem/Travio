@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/MuhibNayem/Travio/server/pkg/saas"
+	"github.com/MuhibNayem/Travio/server/pkg/entitlement"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/repository"
 )
@@ -15,17 +15,20 @@ type CatalogService struct {
 	stationRepo repository.StationRepository
 	routeRepo   repository.RouteRepository
 	tripRepo    repository.TripRepository
+	checker     entitlement.EntitlementChecker
 }
 
 func NewCatalogService(
 	stationRepo repository.StationRepository,
 	routeRepo repository.RouteRepository,
 	tripRepo repository.TripRepository,
+	checker entitlement.EntitlementChecker,
 ) *CatalogService {
 	return &CatalogService{
 		stationRepo: stationRepo,
 		routeRepo:   routeRepo,
 		tripRepo:    tripRepo,
+		checker:     checker,
 	}
 }
 
@@ -121,7 +124,18 @@ func (s *CatalogService) ListRoutes(ctx context.Context, orgID, originID, destID
 
 func (s *CatalogService) CreateTrip(ctx context.Context, trip *domain.Trip, planID string) (*domain.Trip, error) {
 	// FAANG: Enforce SaaS plan limits
-	plan := saas.GetPlan(planID)
+	// Check Trip Quota (Max Trips Per Month)
+	allowed, remaining, err := s.checker.CheckQuota(ctx, trip.OrganizationID, "max_trips_per_month")
+	if err != nil {
+		return nil, fmt.Errorf("failed to check entitlement: %w", err)
+	}
+	if !allowed {
+		return nil, &PlanLimitError{
+			Limit:   "max_trips_per_month",
+			Current: int(remaining), // Typically 0 or negative if blocked
+			Message: fmt.Sprintf("Trip creation blocked. You have reached your monthly limit. Please upgrade your plan."),
+		}
+	}
 
 	// Calculate arrival time based on route duration
 	route, err := s.routeRepo.GetByID(ctx, trip.RouteID, trip.OrganizationID)
@@ -130,13 +144,27 @@ func (s *CatalogService) CreateTrip(ctx context.Context, trip *domain.Trip, plan
 	}
 	trip.ArrivalTime = trip.DepartureTime.Add(time.Duration(route.EstimatedDurationMin) * time.Minute)
 
-	// Enforce max schedule days limit
-	maxScheduleDate := time.Now().AddDate(0, 0, plan.MaxScheduleDays)
+	// Check Schedule Horizon (Max Schedule Days)
+	// We need the full entitlement object to get the limit value (not just usage)
+	entitlements, err := s.checker.CheckEntitlement(ctx, trip.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check entitlement: %w", err)
+	}
+
+	maxDays := 30 // Default safe fallback
+	if entitlements != nil {
+		limit := entitlements.GetQuotaLimit("max_schedule_days")
+		if limit > 0 {
+			maxDays = int(limit)
+		}
+	}
+
+	maxScheduleDate := time.Now().AddDate(0, 0, maxDays)
 	if trip.DepartureTime.After(maxScheduleDate) {
 		return nil, &PlanLimitError{
-			Limit:   "MaxScheduleDays",
-			Current: plan.MaxScheduleDays,
-			Message: "Trip departure exceeds plan's scheduling horizon",
+			Limit:   "max_schedule_days",
+			Current: maxDays,
+			Message: fmt.Sprintf("Trip departure exceeds your plan's scheduling horizon (%d days). Please upgrade your plan.", maxDays),
 		}
 	}
 

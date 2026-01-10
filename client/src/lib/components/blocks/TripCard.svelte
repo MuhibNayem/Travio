@@ -11,7 +11,11 @@
         Ship,
     } from "@lucide/svelte";
 
-    let { trip } = $props<{ trip: Trip }>();
+    let { trip, fromId, toId } = $props<{
+        trip: Trip;
+        fromId: string;
+        toId: string;
+    }>();
 
     const icons: Record<TransportType, typeof Bus> = {
         bus: Bus,
@@ -117,7 +121,7 @@
             <Button
                 size="lg"
                 class="w-full gap-2 rounded-xl font-bold shadow-lg shadow-blue-500/20"
-                href={`/booking/${trip.id}`}
+                href={`/booking/${trip.id}?from=${fromId}&to=${toId}`}
             >
                 Book Seats <ArrowRight size={16} />
             </Button>
