@@ -156,6 +156,27 @@ func main() {
 		defer reportingClient.Close()
 	}
 
+	eventsClient, err := client.NewEventsClient(cfg.EventsURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to events service", "error", err)
+	} else {
+		defer eventsClient.Close()
+	}
+
+	fleetClient, err := client.NewFleetClient(cfg.FleetURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to fleet service", "error", err)
+	} else {
+		defer fleetClient.Close()
+	}
+
+	crmClient, err := client.NewCRMClient(cfg.CRMURL, tlsCfg)
+	if err != nil {
+		logger.Error("Failed to connect to crm service", "error", err)
+	} else {
+		defer crmClient.Close()
+	}
+
 	// Initialize handlers with gRPC clients
 	var identityHandler *handler.IdentityHandler
 	if identityClient != nil {
@@ -202,6 +223,21 @@ func main() {
 		reportingHandler = handler.NewReportingHandler(reportingClient)
 	}
 
+	var eventsHandler *handler.EventsHandler
+	if eventsClient != nil {
+		eventsHandler = handler.NewEventsHandler(eventsClient)
+	}
+
+	var fleetHandler *handler.FleetHandler
+	if fleetClient != nil {
+		fleetHandler = handler.NewFleetHandler(fleetClient)
+	}
+
+	var crmHandler *handler.CRMHandler
+	if crmClient != nil {
+		crmHandler = handler.NewCRMHandler(crmClient)
+	}
+
 	// JWT Auth config
 	jwtAuth := middleware.JWTAuth(middleware.JWTConfig{
 		Secret: cfg.JWTSecret,
@@ -212,6 +248,10 @@ func main() {
 			"/v1/search",
 			"/v1/pricing/calculate",
 			"/v1/queue",
+			"/v1/events",
+			"/v1/fleet/location", // Allow location updates without forced user token? Probably secure it.
+			// Actually, tracking devices might need API keys, but for now let's assume secure or public tracking for demo?
+			// Let's keep it secure by default, but maybe allow public public tracking view?
 		},
 	})
 
@@ -358,6 +398,65 @@ func main() {
 		// Reporting routes (protected)
 		if reportingHandler != nil {
 			reportingHandler.RegisterRoutes(r)
+		}
+
+		// Events routes
+		if eventsHandler != nil {
+			// Public routes
+			r.Get("/events", eventsHandler.ListEvents)
+			r.Get("/events/{id}", eventsHandler.GetEvent)
+
+			r.Get("/venues", eventsHandler.ListVenues)
+			r.Get("/venues/{id}", eventsHandler.GetVenue)
+
+			r.Get("/events/{eventId}/tickets", eventsHandler.ListTicketTypes)
+
+			// Protected routes
+			r.Group(func(r chi.Router) {
+				// r.Use(middleware.RequireRole("operator")) // Optional: Enforce role
+				r.Post("/events", eventsHandler.CreateEvent)
+				r.Post("/venues", eventsHandler.CreateVenue)
+				r.Post("/tickets/types", eventsHandler.CreateTicketType)
+			})
+		}
+
+		// Fleet routes
+		if fleetHandler != nil {
+			// Assets
+			r.Get("/fleet/assets/{id}", fleetHandler.GetAsset)
+
+			// Tracking (Secure)
+			r.Post("/fleet/location", fleetHandler.UpdateLocation) // Device ping
+			r.Get("/fleet/assets/{id}/location", fleetHandler.GetLocation)
+
+			// Protected Management
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireRole("operator", "admin"))
+				r.Post("/fleet/assets", fleetHandler.RegisterAsset)
+				r.Put("/fleet/assets/{id}/status", fleetHandler.UpdateAssetStatus)
+			})
+		}
+
+		// CRM Routes
+		if crmHandler != nil {
+			// Coupons (checkout)
+			r.Post("/coupons/validate", crmHandler.ValidateCoupon)
+
+			// Protected
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireRole("operator", "admin"))
+				r.Post("/coupons", crmHandler.CreateCoupon)
+				r.Get("/coupons", crmHandler.ListCoupons)
+
+				r.Get("/support/tickets", crmHandler.ListTickets)
+			})
+
+			// Customer Support
+			r.Group(func(r chi.Router) {
+				// r.Use(middleware.RequireAuth) // Should match user ID in real app
+				r.Post("/support/tickets", crmHandler.CreateTicket)
+				r.Post("/support/tickets/{id}/messages", crmHandler.AddTicketMessage)
+			})
 		}
 
 	})

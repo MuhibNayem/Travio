@@ -19,6 +19,9 @@ type Config struct {
 	SubscriptionURL string
 	QueueURL        string
 	RedisURL        string
+	EventsURL       string // New Service
+	FleetURL        string // New Service
+	CRMURL          string // New Service
 	JWTSecret       string
 	AllowedOrigins  []string
 	// mTLS for gRPC clients
@@ -47,6 +50,9 @@ func Load() *Config {
 		RedisURL:        getEnv("REDIS_URL", "localhost:6379"),
 		FraudURL:        getEnv("FRAUD_URL", "localhost:50090"),
 		ReportingURL:    getEnv("REPORTING_URL", "localhost:50091"),
+		EventsURL:       getEnv("EVENTS_URL", "localhost:9092"),
+		FleetURL:        getEnv("FLEET_URL", "localhost:9093"),
+		CRMURL:          getEnv("CRM_URL", "localhost:9094"),
 		JWTSecret:       getEnv("JWT_SECRET", "travio-secret-key-change-in-production"),
 		AllowedOrigins: []string{
 			"http://localhost:5173",

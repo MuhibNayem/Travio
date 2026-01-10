@@ -128,10 +128,14 @@ func (r *InviteRepository) ListMembers(orgID string, limit, offset int) ([]*doma
 	var users []*domain.User
 	for rows.Next() {
 		var u domain.User
+		var org sql.NullString
 		if err := rows.Scan(
-			&u.ID, &u.Email, &u.OrganizationID, &u.Role, &u.Status, &u.CreatedAt,
+			&u.ID, &u.Email, &org, &u.Role, &u.Status, &u.CreatedAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if org.Valid {
+			u.OrganizationID = org.String
 		}
 		users = append(users, &u)
 	}

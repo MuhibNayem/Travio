@@ -118,13 +118,22 @@ func RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// RequireRole ensures the user has the specified role
-func RequireRole(role string) func(http.Handler) http.Handler {
+// RequireRole ensures the user has AT LEAST ONE of the specified roles
+func RequireRole(roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userRole := GetUserRole(r.Context())
-			if userRole != role {
-				logger.Info("Unauthorized access attempt", "required_role", role, "user_role", userRole)
+
+			authorized := false
+			for _, role := range roles {
+				if userRole == role {
+					authorized = true
+					break
+				}
+			}
+
+			if !authorized {
+				logger.Info("Unauthorized access attempt", "required_roles", roles, "user_role", userRole)
 				http.Error(w, `{"error": "insufficient permissions"}`, http.StatusForbidden)
 				return
 			}

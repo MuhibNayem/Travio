@@ -394,3 +394,142 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- 10. REPORTING SERVICE (travio_reporting)
 -- ==============================================================================
 SET allow_nullable_key = 1;
+-- ==============================================================================
+-- 11. EVENTS SERVICE (travio_events)
+-- ==============================================================================
+\c travio_events
+
+CREATE TABLE IF NOT EXISTS venues (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    address TEXT,
+    city VARCHAR(100),
+    country VARCHAR(100),
+    capacity INTEGER,
+    type VARCHAR(50),
+    sections JSONB DEFAULT '[]', -- Seating sections
+    map_image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    venue_id UUID REFERENCES venues(id),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    images TEXT[],
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(50) DEFAULT 'draft',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ticket_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID REFERENCES events(id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price_paisa BIGINT NOT NULL,
+    total_quantity INTEGER NOT NULL,
+    available_quantity INTEGER NOT NULL,
+    max_per_user INTEGER DEFAULT 10,
+    sales_start_time TIMESTAMP WITH TIME ZONE,
+    sales_end_time TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_org ON events(organization_id);
+CREATE INDEX IF NOT EXISTS idx_events_venue ON events(venue_id);
+CREATE INDEX IF NOT EXISTS idx_events_start ON events(start_time);
+CREATE INDEX IF NOT EXISTS idx_ticket_types_event ON ticket_types(event_id);
+
+-- ==============================================================================
+-- 12. CRM SERVICE (travio_crm)
+-- ==============================================================================
+\c travio_crm
+
+CREATE TABLE IF NOT EXISTS coupons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    description TEXT,
+    discount_type VARCHAR(50) NOT NULL, -- percentage, fixed
+    discount_value DECIMAL(10,2) NOT NULL,
+    min_purchase_amount BIGINT DEFAULT 0,
+    max_discount_amount BIGINT DEFAULT 0,
+    start_date TIMESTAMP WITH TIME ZONE,
+    end_date TIMESTAMP WITH TIME ZONE,
+    usage_limit INTEGER DEFAULT 0,
+    usage_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID,
+    user_id UUID,
+    subject VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'open',
+    priority VARCHAR(50) DEFAULT 'normal',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id UUID REFERENCES support_tickets(id),
+    sender_id UUID,
+    message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_coupons_code_org ON coupons(organization_id, code);
+CREATE INDEX IF NOT EXISTS idx_tickets_org ON support_tickets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_user ON support_tickets(user_id);
+
+-- ==============================================================================
+-- 13. FLEET SERVICE (travio_fleet)
+-- ==============================================================================
+\c travio_fleet
+
+CREATE TABLE IF NOT EXISTS assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    type VARCHAR(50) NOT NULL, -- bus, train, launch
+    registration_number VARCHAR(100),
+    model VARCHAR(255),
+    capacity INTEGER,
+    status VARCHAR(50) DEFAULT 'active',
+    config JSONB DEFAULT '{}', -- Layout config
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS asset_locations (
+    asset_id UUID PRIMARY KEY REFERENCES assets(id),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    speed DOUBLE PRECISION,
+    heading DOUBLE PRECISION,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- History table for tracking (optional, maybe uses TimeScaleDB in future)
+CREATE TABLE IF NOT EXISTS location_history (
+    time TIMESTAMP WITH TIME ZONE NOT NULL,
+    asset_id UUID NOT NULL,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    speed DOUBLE PRECISION
+);
+-- SELECT create_hypertable('location_history', 'time', if_not_exists => TRUE); 
+
+CREATE INDEX IF NOT EXISTS idx_assets_org ON assets(organization_id);

@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package crm.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/crm/v1;crmv1";
+
+service CRMService {
+  // Coupon Management
+  rpc CreateCoupon(CreateCouponRequest) returns (Coupon);
+  rpc GetCoupon(GetCouponRequest) returns (Coupon);
+  rpc ListCoupons(ListCouponsRequest) returns (ListCouponsResponse);
+  rpc UpdateCoupon(UpdateCouponRequest) returns (Coupon);
+  rpc ValidateCoupon(ValidateCouponRequest) returns (ValidateCouponResponse); // Apply to cart
+
+  // Support
+  rpc CreateTicket(CreateTicketRequest) returns (SupportTicket);
+  rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
+  rpc AddTicketMessage(AddTicketMessageRequest) returns (TicketMessage);
+}
+
+message Coupon {
+  string id = 1;
+  string organization_id = 2;
+  string code = 3; // "SUMMER2026"
+  string description = 4;
+  DiscountType discount_type = 5;
+  double discount_value = 6; // Amount or Percentage
+  int64 min_purchase_amount = 7;
+  int64 max_discount_amount = 8;
+  string start_date = 9;
+  string end_date = 10;
+  int32 usage_limit = 11;
+  int32 usage_count = 12;
+  bool is_active = 13;
+}
+
+enum DiscountType {
+  DISCOUNT_TYPE_UNSPECIFIED = 0;
+  DISCOUNT_TYPE_PERCENTAGE = 1;
+  DISCOUNT_TYPE_FIXED_AMOUNT = 2;
+}
+
+message CreateCouponRequest {
+  string organization_id = 1;
+  string code = 2;
+  DiscountType discount_type = 3;
+  double discount_value = 4;
+  string end_date = 5;
+}
+
+message GetCouponRequest {
+    string id = 1;
+    string organization_id = 2;
+}
+
+message ListCouponsRequest {
+    string organization_id = 1;
+}
+
+message ListCouponsResponse {
+    repeated Coupon coupons = 1;
+}
+
+message UpdateCouponRequest {
+    string id = 1;
+    string organization_id = 2;
+    bool is_active = 3;
+}
+
+message ValidateCouponRequest {
+    string code = 1;
+    string organization_id = 2;
+    int64 cart_total_amount = 3;
+}
+
+message ValidateCouponResponse {
+    bool valid = 1;
+    int64 discount_amount = 2;
+    string message = 3;
+}
+
+// --- Support ---
+
+message SupportTicket {
+    string id = 1;
+    string organization_id = 2; // For Operator
+    string user_id = 3; // Customer
+    string subject = 4;
+    string status = 5; // Open, Closed
+    string priority = 6;
+    string created_at = 7;
+}
+
+message CreateTicketRequest {
+    string user_id = 1;
+    string subject = 2;
+    string message = 3;
+}
+
+message ListTicketsRequest {
+    string organization_id = 1;
+}
+
+message ListTicketsResponse {
+    repeated SupportTicket tickets = 1;
+}
+
+message TicketMessage {
+    string id = 1;
+    string ticket_id = 2;
+    string sender_id = 3; // User or Agent
+    string message = 4;
+    string created_at = 5;
+}
+
+message AddTicketMessageRequest {
+    string ticket_id = 1;
+    string sender_id = 2;
+    string message = 3;
+}

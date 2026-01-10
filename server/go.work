@@ -19,4 +19,7 @@ use (
 	./services/search
 	./services/subscription
 	./services/operator
+	./services/events
+	./services/fleet
+	./services/crm
 )

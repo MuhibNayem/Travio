@@ -7,10 +7,10 @@
 # ==============================================================================
 
 HOST=$1
-CQL_FILE=$2
+TARGET=$2
 
-if [ -z "$HOST" ] || [ -z "$CQL_FILE" ]; then
-    echo "Usage: $0 <host> <cql_file>"
+if [ -z "$HOST" ] || [ -z "$TARGET" ]; then
+    echo "Usage: $0 <host> <cql_file_or_directory>"
     exit 1
 fi
 
@@ -20,24 +20,45 @@ echo "Waiting for ScyllaDB at $HOST:9042..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if cqlsh "$HOST" 9042 -e "DESCRIBE CLUSTER" > /dev/null 2>&1; then
-        echo "ScyllaDB is ready!"
-        echo "Applying schema from $CQL_FILE..."
-        cqlsh "$HOST" 9042 -f "$CQL_FILE"
-        if [ $? -eq 0 ]; then
-            echo "Schema applied successfully."
-            exit 0
+wait_for_scylla() {
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if cqlsh "$HOST" 9042 -e "DESCRIBE CLUSTER" > /dev/null 2>&1; then
+            echo "ScyllaDB is ready!"
+            return 0
         else
-            echo "Failed to apply schema."
-            exit 1
+            echo "ScyllaDB not ready yet... retrying ($RETRY_COUNT/$MAX_RETRIES)"
+            sleep 5
+            RETRY_COUNT=$((RETRY_COUNT+1))
         fi
-    else
-        echo "ScyllaDB not ready yet... retrying ($RETRY_COUNT/$MAX_RETRIES)"
-        sleep 5
-        RETRY_COUNT=$((RETRY_COUNT+1))
-    fi
-done
+    done
+    return 1
+}
 
-echo "Timeout waiting for ScyllaDB."
-exit 1
+apply_schema() {
+    local file=$1
+    echo "Applying schema from $file..."
+    cqlsh "$HOST" 9042 -f "$file"
+    if [ $? -eq 0 ]; then
+        echo "Schema $file applied successfully."
+    else
+        echo "Failed to apply schema $file."
+        exit 1
+    fi
+}
+
+if wait_for_scylla; then
+    if [ -d "$TARGET" ]; then
+        echo "Processing schemas from directory $TARGET..."
+        for file in "$TARGET"/*.cql; do
+            if [ -f "$file" ]; then
+                apply_schema "$file"
+            fi
+        done
+    else
+        apply_schema "$TARGET"
+    fi
+    exit 0
+else
+    echo "Timeout waiting for ScyllaDB."
+    exit 1
+fi

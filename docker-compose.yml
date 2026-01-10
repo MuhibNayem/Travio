@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_MULTIPLE_DATABASES: "travio_identity,travio_catalog,travio_inventory,travio_order,travio_payment,travio_fulfillment,travio_pricing,travio_notification,travio_operator,travio_subscription,travio_fraud,travio_queue"
+      POSTGRES_MULTIPLE_DATABASES: "travio_identity,travio_catalog,travio_inventory,travio_order,travio_payment,travio_fulfillment,travio_pricing,travio_notification,travio_operator,travio_subscription,travio_fraud,travio_queue,travio_events,travio_crm,travio_fleet"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -164,8 +164,9 @@ services:
         condition: service_healthy
     volumes:
       - ./server/scripts/init-scylla.sh:/init-scylla.sh
-      - ./server/services/inventory/migrations/001_initial_schema.cql:/schema.cql
-    entrypoint: ["/bin/bash", "/init-scylla.sh", "scylla", "/schema.cql"]
+      - ./server/services/inventory/migrations/001_initial_schema.cql:/schemas/001_inventory.cql
+      - ./server/services/fleet/migrations/001_initial_schema.cql:/schemas/002_fleet.cql
+    entrypoint: ["/bin/bash", "/init-scylla.sh", "scylla", "/schemas"]
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.1
@@ -646,6 +647,7 @@ services:
       - SUBSCRIPTION_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
       - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
       - REPORTING_URL=reporting:${REPORTING_GRPC_PORT:-50091}
+      - EVENTS_URL=events:${EVENTS_GRPC_PORT:-9092}
       - REDIS_URL=redis:${REDIS_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_PORT=${GATEWAY_HTTP_PORT}
@@ -655,6 +657,8 @@ services:
       identity:
         condition: service_healthy
       catalog:
+        condition: service_healthy
+      events:
         condition: service_healthy
       inventory:
         condition: service_healthy
@@ -678,6 +682,89 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${GATEWAY_HTTP_PORT}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  events:
+    build:
+      context: ./server
+      dockerfile: services/events/Dockerfile
+    container_name: travio-events
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=travio_events
+      - HTTP_PORT=${EVENTS_HTTP_PORT:-8092}
+      - GRPC_PORT=${EVENTS_GRPC_PORT:-9092}
+    ports:
+      - "${EVENTS_HTTP_PORT:-8092}:${EVENTS_HTTP_PORT:-8092}"
+      - "${EVENTS_GRPC_PORT:-9092}:${EVENTS_GRPC_PORT:-9092}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${EVENTS_HTTP_PORT:-8092}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  fleet:
+    build:
+      context: ./server
+      dockerfile: services/fleet/Dockerfile
+    container_name: travio-fleet
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=travio_fleet
+      - SCYLLA_HOST=scylla:9042
+      - HTTP_PORT=${FLEET_HTTP_PORT:-8093}
+      - GRPC_PORT=${FLEET_GRPC_PORT:-9093}
+    ports:
+      - "${FLEET_HTTP_PORT:-8093}:${FLEET_HTTP_PORT:-8093}"
+      - "${FLEET_GRPC_PORT:-9093}:${FLEET_GRPC_PORT:-9093}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${FLEET_HTTP_PORT:-8093}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+
+
+  crm:
+    build:
+      context: ./server
+      dockerfile: services/crm/Dockerfile
+    container_name: travio-crm
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=travio_crm
+      - HTTP_PORT=${CRM_HTTP_PORT:-8094}
+      - GRPC_PORT=${CRM_GRPC_PORT:-9094}
+    ports:
+      - "${CRM_HTTP_PORT:-8094}:${CRM_HTTP_PORT:-8094}"
+      - "${CRM_GRPC_PORT:-9094}:${CRM_GRPC_PORT:-9094}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${CRM_HTTP_PORT:-8094}/health" ]
       interval: 10s
       timeout: 5s
       retries: 3

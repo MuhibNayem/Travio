@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package fleet.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/fleet/v1;fleetv1";
+
+service FleetService {
+  // Asset Management
+  rpc RegisterAsset(RegisterAssetRequest) returns (Asset);
+  rpc GetAsset(GetAssetRequest) returns (Asset);
+  rpc UpdateAssetStatus(UpdateAssetStatusRequest) returns (Asset);
+  
+  // Tracking
+  rpc UpdateLocation(UpdateLocationRequest) returns (UpdateLocationResponse);
+  rpc GetLocation(GetLocationRequest) returns (AssetLocation);
+  rpc StreamLocations(StreamLocationsRequest) returns (stream AssetLocation); // Live map
+}
+
+message Asset {
+    string id = 1;
+    string organization_id = 2;
+    AssetType type = 3;
+    string name = 4;
+    string license_plate = 5;
+    string vin = 6;
+    string make = 7;
+    string model = 8;
+    int32 year = 9;
+    AssetStatus status = 10;
+    Config config = 11; // JSON string for specific layouts (seats, decks)
+    string created_at = 12;
+    string updated_at = 13;
+}
+
+enum AssetType {
+    ASSET_TYPE_UNSPECIFIED = 0;
+    ASSET_TYPE_BUS = 1;
+    ASSET_TYPE_TRAIN = 2;
+    ASSET_TYPE_LAUNCH = 3;
+}
+
+enum AssetStatus {
+    ASSET_STATUS_ACTIVE = 0;
+    ASSET_STATUS_MAINTENANCE = 1;
+    ASSET_STATUS_RETIRED = 2;
+}
+
+message Config {
+    // Arbitrary JSON or explicit fields
+    string layout_type = 1; // "2+2", "Sleeping_Cabin"
+    string features = 2; // "Wifi, AC"
+}
+
+message RegisterAssetRequest {
+    string organization_id = 1;
+    string name = 2;
+    AssetType type = 3;
+    string license_plate = 4;
+    string vin = 5;
+    string make = 6;
+    string model = 7;
+    int32 year = 8;
+    AssetStatus status = 9;
+    Config config = 10;
+}
+
+message GetAssetRequest {
+    string id = 1;
+    string organization_id = 2;
+}
+
+message UpdateAssetStatusRequest {
+    string id = 1;
+    string organization_id = 2;
+    AssetStatus status = 3;
+}
+
+// --- Tracking ---
+
+message AssetLocation {
+    string asset_id = 1;
+    string organization_id = 2;
+    double latitude = 3;
+    double longitude = 4;
+    double speed = 5;
+    double heading = 6;
+    string timestamp = 7; // RFC3339
+}
+
+message UpdateLocationRequest {
+    string asset_id = 1;
+    string organization_id = 2;
+    double latitude = 3;
+    double longitude = 4;
+    double speed = 5;
+    double heading = 6;
+    string timestamp = 7;
+}
+
+message UpdateLocationResponse {
+    bool success = 1;
+}
+
+message GetLocationRequest {
+    string asset_id = 1;
+}
+
+message StreamLocationsRequest {
+    string organization_id = 1; // Stream all assets for an org
+}

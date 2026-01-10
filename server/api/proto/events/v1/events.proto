@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/events/v1;eventsv1";
+
+service EventService {
+  // Venue Management
+  rpc CreateVenue(CreateVenueRequest) returns (Venue);
+  rpc GetVenue(GetVenueRequest) returns (Venue);
+  rpc ListVenues(ListVenuesRequest) returns (ListVenuesResponse);
+  rpc UpdateVenue(UpdateVenueRequest) returns (Venue);
+
+  // Event Management
+  rpc CreateEvent(CreateEventRequest) returns (Event);
+  rpc GetEvent(GetEventRequest) returns (Event);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+  rpc UpdateEvent(UpdateEventRequest) returns (Event);
+  rpc PublishEvent(PublishEventRequest) returns (Event);
+
+  // Ticket & Inventory
+  rpc CreateTicketType(CreateTicketTypeRequest) returns (TicketType);
+  rpc ListTicketTypes(ListTicketTypesRequest) returns (ListTicketTypesResponse);
+  
+  // Search
+  rpc SearchEvents(SearchEventsRequest) returns (SearchEventsResponse);
+}
+
+// --- Venue ---
+
+message Venue {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  string address = 4;
+  string city = 5;
+  string country = 6;
+  int32 capacity = 7;
+  VenueType type = 8;
+  repeated SeatingSection sections = 9;
+  string map_image_url = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+enum VenueType {
+  VENUE_TYPE_UNSPECIFIED = 0;
+  VENUE_TYPE_STADIUM = 1;
+  VENUE_TYPE_AUDITORIUM = 2;
+  VENUE_TYPE_CONFERENCE_HALL = 3;
+  VENUE_TYPE_OUTDOOR_GROUND = 4;
+}
+
+message SeatingSection {
+  string id = 1;
+  string name = 2; // "Gallery A", "VIP Box"
+  int32 capacity = 3;
+  int32 rows = 4;
+  int32 seats_per_row = 5;
+  string type = 6; // "seated", "standing"
+}
+
+message CreateVenueRequest {
+  string organization_id = 1;
+  string name = 2;
+  string address = 3;
+  string city = 4;
+  string country = 5;
+  VenueType type = 6;
+  repeated SeatingSection sections = 7;
+}
+
+message GetVenueRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message ListVenuesRequest {
+  string organization_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListVenuesResponse {
+  repeated Venue venues = 1;
+  string next_page_token = 2;
+}
+
+message UpdateVenueRequest {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  VenueType type = 4;
+}
+
+// --- Event ---
+
+message Event {
+  string id = 1;
+  string organization_id = 2;
+  string venue_id = 3;
+  string title = 4;
+  string description = 5;
+  string category = 6; // "Music", "Sports", "Tech"
+  repeated string images = 7;
+  string start_time = 8; // Unix timestamp or ISO string
+  string end_time = 9;
+  EventStatus status = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+enum EventStatus {
+  EVENT_STATUS_UNSPECIFIED = 0;
+  EVENT_STATUS_DRAFT = 1;
+  EVENT_STATUS_PUBLISHED = 2;
+  EVENT_STATUS_CANCELLED = 3;
+  EVENT_STATUS_COMPLETED = 4;
+}
+
+message CreateEventRequest {
+  string organization_id = 1;
+  string venue_id = 2;
+  string title = 3;
+  string description = 4;
+  string category = 5;
+  string start_time = 6;
+  string end_time = 7;
+}
+
+message GetEventRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message ListEventsRequest {
+  string organization_id = 1;
+  string category = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListEventsResponse {
+  repeated Event events = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdateEventRequest {
+  string id = 1;
+  string organization_id = 2;
+  string title = 3;
+  string description = 4;
+  string start_time = 5;
+  string end_time = 6;
+}
+
+message PublishEventRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+// --- Ticket Type ---
+
+message TicketType {
+  string id = 1;
+  string event_id = 2;
+  string name = 3; // "Early Bird", "VIP", "Regular"
+  string description = 4;
+  int64 price_paisa = 5;
+  int32 total_quantity = 6;
+  int32 available_quantity = 7;
+  int32 max_per_user = 8;
+  string sales_start_time = 9;
+  string sales_end_time = 10;
+}
+
+message CreateTicketTypeRequest {
+  string event_id = 1;
+  string organization_id = 2;
+  string name = 3;
+  int64 price_paisa = 4;
+  int32 total_quantity = 5;
+  string sales_start_time = 6;
+  string sales_end_time = 7;
+}
+
+message ListTicketTypesRequest {
+  string event_id = 1;
+}
+
+message ListTicketTypesResponse {
+  repeated TicketType ticket_types = 1;
+}
+
+// --- Search ---
+
+message SearchEventsRequest {
+  string query = 1;
+  string city = 2;
+  string category = 3;
+  string start_date = 4;
+  string end_date = 5;
+  int32 page_size = 6;
+  string page_token = 7;
+}
+
+message SearchEventsResponse {
+  repeated EventSearchResult results = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message EventSearchResult {
+  Event event = 1;
+  Venue venue = 2;
+  int64 min_price_paisa = 3;
+}

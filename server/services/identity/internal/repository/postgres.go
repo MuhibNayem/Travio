@@ -26,7 +26,12 @@ func (r *UserRepository) Create(user *domain.User) error {
 	query := `INSERT INTO users (id, email, password_hash, organization_id, role, created_at, name) 
 			  VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	_, err := r.DB.Exec(query, user.ID, user.Email, user.PasswordHash, user.OrganizationID, user.Role, user.CreatedAt, user.Name)
+	var orgID interface{}
+	if user.OrganizationID != "" {
+		orgID = user.OrganizationID
+	}
+
+	_, err := r.DB.Exec(query, user.ID, user.Email, user.PasswordHash, orgID, user.Role, user.CreatedAt, user.Name)
 	return err
 }
 
@@ -36,12 +41,16 @@ func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
 	row := r.DB.QueryRow(query, email)
 
 	var user domain.User
-	err := row.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.OrganizationID, &user.Role, &user.CreatedAt, &user.Name)
+	var orgID sql.NullString
+	err := row.Scan(&user.ID, &user.Email, &user.PasswordHash, &orgID, &user.Role, &user.CreatedAt, &user.Name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 		return nil, err
+	}
+	if orgID.Valid {
+		user.OrganizationID = orgID.String
 	}
 	return &user, nil
 }
@@ -52,12 +61,16 @@ func (r *UserRepository) FindByID(id string) (*domain.User, error) {
 	row := r.DB.QueryRow(query, id)
 
 	var user domain.User
-	err := row.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.OrganizationID, &user.Role, &user.CreatedAt, &user.Name)
+	var orgID sql.NullString
+	err := row.Scan(&user.ID, &user.Email, &user.PasswordHash, &orgID, &user.Role, &user.CreatedAt, &user.Name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 		return nil, err
+	}
+	if orgID.Valid {
+		user.OrganizationID = orgID.String
 	}
 	return &user, nil
 }
@@ -68,7 +81,12 @@ func (r *UserRepository) Update(user *domain.User) error {
 	          SET email = $1, password_hash = $2, organization_id = $3, role = $4, updated_at = $5 
 			  WHERE id = $6`
 
-	result, err := r.DB.Exec(query, user.Email, user.PasswordHash, user.OrganizationID, user.Role, user.UpdatedAt, user.ID)
+	var orgID interface{}
+	if user.OrganizationID != "" {
+		orgID = user.OrganizationID
+	}
+
+	result, err := r.DB.Exec(query, user.Email, user.PasswordHash, orgID, user.Role, user.UpdatedAt, user.ID)
 	if err != nil {
 		return err
 	}
