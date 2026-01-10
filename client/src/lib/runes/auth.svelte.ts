@@ -1,4 +1,4 @@
-import { login as apiLogin, logout as apiLogout, refreshTokens, createOrganization, register as apiRegister, type TokenPair } from '$lib/api';
+import { login as apiLogin, logout as apiLogout, refreshTokens, register as apiRegister, type TokenPair, type OrgDetails, type CreateOrgInput } from '$lib/api';
 import { jwtDecode } from 'jwt-decode';
 
 interface User {
@@ -108,23 +108,31 @@ class AuthStore {
     }
 
     /**
-     * Register a new user (creates org first, then user)
+     * Register a new user (creates org transactionally if needed)
      */
-    async register(email: string, password: string, orgName?: string): Promise<boolean> {
+    async register(
+        email: string,
+        password: string,
+        name: string,
+        orgName?: string,
+        orgDetails: OrgDetails = {}
+    ): Promise<boolean> {
         this.isLoading = true;
         this.error = null;
 
         try {
-            let organizationId: string | undefined;
+            let newOrganization: CreateOrgInput | undefined;
 
-            // Create organization first if name provided
+            // Prepare new organization payload if name provided
             if (orgName) {
-                const orgResponse = await createOrganization(orgName, 'free');
-                organizationId = orgResponse.organization_id;
+                newOrganization = {
+                    name: orgName,
+                    ...orgDetails
+                };
             }
 
-            // Register user
-            await apiRegister(email, password, organizationId);
+            // Register user with optional new organization
+            await apiRegister(email, password, name, undefined, newOrganization);
 
             return true;
         } catch (e) {

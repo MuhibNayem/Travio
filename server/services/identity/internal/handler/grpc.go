@@ -4,6 +4,7 @@ import (
 	"context"
 
 	identityv1 "github.com/MuhibNayem/Travio/server/api/proto/identity/v1"
+	"github.com/MuhibNayem/Travio/server/services/identity/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/identity/internal/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,7 +24,19 @@ func (h *GrpcHandler) Register(ctx context.Context, req *identityv1.RegisterRequ
 		return nil, status.Error(codes.InvalidArgument, "email and password required")
 	}
 
-	user, err := h.authService.Register(req.Email, req.Password, req.OrganizationId)
+	var newOrg *domain.Organization
+	if req.NewOrganization != nil {
+		newOrg = &domain.Organization{
+			Name:    req.NewOrganization.Name,
+			Address: req.NewOrganization.Address,
+			Phone:   req.NewOrganization.Phone,
+			Email:   req.NewOrganization.Email,
+			Website: req.NewOrganization.Website,
+			PlanID:  "plan_free", // Default plan
+		}
+	}
+
+	user, err := h.authService.Register(req.Email, req.Password, req.OrganizationId, req.Name, newOrg)
 	if err != nil {
 		if err == service.ErrUserAlreadyExists {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
@@ -71,7 +84,7 @@ func (h *GrpcHandler) Logout(ctx context.Context, req *identityv1.LogoutRequest)
 }
 
 func (h *GrpcHandler) CreateOrganization(ctx context.Context, req *identityv1.CreateOrgRequest) (*identityv1.CreateOrgResponse, error) {
-	org, err := h.authService.CreateOrganization(req.Name, req.PlanId)
+	org, err := h.authService.CreateOrganization(req.Name, req.PlanId, req.Address, req.Phone, req.Email, req.Website)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to create organization")
 	}

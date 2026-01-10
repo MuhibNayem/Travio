@@ -26,6 +26,16 @@ message RegisterRequest {
   string email = 1;
   string password = 2;
   string organization_id = 3; // Link user to an org
+  string name = 4; // User full name
+  CreateOrgInput new_organization = 5; // Optional: Create new
+}
+
+message CreateOrgInput {
+  string name = 1;
+  string address = 2;
+  string phone = 3;
+  string email = 4;
+  string website = 5;
 }
 
 message RegisterResponse {
@@ -62,6 +72,10 @@ message LogoutResponse {}
 message CreateOrgRequest {
   string name = 1;
   string plan_id = 2; // Selected SaaS plan
+  string address = 3;
+  string phone = 4;
+  string email = 5;
+  string website = 6;
 }
 
 message CreateOrgResponse {

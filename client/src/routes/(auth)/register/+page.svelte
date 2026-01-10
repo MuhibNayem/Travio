@@ -3,42 +3,154 @@
     import { Input } from "$lib/components/ui/input";
     import { auth } from "$lib/runes/auth.svelte";
     import { goto } from "$app/navigation";
-    import { Loader2, User, Bus } from "@lucide/svelte";
+    import { Loader2, User, Bus, Check, X, AlertCircle } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
     import { cn } from "$lib/utils";
+    import { z } from "zod";
 
     let name = $state("");
     let email = $state("");
     let password = $state("");
     let confirmPassword = $state("");
     let orgName = $state("");
+    let orgAddress = $state("");
+    let orgPhone = $state("");
+    let orgWebsite = $state("");
     let accountType = $state<"traveller" | "operator">("traveller");
 
-    let passwordError = $derived(
-        confirmPassword && password !== confirmPassword
-            ? "Passwords do not match"
-            : null,
-    );
+    let errors = $state<Record<string, string[]>>({});
+    let touched = $state<Record<string, boolean>>({});
 
-    let isFormValid = $derived(
-        name &&
-            email &&
-            password &&
-            confirmPassword &&
-            !passwordError &&
-            (accountType === "traveller" ||
-                (accountType === "operator" && orgName)),
-    );
+    const phoneRegex = /^(\+88)?01[3-9]\d{8}$/;
+
+    // Dynamic Schema based on accountType (or just huge schema with refinements)
+    // We'll validate on submit or blur.
+
+    function getSchema() {
+        const base = z.object({
+            name: z.string().min(2, "Name must be at least 2 characters"),
+            email: z.string().email("Invalid email address"),
+            password: z
+                .string()
+                .min(8, "Password must be at least 8 characters")
+                .regex(/[A-Z]/, "Must contain an uppercase letter")
+                .regex(/[a-z]/, "Must contain a lowercase letter")
+                .regex(/[0-9]/, "Must contain a number")
+                .regex(/[^A-Za-z0-9]/, "Must contain a special character"),
+            confirmPassword: z.string(),
+        });
+
+        if (accountType === "operator") {
+            return base
+                .extend({
+                    orgName: z.string().min(2, "Company Name is required"),
+                    orgAddress: z.string().min(5, "Address is required"),
+                    orgPhone: z
+                        .string()
+                        .regex(
+                            phoneRegex,
+                            "Invalid Bangladeshi phone number (+8801...)",
+                        ),
+                    orgWebsite: z
+                        .string()
+                        .url("Invalid URL")
+                        .optional()
+                        .or(z.literal("")),
+                })
+                .refine((data) => data.password === data.confirmPassword, {
+                    message: "Passwords do not match",
+                    path: ["confirmPassword"],
+                });
+        }
+
+        return base.refine((data) => data.password === data.confirmPassword, {
+            message: "Passwords do not match",
+            path: ["confirmPassword"],
+        });
+    }
+
+    async function validateField(field: string) {
+        touched[field] = true;
+        const schema = getSchema();
+        const formData = {
+            name,
+            email,
+            password,
+            confirmPassword,
+            orgName,
+            orgAddress,
+            orgPhone,
+            orgWebsite,
+        };
+
+        // We parse entire schema to catch refinement errors (like confirmPassword)
+        // Check strict? No, safeParse.
+        const result = schema.safeParse(formData);
+
+        if (!result.success) {
+            const formatted = result.error.flatten().fieldErrors;
+            errors = formatted;
+        } else {
+            errors = {};
+        }
+    }
+
+    // Password Strength Calc
+    let passwordStrength = $derived.by(() => {
+        let score = 0;
+        if (!password) return 0;
+        if (password.length >= 8) score += 20;
+        if (/[A-Z]/.test(password)) score += 20;
+        if (/[a-z]/.test(password)) score += 20;
+        if (/[0-9]/.test(password)) score += 20;
+        if (/[^A-Za-z0-9]/.test(password)) score += 20;
+        return score;
+    });
 
     async function handleRegister() {
-        if (!isFormValid) return;
+        const schema = getSchema();
+        const formData = {
+            name,
+            email,
+            password,
+            confirmPassword,
+            orgName,
+            orgAddress,
+            orgPhone,
+            orgWebsite,
+        };
+        const result = schema.safeParse(formData);
+
+        if (!result.success) {
+            errors = result.error.flatten().fieldErrors;
+            toast.error("Please fix the errors in the form");
+            return;
+        }
+
+        errors = {}; // Clear errors
 
         // Use name as org name if not provided (fallback, though validation enforces it for operator)
         // If traveller, orgName should be undefined/empty to avoid creating org.
         const organizationName =
             accountType === "operator" ? orgName : undefined;
 
-        const success = await auth.register(email, password, organizationName);
+        const orgDetails =
+            accountType === "operator"
+                ? {
+                      address: orgAddress,
+                      phone: orgPhone,
+                      website: orgWebsite,
+                      email: email, // Use user email as contact email for now
+                  }
+                : {};
+
+        const success = await auth.register(
+            email,
+            password,
+            name,
+            organizationName,
+            orgDetails,
+        );
         if (success) {
             toast.success("Account created!", {
                 description: "Please sign in with your credentials.",
@@ -53,7 +165,7 @@
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-        if (event.key === "Enter" && isFormValid) {
+        if (event.key === "Enter") {
             handleRegister();
         }
     }
@@ -118,15 +230,38 @@
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
                     for="name">Full Name</label
                 >
-                <Input
-                    id="name"
-                    type="text"
-                    bind:value={name}
-                    class="bg-white/50 backdrop-blur-sm"
-                    placeholder="John Doe"
-                    disabled={auth.isLoading}
-                    onkeydown={handleKeyDown}
-                />
+                <div class="relative">
+                    <Input
+                        id="name"
+                        type="text"
+                        bind:value={name}
+                        class={cn(
+                            "bg-white/50 backdrop-blur-sm transition-all",
+                            touched.name && errors.name
+                                ? "border-red-500 ring-red-500/20"
+                                : "",
+                        )}
+                        placeholder="John Doe"
+                        disabled={auth.isLoading}
+                        onblur={() => validateField("name")}
+                        oninput={() => validateField("name")}
+                        onkeydown={handleKeyDown}
+                    />
+                    {#if touched.name && !errors.name && name}
+                        <Check
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
+                            size={16}
+                        />
+                    {/if}
+                </div>
+                {#if touched.name && errors.name}
+                    <p
+                        class="text-xs text-red-500 flex items-center gap-1 mt-1 animate-in slide-in-from-top-1"
+                    >
+                        <AlertCircle size={12} />
+                        {errors.name[0]}
+                    </p>
+                {/if}
             </div>
 
             {#if accountType === "operator"}
@@ -139,11 +274,106 @@
                         id="orgName"
                         type="text"
                         bind:value={orgName}
-                        class="bg-white/50 backdrop-blur-sm"
+                        class={cn(
+                            "bg-white/50 backdrop-blur-sm",
+                            touched.orgName && errors.orgName
+                                ? "border-red-500"
+                                : "",
+                        )}
                         placeholder="Green Line Paribahan"
                         disabled={auth.isLoading}
+                        onblur={() => validateField("orgName")}
+                        oninput={() => validateField("orgName")}
                         onkeydown={handleKeyDown}
                     />
+                    {#if touched.orgName && errors.orgName}
+                        <p class="text-xs text-red-500 mt-1">
+                            {errors.orgName[0]}
+                        </p>
+                    {/if}
+                </div>
+                <div class="space-y-2">
+                    <label
+                        class="text-sm font-bold text-gray-700 dark:text-gray-300"
+                        for="orgAddress">Company Address</label
+                    >
+                    <Input
+                        id="orgAddress"
+                        type="text"
+                        bind:value={orgAddress}
+                        class={cn(
+                            "bg-white/50 backdrop-blur-sm",
+                            touched.orgAddress && errors.orgAddress
+                                ? "border-red-500"
+                                : "",
+                        )}
+                        placeholder="123 Example Street, Dhaka"
+                        disabled={auth.isLoading}
+                        onblur={() => validateField("orgAddress")}
+                        oninput={() => validateField("orgAddress")}
+                        onkeydown={handleKeyDown}
+                    />
+                    {#if touched.orgAddress && errors.orgAddress}
+                        <p class="text-xs text-red-500 mt-1">
+                            {errors.orgAddress[0]}
+                        </p>
+                    {/if}
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label
+                            class="text-sm font-bold text-gray-700 dark:text-gray-300"
+                            for="orgPhone">Contact Phone</label
+                        >
+                        <Input
+                            id="orgPhone"
+                            type="tel"
+                            bind:value={orgPhone}
+                            class={cn(
+                                "bg-white/50 backdrop-blur-sm",
+                                touched.orgPhone && errors.orgPhone
+                                    ? "border-red-500"
+                                    : "",
+                            )}
+                            placeholder="+880 17..."
+                            disabled={auth.isLoading}
+                            onblur={() => validateField("orgPhone")}
+                            oninput={() => validateField("orgPhone")}
+                            onkeydown={handleKeyDown}
+                        />
+                        {#if touched.orgPhone && errors.orgPhone}
+                            <p class="text-xs text-red-500 mt-1">
+                                {errors.orgPhone[0]}
+                            </p>
+                        {/if}
+                    </div>
+                    <div class="space-y-2">
+                        <label
+                            class="text-sm font-bold text-gray-700 dark:text-gray-300"
+                            for="orgWebsite">Website (Optional)</label
+                        >
+                        <Input
+                            id="orgWebsite"
+                            type="url"
+                            bind:value={orgWebsite}
+                            class={cn(
+                                "bg-white/50 backdrop-blur-sm",
+                                touched.orgWebsite && errors.orgWebsite
+                                    ? "border-red-500"
+                                    : "",
+                            )}
+                            placeholder="https://..."
+                            disabled={auth.isLoading}
+                            onblur={() => validateField("orgWebsite")}
+                            oninput={() => validateField("orgWebsite")}
+                            onkeydown={handleKeyDown}
+                        />
+                        {#if touched.orgWebsite && errors.orgWebsite}
+                            <p class="text-xs text-red-500 mt-1">
+                                {errors.orgWebsite[0]}
+                            </p>
+                        {/if}
+                    </div>
                 </div>
             {/if}
 
@@ -152,15 +382,33 @@
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
                     for="email">Email</label
                 >
-                <Input
-                    id="email"
-                    type="email"
-                    bind:value={email}
-                    class="bg-white/50 backdrop-blur-sm"
-                    placeholder="you@example.com"
-                    disabled={auth.isLoading}
-                    onkeydown={handleKeyDown}
-                />
+                <div class="relative">
+                    <Input
+                        id="email"
+                        type="email"
+                        bind:value={email}
+                        class={cn(
+                            "bg-white/50 backdrop-blur-sm",
+                            touched.email && errors.email
+                                ? "border-red-500"
+                                : "",
+                        )}
+                        placeholder="you@example.com"
+                        disabled={auth.isLoading}
+                        onblur={() => validateField("email")}
+                        oninput={() => validateField("email")}
+                        onkeydown={handleKeyDown}
+                    />
+                    {#if touched.email && !errors.email && email}
+                        <Check
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
+                            size={16}
+                        />
+                    {/if}
+                </div>
+                {#if touched.email && errors.email}
+                    <p class="text-xs text-red-500 mt-1">{errors.email[0]}</p>
+                {/if}
             </div>
 
             <div class="space-y-2">
@@ -168,15 +416,69 @@
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
                     for="password">Password</label
                 >
-                <Input
-                    id="password"
-                    type="password"
-                    bind:value={password}
-                    class="bg-white/50 backdrop-blur-sm"
-                    placeholder="••••••••"
-                    disabled={auth.isLoading}
-                    onkeydown={handleKeyDown}
-                />
+                <div class="relative">
+                    <Input
+                        id="password"
+                        type="password"
+                        bind:value={password}
+                        class={cn(
+                            "bg-white/50 backdrop-blur-sm pr-10",
+                            touched.password && errors.password
+                                ? "border-red-500"
+                                : "",
+                        )}
+                        placeholder="••••••••"
+                        disabled={auth.isLoading}
+                        onblur={() => validateField("password")}
+                        oninput={() => validateField("password")}
+                        onkeydown={handleKeyDown}
+                    />
+                </div>
+                {#if touched.password && errors.password}
+                    <p class="text-xs text-red-500 mt-1">
+                        {errors.password[0]}
+                    </p>
+                {/if}
+                <!-- Password Strength Meter -->
+                {#if password}
+                    <div class="mt-2 space-y-1">
+                        <div
+                            class="flex justify-between text-xs text-muted-foreground"
+                        >
+                            <span>Strength</span>
+                            <span
+                                class={cn(
+                                    passwordStrength < 40
+                                        ? "text-red-500"
+                                        : passwordStrength < 80
+                                          ? "text-yellow-500"
+                                          : "text-green-500",
+                                )}
+                            >
+                                {passwordStrength < 40
+                                    ? "Weak"
+                                    : passwordStrength < 80
+                                      ? "Medium"
+                                      : "Strong"}
+                            </span>
+                        </div>
+                        <div
+                            class="h-1.5 w-full bg-muted/50 rounded-full overflow-hidden"
+                        >
+                            <div
+                                class={cn(
+                                    "h-full transition-all duration-500",
+                                    passwordStrength < 40
+                                        ? "bg-red-500"
+                                        : passwordStrength < 80
+                                          ? "bg-yellow-500"
+                                          : "bg-green-500",
+                                )}
+                                style="width: {passwordStrength}%"
+                            ></div>
+                        </div>
+                    </div>
+                {/if}
             </div>
             <div class="space-y-2">
                 <label
@@ -187,15 +489,22 @@
                     id="confirmPassword"
                     type="password"
                     bind:value={confirmPassword}
-                    class="bg-white/50 backdrop-blur-sm {passwordError
-                        ? 'border-red-500'
-                        : ''}"
+                    class={cn(
+                        "bg-white/50 backdrop-blur-sm",
+                        touched.confirmPassword && errors.confirmPassword
+                            ? "border-red-500"
+                            : "",
+                    )}
                     placeholder="••••••••"
                     disabled={auth.isLoading}
+                    onblur={() => validateField("confirmPassword")}
+                    oninput={() => validateField("confirmPassword")}
                     onkeydown={handleKeyDown}
                 />
-                {#if passwordError}
-                    <p class="text-xs text-red-500">{passwordError}</p>
+                {#if touched.confirmPassword && errors.confirmPassword}
+                    <p class="text-xs text-red-500 mt-1">
+                        {errors.confirmPassword[0]}
+                    </p>
                 {/if}
             </div>
         </div>
@@ -203,7 +512,7 @@
         <Button
             class="w-full h-12 text-lg font-bold shadow-lg shadow-purple-500/20 bg-purple-600 hover:bg-purple-700"
             onclick={handleRegister}
-            disabled={auth.isLoading || !isFormValid}
+            disabled={auth.isLoading}
         >
             {#if auth.isLoading}
                 <Loader2 class="mr-2 h-5 w-5 animate-spin" />

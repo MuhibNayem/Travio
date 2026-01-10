@@ -8,12 +8,17 @@ type Organization struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	PlanID    string    `json:"plan_id"`
+	Address   string    `json:"address"`
+	Phone     string    `json:"phone"`
+	Email     string    `json:"email"`
+	Website   string    `json:"website"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type User struct {
 	ID             string    `json:"id"`
+	Name           string    `json:"name"`
 	Email          string    `json:"email"`
 	PasswordHash   string    `json:"-"`
 	OrganizationID string    `json:"organization_id"`

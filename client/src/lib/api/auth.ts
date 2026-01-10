@@ -36,18 +36,37 @@ export async function login(email: string, password: string): Promise<LoginRespo
     return api.post<LoginResponse>('/v1/auth/login', { email, password });
 }
 
+export interface OrgDetails {
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+}
+
+export interface CreateOrgInput {
+    name: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+}
+
 /**
  * Register a new user
  */
 export async function register(
     email: string,
     password: string,
-    organizationId?: string
+    name: string,
+    organizationId?: string,
+    newOrganization?: CreateOrgInput
 ): Promise<RegisterResponse> {
     return api.post<RegisterResponse>('/v1/auth/register', {
         email,
         password,
+        name,
         organization_id: organizationId,
+        new_organization: newOrganization,
     });
 }
 
@@ -56,9 +75,14 @@ export async function register(
  */
 export async function createOrganization(
     name: string,
-    planId: string = 'free'
+    planId: string = 'free',
+    details: OrgDetails = {}
 ): Promise<CreateOrgResponse> {
-    return api.post<CreateOrgResponse>('/v1/orgs', { name, plan_id: planId });
+    return api.post<CreateOrgResponse>('/v1/orgs', {
+        name,
+        plan_id: planId,
+        ...details
+    });
 }
 
 /**

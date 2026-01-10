@@ -44,10 +44,20 @@ func NewAuthService(userRepo *repository.UserRepository, orgRepo *repository.Org
 	}
 }
 
-func (s *AuthService) Register(email, password, orgID string) (*domain.User, error) {
+func (s *AuthService) Register(email, password, orgID, name string, newOrgDetails *domain.Organization) (*domain.User, error) {
 	existing, _ := s.UserRepo.FindByEmail(email)
 	if existing != nil {
 		return nil, ErrUserAlreadyExists
+	}
+
+	// 1. Create Organization if provided
+	if newOrgDetails != nil {
+		// Set default plan if missing? handled in CreateOrg?
+		// We just create it.
+		if err := s.OrgRepo.Create(newOrgDetails); err != nil {
+			return nil, err // wrap error?
+		}
+		orgID = newOrgDetails.ID
 	}
 
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -55,11 +65,17 @@ func (s *AuthService) Register(email, password, orgID string) (*domain.User, err
 		return nil, err
 	}
 
+	role := "user"
+	if newOrgDetails != nil {
+		role = "admin" // Creator of org is admin
+	}
+
 	user := &domain.User{
 		Email:          email,
+		Name:           name,
 		PasswordHash:   string(hashedPwd),
 		OrganizationID: orgID,
-		Role:           "user",
+		Role:           role,
 	}
 
 	if err := s.UserRepo.Create(user); err != nil {
@@ -216,10 +232,14 @@ func (s *AuthService) RevokeSession(sessionID string) error {
 	return s.RefreshTokenRepo.Revoke(sessionID)
 }
 
-func (s *AuthService) CreateOrganization(name, planID string) (*domain.Organization, error) {
+func (s *AuthService) CreateOrganization(name, planID, address, phone, email, website string) (*domain.Organization, error) {
 	org := &domain.Organization{
-		Name:   name,
-		PlanID: planID,
+		Name:    name,
+		PlanID:  planID,
+		Address: address,
+		Phone:   phone,
+		Email:   email,
+		Website: website,
 	}
 	if err := s.OrgRepo.Create(org); err != nil {
 		return nil, err

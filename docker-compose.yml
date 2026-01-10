@@ -696,21 +696,6 @@ services:
   # Frontend
   # ===========================================
 
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL}
-    container_name: travio-client
-    restart: unless-stopped
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
-    depends_on:
-      gateway:
-        condition: service_healthy
 
 volumes:
   postgres_data:

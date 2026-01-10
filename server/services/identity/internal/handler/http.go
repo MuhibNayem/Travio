@@ -22,6 +22,7 @@ type RegisterRequest struct {
 	Email          string `json:"email"`
 	Password       string `json:"password"`
 	OrganizationID string `json:"organization_id"`
+	Name           string `json:"name"`
 }
 
 type LoginRequest struct {
@@ -38,8 +39,12 @@ type LogoutRequest struct {
 }
 
 type CreateOrgRequest struct {
-	Name   string `json:"name"`
-	PlanID string `json:"plan_id"`
+	Name    string `json:"name"`
+	PlanID  string `json:"plan_id"`
+	Address string `json:"address"`
+	Phone   string `json:"phone"`
+	Email   string `json:"email"`
+	Website string `json:"website"`
 }
 
 // --- Handlers ---
@@ -56,7 +61,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.Register(req.Email, req.Password, req.OrganizationID)
+	user, err := h.authService.Register(req.Email, req.Password, req.OrganizationID, req.Name, nil)
 	if err != nil {
 		logger.Error("Failed to register user", "error", err)
 		if err == service.ErrUserAlreadyExists {
@@ -198,7 +203,7 @@ func (h *AuthHandler) CreateOrganization(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	org, err := h.authService.CreateOrganization(req.Name, req.PlanID)
+	org, err := h.authService.CreateOrganization(req.Name, req.PlanID, req.Address, req.Phone, req.Email, req.Website)
 	if err != nil {
 		logger.Error("Failed to create org", "error", err)
 		http.Error(w, "Failed to create organization", http.StatusInternalServerError)
