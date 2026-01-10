@@ -64,20 +64,20 @@ func (h *InventoryHandler) CheckAvailability(w http.ResponseWriter, r *http.Requ
 	seats := make([]map[string]interface{}, 0)
 	for _, s := range resp.Seats {
 		seats = append(seats, map[string]interface{}{
-			"seatId":     s.SeatId,
-			"seatNumber": s.SeatNumber,
-			"seatClass":  s.SeatClass,
-			"seatType":   s.SeatType,
-			"status":     s.Status.String(),
+			"seat_id":     s.SeatId,
+			"seat_number": s.SeatNumber,
+			"seat_class":  s.SeatClass,
+			"seat_type":   s.SeatType,
+			"status":      s.Status.String(),
 		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"isAvailable":    resp.IsAvailable,
-		"availableSeats": resp.AvailableSeats,
-		"pricePaisa":     resp.PricePaisa,
-		"seats":          seats,
+		"is_available":    resp.IsAvailable,
+		"available_seats": resp.AvailableSeats,
+		"price_paisa":     resp.PricePaisa,
+		"seats":           seats,
 	})
 }
 
@@ -108,18 +108,18 @@ func (h *InventoryHandler) GetSeatMap(w http.ResponseWriter, r *http.Request) {
 		seats := make([]map[string]interface{}, 0)
 		for _, s := range row.Seats {
 			seats = append(seats, map[string]interface{}{
-				"seatId":     s.SeatId,
-				"seatNumber": s.SeatNumber,
-				"column":     s.Column,
-				"seatType":   s.SeatType,
-				"seatClass":  s.SeatClass,
-				"status":     s.Status.String(),
-				"pricePaisa": s.PricePaisa,
+				"seat_id":     s.SeatId,
+				"seat_number": s.SeatNumber,
+				"column":      s.Column,
+				"seat_type":   s.SeatType,
+				"seat_class":  s.SeatClass,
+				"status":      s.Status.String(),
+				"price_paisa": s.PricePaisa,
 			})
 		}
 		rows = append(rows, map[string]interface{}{
-			"rowNumber": row.RowNumber,
-			"seats":     seats,
+			"row_number": row.RowNumber,
+			"seats":      seats,
 		})
 	}
 
@@ -132,11 +132,11 @@ func (h *InventoryHandler) GetSeatMap(w http.ResponseWriter, r *http.Request) {
 
 // HoldSeatsRequest represents the request to hold seats
 type HoldSeatsRequest struct {
-	TripID        string   `json:"tripId"`
-	FromStationID string   `json:"fromStationId"`
-	ToStationID   string   `json:"toStationId"`
-	SeatIDs       []string `json:"seatIds"`
-	SessionID     string   `json:"sessionId"`
+	TripID        string   `json:"trip_id"`
+	FromStationID string   `json:"from_station_id"`
+	ToStationID   string   `json:"to_station_id"`
+	SeatIDs       []string `json:"seat_ids"`
+	SessionID     string   `json:"session_id"`
 }
 
 // HoldSeats creates a hold on selected seats
@@ -181,12 +181,12 @@ func (h *InventoryHandler) HoldSeats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"holdId":        resp.HoldId,
-		"success":       resp.Success,
-		"heldSeatIds":   resp.HeldSeatIds,
-		"failedSeatIds": resp.FailedSeatIds,
-		"expiresAt":     time.Unix(resp.ExpiresAt, 0).Format(time.RFC3339),
-		"failureReason": resp.FailureReason,
+		"hold_id":         resp.HoldId,
+		"success":         resp.Success,
+		"held_seat_ids":   resp.HeldSeatIds,
+		"failed_seat_ids": resp.FailedSeatIds,
+		"expires_at":      time.Unix(resp.ExpiresAt, 0).Format(time.RFC3339),
+		"failure_reason":  resp.FailureReason,
 	})
 }
 

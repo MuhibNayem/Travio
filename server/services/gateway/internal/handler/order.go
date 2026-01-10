@@ -35,25 +35,25 @@ func NewOrderHandler(orderURL string, cb *middleware.CircuitBreaker) (*OrderHand
 
 // CreateOrderRequest represents the order creation request
 type CreateOrderRequest struct {
-	TripID        string `json:"tripId"`
-	FromStationID string `json:"fromStationId"`
-	ToStationID   string `json:"toStationId"`
-	HoldID        string `json:"holdId"`
+	TripID        string `json:"trip_id"`
+	FromStationID string `json:"from_station_id"`
+	ToStationID   string `json:"to_station_id"`
+	HoldID        string `json:"hold_id"`
 	Passengers    []struct {
 		NID         string `json:"nid"`
 		Name        string `json:"name"`
-		SeatID      string `json:"seatId"`
-		DateOfBirth string `json:"dateOfBirth"`
+		SeatID      string `json:"seat_id"`
+		DateOfBirth string `json:"date_of_birth"`
 		Gender      string `json:"gender"`
 		Age         int    `json:"age"`
 	} `json:"passengers"`
 	PaymentMethod struct {
 		Type  string `json:"type"`
 		Token string `json:"token,omitempty"`
-	} `json:"paymentMethod"`
-	ContactEmail   string `json:"contactEmail"`
-	ContactPhone   string `json:"contactPhone"`
-	IdempotencyKey string `json:"idempotencyKey"`
+	} `json:"payment_method"`
+	ContactEmail   string `json:"contact_email"`
+	ContactPhone   string `json:"contact_phone"`
+	IdempotencyKey string `json:"idempotency_key"`
 }
 
 // CreateOrder creates a new order
@@ -151,7 +151,7 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	userID := r.Header.Get("X-User-ID")
-	pageToken := r.URL.Query().Get("pageToken")
+	pageToken := r.URL.Query().Get("page_token")
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.ListOrders(ctx, &orderpb.ListOrdersRequest{
@@ -173,9 +173,9 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"orders":   orders,
-		"nextPage": resp.NextPageToken,
-		"total":    resp.TotalCount,
+		"orders":    orders,
+		"next_page": resp.NextPageToken,
+		"total":     resp.TotalCount,
 	})
 }
 
@@ -212,9 +212,9 @@ func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 
 	if resp.Refund != nil {
 		response["refund"] = map[string]interface{}{
-			"refundId":    resp.Refund.RefundId,
-			"amountPaisa": resp.Refund.AmountPaisa,
-			"status":      resp.Refund.Status,
+			"refund_id":    resp.Refund.RefundId,
+			"amount_paisa": resp.Refund.AmountPaisa,
+			"status":       resp.Refund.Status,
 		}
 	}
 
@@ -231,32 +231,32 @@ func orderToJSON(o *orderpb.Order) map[string]interface{} {
 	passengers := make([]map[string]interface{}, 0)
 	for _, p := range o.Passengers {
 		passengers = append(passengers, map[string]interface{}{
-			"nid":        p.Nid,
-			"name":       p.Name,
-			"seatId":     p.SeatId,
-			"seatNumber": p.SeatNumber,
-			"seatClass":  p.SeatClass,
+			"nid":         p.Nid,
+			"name":        p.Name,
+			"seat_id":     p.SeatId,
+			"seat_number": p.SeatNumber,
+			"seat_class":  p.SeatClass,
 		})
 	}
 
 	return map[string]interface{}{
-		"id":              o.Id,
-		"tripId":          o.TripId,
-		"fromStationId":   o.FromStationId,
-		"toStationId":     o.ToStationId,
-		"status":          o.Status.String(),
-		"passengers":      passengers,
-		"subtotalPaisa":   o.SubtotalPaisa,
-		"taxPaisa":        o.TaxPaisa,
-		"bookingFeePaisa": o.BookingFeePaisa,
-		"discountPaisa":   o.DiscountPaisa,
-		"totalPaisa":      o.TotalPaisa,
-		"currency":        o.Currency,
-		"paymentStatus":   o.PaymentStatus.String(),
-		"contactEmail":    o.ContactEmail,
-		"contactPhone":    o.ContactPhone,
-		"createdAt":       time.Unix(o.CreatedAt, 0).Format(time.RFC3339),
-		"expiresAt":       time.Unix(o.ExpiresAt, 0).Format(time.RFC3339),
+		"id":                o.Id,
+		"trip_id":           o.TripId,
+		"from_station_id":   o.FromStationId,
+		"to_station_id":     o.ToStationId,
+		"status":            o.Status.String(),
+		"passengers":        passengers,
+		"subtotal_paisa":    o.SubtotalPaisa,
+		"tax_paisa":         o.TaxPaisa,
+		"booking_fee_paisa": o.BookingFeePaisa,
+		"discount_paisa":    o.DiscountPaisa,
+		"total_paisa":       o.TotalPaisa,
+		"currency":          o.Currency,
+		"payment_status":    o.PaymentStatus.String(),
+		"contact_email":     o.ContactEmail,
+		"contact_phone":     o.ContactPhone,
+		"created_at":        time.Unix(o.CreatedAt, 0).Format(time.RFC3339),
+		"expires_at":        time.Unix(o.ExpiresAt, 0).Format(time.RFC3339),
 	}
 }
 

@@ -121,31 +121,31 @@ func (h *CatalogHandler) SearchTrips(w http.ResponseWriter, r *http.Request) {
 		}
 
 		results = append(results, map[string]interface{}{
-			"id":             trip.Id,
-			"routeId":        trip.RouteId,
-			"type":           trip.VehicleType,
-			"operator":       r.OperatorName,
-			"vehicleName":    trip.VehicleId,
-			"departureTime":  time.Unix(trip.DepartureTime, 0).Format(time.RFC3339),
-			"arrivalTime":    time.Unix(trip.ArrivalTime, 0).Format(time.RFC3339),
-			"price":          price,
-			"class":          trip.VehicleClass,
-			"availableSeats": trip.TotalSeats,
-			"totalSeats":     trip.TotalSeats,
-			"from":           origin.Name,
-			"fromCity":       origin.City,
-			"to":             dest.Name,
-			"toCity":         dest.City,
-			"duration":       route.EstimatedDurationMinutes,
-			"distance":       route.DistanceKm,
+			"id":              trip.Id,
+			"route_id":        trip.RouteId,
+			"type":            trip.VehicleType,
+			"operator":        r.OperatorName,
+			"vehicle_name":    trip.VehicleId,
+			"departure_time":  time.Unix(trip.DepartureTime, 0).Format(time.RFC3339),
+			"arrival_time":    time.Unix(trip.ArrivalTime, 0).Format(time.RFC3339),
+			"price":           price,
+			"class":           trip.VehicleClass,
+			"available_seats": trip.TotalSeats,
+			"total_seats":     trip.TotalSeats,
+			"from":            origin.Name,
+			"from_city":       origin.City,
+			"to":              dest.Name,
+			"to_city":         dest.City,
+			"duration":        route.EstimatedDurationMinutes,
+			"distance":        route.DistanceKm,
 		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"results":  results,
-		"total":    resp.TotalCount,
-		"nextPage": resp.NextPageToken,
+		"results":   results,
+		"total":     resp.TotalCount,
+		"next_page": resp.NextPageToken,
 	})
 }
 

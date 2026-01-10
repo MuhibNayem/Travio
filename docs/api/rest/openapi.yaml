@@ -1,0 +1,1192 @@
+openapi: 3.0.3
+info:
+  title: Travio API Gateway
+  description: |
+    Public-facing REST API for the Travio travel booking ecosystem.
+    
+    ## Conventions
+    - **Casing**: All JSON fields use `snake_case` convention.
+    - **Date Format**: `YYYY-MM-DD` for dates, RFC3339 for timestamps.
+    
+    ## Authentication
+    All API requests (except Health, Discovery, and Search) require a valid JWT Access Token.
+    Pass the token in the `Authorization` header: `Bearer <token>`.
+    
+    ## Errors
+    Standard error format:
+    ```json
+    {
+      "error": "description of error",
+      "code": 400
+    }
+    ```
+  version: 2.0.0
+  contact:
+    name: Travio Platform Team
+    url: https://github.com/MuhibNayem/Travio
+
+servers:
+  - url: http://localhost:8888
+    description: Local Development Server
+
+tags:
+  - name: Auth
+    description: User authentication (snake_case)
+  - name: Discovery
+    description: Public endpoints for finding trips/stations (snake_case)
+  - name: Inventory
+    description: Seat availability and holds (snake_case)
+  - name: Orders
+    description: Booking lifecycle (snake_case)
+  - name: Organizations
+    description: Tenancy management (snake_case)
+  - name: Payments
+    description: Payment processing (snake_case)
+  - name: Fulfillment
+    description: Ticket generation (snake_case)
+  - name: Fraud
+    description: Risk analysis (snake_case)
+  - name: Reporting
+    description: Analytics (snake_case)
+
+paths:
+  # ================= AUTHENTICATION =================
+  /v1/auth/register:
+    post:
+      summary: Register a new user
+      operationId: registerUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+
+  /v1/auth/login:
+    post:
+      summary: Authenticate user
+      operationId: loginUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/auth/refresh:
+    post:
+      summary: Refresh access token
+      operationId: refreshToken
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+
+  /v1/auth/logout:
+    post:
+      summary: Logout user
+      description: Revokes the refresh token.
+      operationId: logoutUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Successfully logged out
+
+  /v1/auth/invite/accept:
+    post:
+      summary: Accept an organization invite
+      operationId: acceptInvite
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInviteRequest'
+      responses:
+        '200':
+          description: Invite accepted, session started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  # ================= ORGANIZATIONS =================
+  /v1/orgs:
+    post:
+      summary: Create a new organization
+      operationId: createOrganization
+      tags: [Organizations]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrgRequest'
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+
+  /v1/orgs/invites:
+    post:
+      summary: Invite member to organization
+      operationId: createInvite
+      tags: [Organizations]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+      responses:
+        '201':
+          description: Invite sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateInviteResponse'
+    get:
+      summary: List pending invites
+      operationId: listInvites
+      tags: [Organizations]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of invites
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invites:
+                    type: array
+                    items: { $ref: '#/components/schemas/Invite' }
+
+  /v1/orgs/members:
+    get:
+      summary: List organization members
+      operationId: listMembers
+      tags: [Organizations]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListMembersResponse'
+
+  /v1/orgs/members/{userId}/role:
+    put:
+      summary: Update member role
+      operationId: updateMemberRole
+      tags: [Organizations]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              type: object
+              required: [new_role, organization_id]
+              properties: 
+                new_role: { type: string, enum: [admin, member, viewer] }
+                organization_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Role updated
+
+  /v1/orgs/members/{userId}:
+    delete:
+      summary: Remove member
+      operationId: removeMember
+      tags: [Organizations]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: org_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Member removed
+
+  # ================= DISCOVERY & SEARCH =================
+  /v1/search/trips:
+    get:
+      summary: Search for available trips
+      description: |
+        Search for trips between two cities (Origin -> Destination).
+        Note: Parameters denote City Names, not IDs.
+      operationId: searchTrips
+      tags: [Discovery]
+      parameters:
+        - name: from
+          in: query
+          description: Origin city name (e.g., "Dhaka")
+          required: true
+          schema: { type: string }
+        - name: to
+          in: query
+          description: Destination city name (e.g., "Chittagong")
+          required: true
+          schema: { type: string }
+        - name: date
+          in: query
+          description: Travel date (YYYY-MM-DD)
+          schema: { type: string, format: date }
+        - name: type
+          in: query
+          schema: { type: string, enum: [bus, train, ferry] }
+      responses:
+        '200':
+          description: List of trips matching criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchTripsResponse'
+
+  /v1/search/stations:
+    get:
+      summary: Search stations
+      operationId: searchStations
+      tags: [Discovery]
+      parameters:
+        - { name: query, in: query, required: true, schema: { type: string }, description: "Name or city prefix" }
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Matching stations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchStationsResponse' }
+
+  /v1/stations:
+    get:
+      summary: List all stations
+      operationId: listStations
+      tags: [Discovery]
+      parameters:
+        - { name: city, in: query, schema: { type: string } }
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: List of stations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListStationsResponse'
+
+  # ================= INVENTORY =================
+  /v1/trips/{tripId}/availability:
+    get:
+      summary: Check real-time seat availability
+      operationId: checkAvailability
+      tags: [Inventory]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          description: From Station ID
+          required: true
+          schema: { type: string, format: uuid }
+        - name: to
+          in: query
+          description: To Station ID
+          required: true
+          schema: { type: string, format: uuid }
+        - name: passengers
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckAvailabilityResponse' }
+
+  /v1/trips/{tripId}/seatmap:
+    get:
+      summary: Get visualized seat map
+      operationId: getSeatMap
+      tags: [Inventory]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          schema: { type: string, format: uuid }
+        - name: to
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SeatMap' }
+
+  /v1/holds:
+    post:
+      summary: Hold seats temporarily
+      description: Reserve seats for 10 minutes while user completes payment.
+      operationId: holdSeats
+      tags: [Inventory]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HoldSeatsRequest' }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HoldSeatsResponse' }
+
+  /v1/holds/{holdId}:
+    delete:
+      summary: Release seat hold
+      operationId: releaseHold
+      tags: [Inventory]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: holdId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Hold released
+
+  # ================= ORDERS =================
+  /v1/orders:
+    post:
+      summary: Create a booking order
+      description: Initiates the Saga transaction.
+      operationId: createOrder
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '202':
+          description: Order accepted for processing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateOrderResponse' }
+    get:
+      summary: List user orders
+      operationId: listOrders
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/OrderStatus' }
+        - name: page_token
+          in: query
+          schema: { type: string }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListOrdersResponse' }
+
+  /v1/orders/{orderId}:
+    get:
+      summary: Get order details
+      operationId: getOrder
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+
+  /v1/orders/{orderId}/cancel:
+    post:
+      summary: Cancel order
+      description: Cancels the order and initiates any necessary refunds.
+      operationId: cancelOrder
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Cancellation processed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CancelOrderResponse' }
+
+  # ================= PAYMENTS =================
+  /v1/payments:
+    post:
+      summary: Process payment
+      operationId: processPayment
+      tags: [Payments]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProcessPaymentRequest' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentResult' }
+
+  /v1/payments/methods:
+    get:
+      summary: Get available payment methods
+      operationId: getPaymentMethods
+      tags: [Payments]
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: List of methods
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                    methods:
+                        type: array
+                        items: { $ref: '#/components/schemas/PaymentMethod' }
+
+  # ================= FULFILLMENT =================
+  /v1/tickets/{ticketId}:
+    get:
+      summary: Get ticket details
+      operationId: getTicket
+      tags: [Fulfillment]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+
+  /v1/tickets/{ticketId}/download:
+    get:
+      summary: Download Ticket PDF
+      operationId: downloadTicket
+      tags: [Fulfillment]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '302':
+          description: Redirect to PDF URL (Presigned S3/MinIO URL)
+          headers:
+            Location:
+              schema: { type: string }
+
+  # ================= FRAUD =================
+  /v1/fraud/analyze:
+    post:
+      summary: Analyze transaction risk
+      operationId: analyzeFraud
+      tags: [Fraud]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnalyzeBookingRequest' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyzeBookingResponse' }
+
+  /v1/fraud/verify-document:
+    post:
+      summary: Verify identity document
+      operationId: verifyDocument
+      tags: [Fraud]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [document, document_type]
+              properties:
+                document:
+                  type: string
+                  format: binary
+                document_type:
+                  type: string
+                  enum: [nid, passport]
+                expected_nid:
+                  type: string
+                expected_name:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VerifyDocumentResponse' }
+
+  # ================= REPORTING =================
+  /v1/reports/revenue:
+    get:
+      summary: Get revenue report
+      operationId: getRevenueReport
+      tags: [Reporting]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgParam'
+        - $ref: '#/components/parameters/DateRangeParams'
+        - $ref: '#/components/parameters/LimitParam'
+        - { name: sort_order, in: query, schema: { type: string, enum: [asc, desc] } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RevenueReportResponse' }
+
+  /v1/reports/bookings:
+    get:
+      summary: Get booking trends
+      operationId: getBookingTrends
+      tags: [Reporting]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgParam'
+        - $ref: '#/components/parameters/DateRangeParams'
+        - { name: granularity, in: query, schema: { type: string, enum: [hour, day, week, month], default: day } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookingTrendsResponse' }
+
+  /v1/reports/routes:
+    get:
+      summary: Get top performing routes
+      operationId: getTopRoutes
+      tags: [Reporting]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgParam'
+        - { name: sort_by, in: query, schema: { type: string, enum: [bookings, revenue] } }
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopRoutesResponse' }
+
+  /v1/reports/metrics:
+    get:
+      summary: Get organization keys metrics
+      operationId: getOrgMetrics
+      tags: [Reporting]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgParam'
+        - $ref: '#/components/parameters/DateRangeParams'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrganizationMetricsResponse' }
+
+  /v1/reports/export:
+    get:
+      summary: Export report data
+      operationId: exportReport
+      tags: [Reporting]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgParam'
+        - $ref: '#/components/parameters/DateRangeParams'
+        - { name: type, in: query, required: true, schema: { type: string, enum: [revenue, bookings, routes] } }
+        - { name: format, in: query, schema: { type: string, enum: [csv, json], default: csv } }
+      responses:
+        '200':
+          description: File download
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+
+
+  # ================= QUEUE =================
+  /v1/queue/join:
+    post:
+      summary: Join waiting room
+      operationId: joinQueue
+      tags: [Queue]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              type: object
+              required: [event_id]
+              properties: 
+                event_id: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QueuePosition' }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema: { type: integer, default: 1 }
+    LimitParam:
+      name: limit
+      in: query
+      schema: { type: integer, default: 20 }
+    OrgParam:
+      name: organization_id
+      in: query
+      schema: { type: string, format: uuid }
+    DateParam:
+      name: date
+      in: query
+      schema: { type: string, format: date, description: "YYYY-MM-DD" }
+    DateRangeParams:
+      name: date_range
+      in: query
+      description: "Start and end dates"
+      schema: 
+        type: object
+        properties: 
+          start_date: { type: string, format: date }
+          end_date: { type: string, format: date }
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: Authentication failed or token expired
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    # Common
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: integer }
+
+    # === IDENTITY ===
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        organization_id: { type: string, format: uuid, description: "Optional: Join existing org" }
+
+    RegisterResponse:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer, description: "Seconds until expiry" }
+
+    RefreshTokenRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer }
+    
+    LogoutRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+    
+    AcceptInviteRequest:
+      type: object
+      required: [token, email, password]
+      properties:
+        token: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        name: { type: string }
+
+    CreateOrgRequest:
+      type: object
+      required: [name, plan_id]
+      properties:
+        name: { type: string }
+        plan_id: { type: string }
+    
+    Organization:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        plan_id: { type: string }
+
+    CreateInviteRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string, format: email }
+        role: { type: string, enum: [admin, member, viewer] }
+    
+    CreateInviteResponse:
+      type: object
+      properties:
+        invite_id: { type: string }
+        token: { type: string }
+
+    Invite:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        role: { type: string }
+        status: { type: string, enum: [pending, accepted, expired] }
+        created_at: { type: string, format: date-time }
+
+    ListMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/Member' }
+        total: { type: integer }
+
+    Member:
+      type: object
+      properties:
+        user_id: { type: string }
+        email: { type: string }
+        role: { type: string }
+        status: { type: string }
+        joined_at: { type: string, format: date-time }
+
+    # === DISCOVERY ===
+    SearchTripsResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/TripResult' }
+        total: { type: integer }
+        next_page: { type: string }
+
+    TripResult:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        route_id: { type: string }
+        departure_time: { type: string, format: date-time }
+        arrival_time: { type: string, format: date-time }
+        price: { type: integer, description: "Price in lowest currency unit" }
+        operator: { type: string }
+        available_seats: { type: integer }
+        total_seats: { type: integer }
+        type: { type: string, enum: [bus, train, ferry] }
+        class: { type: string }
+        from: { type: string }
+        from_city: { type: string }
+        to: { type: string }
+        to_city: { type: string }
+        duration: { type: integer, description: "Minutes" }
+        distance: { type: integer, description: "KM" }
+
+    SearchStationsResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/StationResult' }
+        total: { type: integer }
+
+    StationResult:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        city: { type: string }
+        state: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        amenities: { type: array, items: { type: string } }
+
+    ListStationsResponse:
+      type: object
+      properties:
+        stations:
+          type: array
+          items: { $ref: '#/components/schemas/StationResult' }
+        total: { type: integer }
+
+    # === INVENTORY ===
+    CheckAvailabilityResponse:
+      type: object
+      properties:
+        is_available: { type: boolean }
+        available_seats: { type: integer }
+        price_paisa: { type: integer }
+        seats: 
+          type: array
+          items: { $ref: '#/components/schemas/SeatAvailability' }
+
+    SeatAvailability:
+      type: object
+      properties:
+        seat_id: { type: string }
+        seat_number: { type: string }
+        seat_class: { type: string }
+        status: { type: string, enum: [available, held, booked] }
+        seat_type: { type: string }
+
+    SeatMap:
+      type: object
+      properties:
+        rows: 
+          type: array
+          items: { type: object }
+        legend: { type: object }
+
+    HoldSeatsRequest:
+      type: object
+      required: [trip_id, seat_ids, from_station_id, to_station_id]
+      properties:
+        trip_id: { type: string }
+        from_station_id: { type: string }
+        to_station_id: { type: string }
+        session_id: { type: string }
+        seat_ids: 
+          type: array
+          items: { type: string }
+
+    HoldSeatsResponse:
+      type: object
+      properties:
+        hold_id: { type: string }
+        success: { type: boolean }
+        expires_at: { type: string, format: date-time }
+        held_seat_ids: { type: array, items: { type: string } }
+        failed_seat_ids: { type: array, items: { type: string } }
+        failure_reason: { type: string }
+
+    # === ORDERS ===
+    CreateOrderRequest:
+      type: object
+      required: [trip_id, from_station_id, to_station_id, passengers, payment_method]
+      properties:
+        trip_id: { type: string, format: uuid }
+        from_station_id: { type: string, format: uuid }
+        to_station_id: { type: string, format: uuid }
+        hold_id: { type: string, format: uuid, description: "Optional hold ID from Inventory" }
+        idempotency_key: { type: string, format: uuid }
+        contact_email: { type: string }
+        contact_phone: { type: string }
+        passengers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PassengerRequest'
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethod'
+
+    PassengerRequest:
+      type: object
+      required: [name, seat_id]
+      properties:
+        nid: { type: string }
+        name: { type: string }
+        seat_id: { type: string }
+        gender: { type: string, enum: [male, female, other] }
+        age: { type: integer, minimum: 0 }
+        date_of_birth: { type: string }
+    
+    CreateOrderResponse:
+      type: object
+      properties:
+        id: { type: string }
+        trip_id: { type: string }
+        status: { type: string }
+        total_paisa: { type: integer }
+        # ... other order fields in snake_case
+
+    ListOrdersResponse:
+      type: object
+      properties:
+        orders: 
+          type: array
+          items: { $ref: '#/components/schemas/Order' }
+        total: { type: integer }
+        next_page: { type: string }
+
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+        total_paisa: { type: integer }
+        booking_id: { type: string }
+        created_at: { type: string }
+        passengers:
+          type: array
+          items: { $ref: '#/components/schemas/Passenger' }
+
+    OrderStatus:
+      type: string
+      enum: [PENDING, CONFIRMED, FAILED, CANCELLED, REFUNDED]
+
+    Passenger:
+      type: object
+      properties:
+        name: { type: string }
+        seat_number: { type: string }
+        seat_class: { type: string }
+
+    CancelOrderResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        order: { $ref: '#/components/schemas/Order' }
+        refund: 
+            type: object
+            properties:
+                refund_id: { type: string }
+                status: { type: string }
+
+    # === PAYMENT ===
+    ProcessPaymentRequest:
+      type: object
+      required: [order_id, payment_method]
+      properties:
+        order_id: { type: string }
+        payment_method: { type: string }
+    
+    PaymentResult:
+      type: object
+      properties:
+        payment_id: { type: string }
+        status: { type: string }
+        redirect_url: { type: string }
+
+    PaymentMethod:
+        type: object
+        properties:
+            id: { type: string }
+            name: { type: string }
+            enabled: { type: boolean }
+
+    # === FULFILLMENT ===
+    Ticket:
+      type: object
+      properties:
+        id: { type: string }
+        booking_id: { type: string }
+        passenger_name: { type: string }
+        seat_number: { type: string }
+        status: { type: string }
+        qr_data: { type: string, description: "Base64 encoded QR image data" }
+        pdf_url: { type: string }
+    
+    # === FRAUD ===
+    AnalyzeBookingRequest:
+        type: object
+        properties:
+            order_id: { type: string }
+            user_id: { type: string }
+            ip_address: { type: string }
+            total_amount_paisa: { type: integer }
+            
+    AnalyzeBookingResponse:
+        type: object
+        properties:
+            risk_score: { type: integer }
+            risk_level: { type: string }
+            should_block: { type: boolean }
+    
+    VerifyDocumentResponse:
+        type: object
+        properties:
+            is_authentic: { type: boolean }
+            confidence: { type: integer }
+            extracted_name: { type: string }
+    
+    # === REPORTING ===
+    RevenueReportResponse:
+        type: object
+        properties:
+            data: 
+                type: array
+                items: { $ref: '#/components/schemas/RevenueData' }
+            total_count: { type: integer }
+            
+    RevenueData:
+        type: object
+        properties:
+            date: { type: string, format: date }
+            order_count: { type: integer }
+            total_revenue_paisa: { type: integer }
+            
+    BookingTrendsResponse:
+        type: object
+        properties:
+            data: { type: array, items: { type: object } }
+
+    TopRoutesResponse:
+        type: object
+        properties:
+            data: { type: array, items: { type: object } }
+
+    OrganizationMetricsResponse:
+        type: object
+        properties:
+            total_orders: { type: integer }
+            total_revenue: { type: integer }
+            cancellation_rate: { type: number }
+
+    # === QUEUE ===
+    QueuePosition:
+      type: object
+      properties:
+        position: { type: integer }
+        estimated_wait: { type: integer, description: "Seconds" }
+        status: { type: string, enum: [WAITING, READY, EXPIRED] }
