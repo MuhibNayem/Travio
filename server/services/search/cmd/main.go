@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -82,6 +83,22 @@ func main() {
 	}()
 
 	logger.Info("Search service started", "opensearch", cfg.OpenSearchURL)
+
+	// Start HTTP health server for Docker healthchecks
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"ok"}`))
+		})
+		httpPort := os.Getenv("HTTP_PORT")
+		if httpPort == "" {
+			httpPort = "8088"
+		}
+		logger.Info("Starting HTTP health endpoint", "port", httpPort)
+		if err := http.ListenAndServe(":"+httpPort, nil); err != nil {
+			logger.Warn("HTTP health server failed", "error", err)
+		}
+	}()
 
 	// Wait for signal
 	sigChan := make(chan os.Signal, 1)

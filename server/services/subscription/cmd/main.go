@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,17 +17,26 @@ import (
 )
 
 func main() {
+	// Initialize logger first
+	logger.Init("subscription-service")
+
 	// 1. Load Config
 	if err := godotenv.Load(); err != nil {
 		logger.Warn("No .env file found")
 	}
 
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbName := "travio_subscription"
-	grpcPort := os.Getenv("SUBSCRIPTION_SERVICE_PORT")
+	dbHost := os.Getenv("POSTGRES_HOST")
+	dbPort := os.Getenv("POSTGRES_PORT")
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+	dbUser := os.Getenv("POSTGRES_USER")
+	dbPass := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_DB")
+	if dbName == "" {
+		dbName = "travio_subscription"
+	}
+	grpcPort := os.Getenv("GRPC_PORT")
 	if grpcPort == "" {
 		grpcPort = "50060" // Default port for Subscription
 	}
@@ -50,7 +60,23 @@ func main() {
 	repo := repository.NewPostgresRepository(db)
 	svc := service.NewSubscriptionService(repo)
 
-	// 4. Start Server
+	// 4. Start HTTP health server for Docker healthchecks
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"ok"}`))
+		})
+		httpPort := os.Getenv("HTTP_PORT")
+		if httpPort == "" {
+			httpPort = "8060"
+		}
+		logger.Info("Starting HTTP health endpoint", "port", httpPort)
+		if err := http.ListenAndServe(":"+httpPort, nil); err != nil {
+			logger.Warn("HTTP health server failed", "error", err)
+		}
+	}()
+
+	// 5. Start Server
 	go func() {
 		if err := handler.StartGRPCServer(grpcPort, svc); err != nil {
 			logger.Fatal("Failed to start gRPC server", "error", err)

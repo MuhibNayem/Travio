@@ -19,27 +19,50 @@ func Init(serviceName string) {
 }
 
 func Info(msg string, args ...any) {
+	if Log == nil {
+		slog.Info(msg, args...)
+		return
+	}
 	Log.Info(msg, args...)
 }
 
 func Error(msg string, args ...any) {
+	if Log == nil {
+		slog.Error(msg, args...)
+		return
+	}
 	Log.Error(msg, args...)
 }
 
 func Debug(msg string, args ...any) {
+	if Log == nil {
+		slog.Debug(msg, args...)
+		return
+	}
 	Log.Debug(msg, args...)
 }
 
 func Warn(msg string, args ...any) {
+	if Log == nil {
+		slog.Warn(msg, args...)
+		return
+	}
 	Log.Warn(msg, args...)
 }
 
 func Fatal(msg string, args ...any) {
+	if Log == nil {
+		slog.Error(msg, args...)
+		os.Exit(1)
+	}
 	Log.Error(msg, args...)
 	os.Exit(1)
 }
 
 func WithCtx(ctx context.Context) *slog.Logger {
+	if Log == nil {
+		return slog.Default()
+	}
 	// In a real implementation, extract trace_id from context
 	return Log
 }

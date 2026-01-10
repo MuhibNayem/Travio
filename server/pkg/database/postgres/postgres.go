@@ -18,6 +18,12 @@ type Config struct {
 	SSLMode  string
 }
 
+// DSN returns a PostgreSQL connection string for pgx driver
+func (c Config) DSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+}
+
 func Connect(ctx context.Context, cfg Config) (*sql.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)

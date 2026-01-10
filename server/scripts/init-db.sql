@@ -299,7 +299,7 @@ CREATE INDEX IF NOT EXISTS idx_pricing_rules_org ON pricing_rules(organization_i
 INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, priority, is_active) VALUES
     (gen_random_uuid()::text, NULL, 'Weekend Surge', '20% increase on weekends', 'day_of_week == "Saturday" || day_of_week == "Friday"', 1.20, 10, true),
     (gen_random_uuid()::text, NULL, 'Early Bird', '15% off for 30+ days advance', 'days_until_departure > 30', 0.85, 20, true),
-    (gen_random_uuid()::text, NULL, 'Last Minute', '10% increase for < 24h', 'hours_until_departure < 24', 1.10, 5, true),
+    (gen_random_uuid()::text, NULL, 'Last Minute', '10% increase for same-day booking', 'days_until_departure < 1', 1.10, 5, true),
     (gen_random_uuid()::text, NULL, 'Business Class', '40% premium', 'seat_class == "business"', 1.40, 1, true)
 ON CONFLICT DO NOTHING;
 
@@ -379,4 +379,13 @@ INSERT INTO plans (id, name, description, price_paisa, interval, features, is_ac
     ('33333333-3333-3333-3333-333333333333', 'Enterprise', 'Unlimited scale and dedicated support', 250000, 'month', '{"vehicles": "unlimited", "users": "unlimited", "support": "dedicated"}', true)
 ON CONFLICT DO NOTHING;
 
-\echo 'Master database initialization complete!'
+-- ==============================================================================
+-- 9. FRAUD SERVICE (travio_fraud)
+-- ==============================================================================
+\c travio_fraud
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- ==============================================================================
+-- 10. REPORTING SERVICE (travio_reporting)
+-- ==============================================================================
+SET allow_nullable_key = 1;

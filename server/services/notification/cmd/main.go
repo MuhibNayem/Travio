@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"strings"
 
@@ -50,6 +51,22 @@ func main() {
 	}
 
 	logger.Info("Notification service started", "email_rps", EmailRatePerSecond, "sms_rps", SMSRatePerSecond)
+
+	// Start HTTP health server for Docker healthchecks
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"ok"}`))
+		})
+		httpPort := os.Getenv("HTTP_PORT")
+		if httpPort == "" {
+			httpPort = "8090"
+		}
+		logger.Info("Starting HTTP health endpoint", "port", httpPort)
+		if err := http.ListenAndServe(":"+httpPort, nil); err != nil {
+			logger.Warn("HTTP health server failed", "error", err)
+		}
+	}()
 
 	// Block forever (or until signal)
 	select {}

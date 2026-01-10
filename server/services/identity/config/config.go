@@ -10,8 +10,9 @@ import (
 )
 
 type Config struct {
-	Server   server.Config
-	Database postgres.Config
+	Server    server.Config
+	Database  postgres.Config
+	RedisAddr string
 }
 
 func Load() Config {
@@ -31,6 +32,7 @@ func Load() Config {
 			DBName:   getEnv("POSTGRES_DB", "travio_identity"),
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 		},
+		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
 	}
 }
 

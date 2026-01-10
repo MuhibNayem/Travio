@@ -54,14 +54,14 @@ func main() {
 	mux := http.NewServeMux()
 	httpHandler.RegisterRoutes(mux)
 
-	httpPort := fmt.Sprintf(":%d", cfg.GRPCPort)
+	httpPort := fmt.Sprintf(":%d", cfg.HTTPPort)
 	server := &http.Server{
 		Addr:    httpPort,
 		Handler: mux,
 	}
 
 	go func() {
-		logger.Info("Pricing HTTP server starting", "port", cfg.GRPCPort)
+		logger.Info("Pricing HTTP server starting", "port", cfg.HTTPPort)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("HTTP server error", "error", err)
 		}

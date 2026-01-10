@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_MULTIPLE_DATABASES: "travio_identity,travio_catalog,travio_inventory,travio_order,travio_payment,travio_fulfillment,travio_pricing,travio_notification,travio_operator"
+      POSTGRES_MULTIPLE_DATABASES: "travio_identity,travio_catalog,travio_inventory,travio_order,travio_payment,travio_fulfillment,travio_pricing,travio_notification,travio_operator,travio_subscription,travio_fraud,travio_queue"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -177,7 +177,7 @@ services:
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
     ports:
       - "8123:8123"   # HTTP interface
-      - "9000:9000"   # Native TCP
+      - "9002:9000"   # Native TCP (Changed to 9002 to avoid conflict with MinIO)
     volumes:
       - clickhouse_data:/var/lib/clickhouse
     ulimits:
@@ -208,6 +208,7 @@ services:
       - POSTGRES_DB=travio_identity
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
+      - REDIS_ADDR=redis:${REDIS_PORT:-6379}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY}
       - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY}
@@ -421,6 +422,8 @@ services:
     restart: unless-stopped
     environment:
       - OPENSEARCH_URL=http://opensearch:9200
+      - KAFKA_BROKERS=kafka:29092
+      - REDIS_ADDR=redis:${REDIS_PORT:-6379}
       - TRIPS_INDEX=${TRIPS_INDEX:-trips}
       - STATIONS_INDEX=${STATIONS_INDEX:-stations}
       - HTTP_PORT=${SEARCH_HTTP_PORT:-8088}
@@ -430,6 +433,10 @@ services:
       - "${SEARCH_GRPC_PORT:-9088}:${SEARCH_GRPC_PORT:-9088}"
     depends_on:
       opensearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SEARCH_HTTP_PORT:-8088}/health" ]
@@ -444,11 +451,11 @@ services:
     container_name: travio-pricing
     restart: unless-stopped
     environment:
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=travio_pricing
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=travio_pricing
       - HTTP_PORT=${PRICING_HTTP_PORT:-8058}
       - GRPC_PORT=${PRICING_GRPC_PORT:-50058}
     ports:
@@ -543,6 +550,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SUBSCRIPTION_HTTP_PORT:-8060}/health" ]
       interval: 10s
@@ -632,6 +641,7 @@ services:
       - QUEUE_URL=queue:${QUEUE_GRPC_PORT:-9087}
       - SEARCH_URL=search:${SEARCH_GRPC_PORT:-9088}
       - PRICING_URL=pricing:${PRICING_GRPC_PORT:-50058}
+      - OPERATOR_URL=operator:${OPERATOR_GRPC_PORT:-50059}
       - SUBSCRIPTION_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
       - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
       - REPORTING_URL=reporting:${REPORTING_GRPC_PORT:-50091}

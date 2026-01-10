@@ -25,8 +25,9 @@ type UserProfile struct {
 	FraudFlags   int       `json:"fraud_flags"`   // Number of times flagged
 	BlockedCount int       `json:"blocked_count"` // Number of times blocked
 
-	// Embedding for similarity search (768 dimensions for text-embedding-005)
-	Embedding []float32 `json:"embedding" gorm:"type:vector(768)"`
+	// Embedding for similarity search stored in OpenSearch (768 dimensions for text-embedding-005)
+	// Stored as JSON in PostgreSQL for backup, actual kNN search uses OpenSearch
+	Embedding []float32 `json:"embedding" gorm:"type:jsonb;serializer:json"`
 
 	// Timestamps
 	FirstSeen time.Time `json:"first_seen"`

@@ -29,7 +29,7 @@ func DefaultJobs() []Job {
 	return []Job{
 		{
 			Name: "daily_revenue_rollup",
-			Cron: "0 1 * * *", // 1 AM daily
+			Cron: "0 0 1 * * *", // 1 AM daily (second minute hour day month weekday)
 			Query: `
 				INSERT INTO daily_revenue_mv
 				SELECT
@@ -46,7 +46,7 @@ func DefaultJobs() []Job {
 		},
 		{
 			Name: "cleanup_old_events",
-			Cron: "0 3 * * 0", // 3 AM Sunday
+			Cron: "0 0 3 * * 0", // 3 AM Sunday (second minute hour day month weekday)
 			Query: `
 				ALTER TABLE events DELETE 
 				WHERE event_date < today() - INTERVAL 730 DAY
@@ -54,7 +54,7 @@ func DefaultJobs() []Job {
 		},
 		{
 			Name: "optimize_tables",
-			Cron: "0 4 * * 0", // 4 AM Sunday
+			Cron: "0 0 4 * * 0", // 4 AM Sunday (second minute hour day month weekday)
 			Query: `
 				OPTIMIZE TABLE events FINAL
 			`,

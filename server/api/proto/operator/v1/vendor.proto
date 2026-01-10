@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package vendor.v1;
 
-option go_package = "github.com/MuhibNayem/Travio/server/api/proto/vendor/v1";
+option go_package = "github.com/MuhibNayem/Travio/server/api/proto/operator/v1";
 
 service VendorService {
   rpc CreateVendor(CreateVendorRequest) returns (CreateVendorResponse);

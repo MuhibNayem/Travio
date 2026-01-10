@@ -87,6 +87,31 @@ type Client struct {
 
 // NewClient creates a new ClickHouse client.
 func NewClient(cfg Config) (*Client, error) {
+	// First connect to default database to ensure target database exists
+	defaultOpts := &clickhouse.Options{
+		Addr: []string{fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)},
+		Auth: clickhouse.Auth{
+			Database: "default",
+			Username: cfg.Username,
+			Password: cfg.Password,
+		},
+		DialTimeout: 10 * time.Second,
+	}
+
+	defaultConn, err := clickhouse.Open(defaultOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to default database: %w", err)
+	}
+
+	// Create database if not exists
+	ctx := context.Background()
+	if err := defaultConn.Exec(ctx, fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", cfg.Database)); err != nil {
+		defaultConn.Close()
+		return nil, fmt.Errorf("failed to create database %s: %w", cfg.Database, err)
+	}
+	defaultConn.Close()
+
+	// Now connect to the target database
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)},
 		Auth: clickhouse.Auth{

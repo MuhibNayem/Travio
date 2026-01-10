@@ -20,18 +20,22 @@ func main() {
 
 	// Database Setup
 	logger.Info("Connecting to Postgres...")
-	db, err := sql.Open("pgx", "postgres://user:pass@localhost:5432/travio_identity?sslmode=disable") // Use config in prod
+	db, err := sql.Open("pgx", cfg.Database.DSN())
 	if err != nil {
 		logger.Error("Failed to connect to DB", "error", err)
 	}
 
 	// Redis Setup
-	logger.Info("Connecting to Redis...")
-	redisRepo, err := repository.NewRedisRepository("localhost:6379") // Use config in prod
+	logger.Info("Connecting to Redis...", "addr", cfg.RedisAddr)
+	redisRepo, err := repository.NewRedisRepository(cfg.RedisAddr)
 	if err != nil {
 		logger.Error("Failed to connect to Redis", "error", err)
 	}
-	defer redisRepo.Close()
+	defer func() {
+		if redisRepo != nil {
+			redisRepo.Close()
+		}
+	}()
 
 	// Dependency Injection
 	userRepo := repository.NewUserRepository(db)

@@ -11,6 +11,7 @@ FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 1000 appuser
 WORKDIR /app
 COPY --from=builder /app/service /app/service
+COPY --from=builder /app/services/queue/internal/scripts /app/internal/scripts
 USER appuser
 EXPOSE 8087 9087
 ENTRYPOINT ["/app/service"]

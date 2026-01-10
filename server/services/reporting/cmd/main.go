@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -114,6 +115,18 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to listen", "port", port, "error", err)
 	}
+
+	// Start HTTP health server for Docker healthchecks
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"ok"}`))
+		})
+		logger.Info("Starting HTTP health endpoint", "port", 8080)
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			logger.Warn("HTTP health server failed", "error", err)
+		}
+	}()
 
 	logger.Info("Reporting Service listening", "port", port)
 
