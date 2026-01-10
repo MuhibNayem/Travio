@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/auth"
+	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/identity/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/identity/internal/repository"
 	"golang.org/x/crypto/bcrypt"
@@ -45,8 +46,10 @@ func NewAuthService(userRepo *repository.UserRepository, orgRepo *repository.Org
 }
 
 func (s *AuthService) Register(email, password, orgID, name string, newOrgDetails *domain.Organization) (*domain.User, error) {
+	logger.Info("Register attempt received", "email", email, "org_id", orgID, "create_org", newOrgDetails != nil)
 	existing, _ := s.UserRepo.FindByEmail(email)
 	if existing != nil {
+		logger.Warn("Registration blocked - user already exists", "email", email)
 		return nil, ErrUserAlreadyExists
 	}
 
@@ -55,13 +58,16 @@ func (s *AuthService) Register(email, password, orgID, name string, newOrgDetail
 		// Set default plan if missing? handled in CreateOrg?
 		// We just create it.
 		if err := s.OrgRepo.Create(newOrgDetails); err != nil {
+			logger.Error("Failed to create organization during registration", "email", email, "error", err)
 			return nil, err // wrap error?
 		}
 		orgID = newOrgDetails.ID
+		logger.Info("Organization created during registration", "email", email, "org_id", orgID)
 	}
 
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		logger.Error("Failed to hash password during registration", "email", email, "error", err)
 		return nil, err
 	}
 
@@ -79,31 +85,38 @@ func (s *AuthService) Register(email, password, orgID, name string, newOrgDetail
 	}
 
 	if err := s.UserRepo.Create(user); err != nil {
+		logger.Error("Failed to persist user during registration", "email", email, "org_id", user.OrganizationID, "error", err)
 		return nil, err
 	}
+	logger.Info("User registered successfully", "user_id", user.ID, "org_id", user.OrganizationID)
 	return user, nil
 }
 
 // Login authenticates and returns both Access and Refresh tokens
 func (s *AuthService) Login(email, password, userAgent, ipAddress string) (*TokenPair, error) {
+	logger.Info("Login attempt received", "email", email, "ip", ipAddress, "user_agent", userAgent)
 	user, err := s.UserRepo.FindByEmail(email)
 	if err != nil {
+		logger.Warn("Login failed - user not found", "email", email, "ip", ipAddress)
 		return nil, ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		logger.Warn("Login failed - invalid password", "email", email, "ip", ipAddress)
 		return nil, ErrInvalidCredentials
 	}
 
 	// Generate Access Token
 	accessToken, err := auth.GenerateAccessToken(user.ID, user.OrganizationID, user.Role)
 	if err != nil {
+		logger.Error("Failed to generate access token", "user_id", user.ID, "error", err)
 		return nil, err
 	}
 
 	// Generate Refresh Token (new family)
 	refreshToken, jti, err := auth.GenerateRefreshToken(user.ID, "")
 	if err != nil {
+		logger.Error("Failed to generate refresh token", "user_id", user.ID, "error", err)
 		return nil, err
 	}
 
@@ -121,9 +134,11 @@ func (s *AuthService) Login(email, password, userAgent, ipAddress string) (*Toke
 		IPAddress:  ipAddress,
 	}
 	if err := s.RefreshTokenRepo.Create(rtRecord); err != nil {
+		logger.Error("Failed to persist refresh token", "user_id", user.ID, "error", err)
 		return nil, err
 	}
 
+	logger.Info("Login successful", "user_id", user.ID, "org_id", user.OrganizationID, "session_id", jti)
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

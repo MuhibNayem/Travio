@@ -101,8 +101,8 @@ export async function logout(refreshToken?: string): Promise<void> {
 /**
  * Logout from all devices
  */
-export async function logoutAll(accessToken: string): Promise<void> {
-    return api.post('/v1/auth/logout-all', {}, accessToken);
+export async function logoutAll(): Promise<void> {
+    return api.post('/v1/auth/logout-all', {});
 }
 
 /**
@@ -122,8 +122,8 @@ export async function getMe(): Promise<UserContext> {
 /**
  * Get active sessions for current user
  */
-export async function getSessions(accessToken: string): Promise<Session[]> {
-    return api.get<Session[]>('/v1/auth/sessions', accessToken);
+export async function getSessions(): Promise<Session[]> {
+    return api.get<Session[]>('/v1/auth/sessions');
 }
 
 export { ApiError };

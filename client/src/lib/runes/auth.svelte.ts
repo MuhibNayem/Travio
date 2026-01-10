@@ -33,6 +33,9 @@ class AuthStore {
     constructor() {
         if (typeof window !== 'undefined') {
             this.fetchUser();
+            window.addEventListener('auth:tokens-cleared', () => {
+                this.user = null;
+            });
         }
     }
 

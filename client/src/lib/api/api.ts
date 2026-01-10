@@ -3,7 +3,6 @@
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8888';
-
 export class ApiError extends Error {
     constructor(
         public status: number,
@@ -19,7 +18,7 @@ interface RequestOptions {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
     body?: unknown;
     headers?: Record<string, string>;
-    token?: string;
+    _retry?: boolean;
 }
 
 /**
@@ -29,21 +28,12 @@ export async function apiRequest<T>(
     endpoint: string,
     options: RequestOptions = {}
 ): Promise<T> {
-    const { method = 'GET', body, headers = {}, token } = options;
+    const { method = 'GET', body, headers = {}, _retry } = options;
 
     const requestHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         ...headers,
     };
-
-    if (token) {
-        requestHeaders['Authorization'] = `Bearer ${token}`;
-    } else if (typeof localStorage !== 'undefined') {
-        const storedToken = localStorage.getItem('accessToken');
-        if (storedToken) {
-            requestHeaders['Authorization'] = `Bearer ${storedToken}`;
-        }
-    }
 
     const config: RequestInit = {
         method,
@@ -56,6 +46,16 @@ export async function apiRequest<T>(
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+    if (response.status === 401) {
+        if (!_retry) {
+            const refreshed = await tryRefreshAccessToken();
+            if (refreshed) {
+                return apiRequest<T>(endpoint, { ...options, _retry: true });
+            }
+        }
+        emitAuthCleared();
+    }
 
     if (!response.ok) {
         let errorMessage = response.statusText;
@@ -80,15 +80,45 @@ export async function apiRequest<T>(
  * Convenience methods
  */
 export const api = {
-    get: <T>(endpoint: string, token?: string) =>
-        apiRequest<T>(endpoint, { method: 'GET', token }),
+    get: <T>(endpoint: string) =>
+        apiRequest<T>(endpoint, { method: 'GET' }),
 
-    post: <T>(endpoint: string, body: unknown, token?: string) =>
-        apiRequest<T>(endpoint, { method: 'POST', body, token }),
+    post: <T>(endpoint: string, body: unknown) =>
+        apiRequest<T>(endpoint, { method: 'POST', body }),
 
-    put: <T>(endpoint: string, body: unknown, token?: string) =>
-        apiRequest<T>(endpoint, { method: 'PUT', body, token }),
+    put: <T>(endpoint: string, body: unknown) =>
+        apiRequest<T>(endpoint, { method: 'PUT', body }),
 
-    delete: <T>(endpoint: string, token?: string) =>
-        apiRequest<T>(endpoint, { method: 'DELETE', token }),
+    delete: <T>(endpoint: string) =>
+        apiRequest<T>(endpoint, { method: 'DELETE' }),
 };
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({}),
+        });
+
+        if (!response.ok) {
+            return false;
+        }
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:tokens-refreshed'));
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function emitAuthCleared() {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:tokens-cleared'));
+    }
+}

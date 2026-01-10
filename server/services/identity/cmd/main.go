@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"os"
+	"time"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/identity/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/auth"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/identity/config"
@@ -17,6 +20,7 @@ import (
 func main() {
 	logger.Init("identity-service")
 	cfg := config.Load()
+	overrideJWTConfigFromEnv()
 
 	// Database Setup
 	logger.Info("Connecting to Postgres...")
@@ -67,4 +71,23 @@ func main() {
 	pb.RegisterIdentityServiceServer(srv.GRPC(), grpcHandler)
 
 	srv.Start(mux)
+}
+
+func overrideJWTConfigFromEnv() {
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		auth.AccessTokenSecret = []byte(secret)
+	}
+	if secret := os.Getenv("JWT_REFRESH_SECRET"); secret != "" {
+		auth.RefreshTokenSecret = []byte(secret)
+	}
+	if ttl := os.Getenv("JWT_ACCESS_EXPIRY"); ttl != "" {
+		if dur, err := time.ParseDuration(ttl); err == nil {
+			auth.AccessTokenTTL = dur
+		}
+	}
+	if ttl := os.Getenv("JWT_REFRESH_EXPIRY"); ttl != "" {
+		if dur, err := time.ParseDuration(ttl); err == nil {
+			auth.RefreshTokenTTL = dur
+		}
+	}
 }
