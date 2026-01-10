@@ -681,6 +681,16 @@ services:
       timeout: 5s
       retries: 3
 
+  docs:
+    image: swaggerapi/swagger-ui
+    container_name: travio-docs
+    ports:
+      - "8001:8080"
+    volumes:
+      - ./docs/api/rest/openapi.yaml:/tmp/openapi.yaml
+    environment:
+      SWAGGER_JSON: /tmp/openapi.yaml
+
   # ===========================================
   # Frontend
   # ===========================================
