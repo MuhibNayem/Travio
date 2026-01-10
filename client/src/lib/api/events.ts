@@ -140,30 +140,29 @@ export interface EventSearchResult {
 
 
 // --- API Methods ---
-
 export const eventsApi = {
     // --- Venues ---
-    getVenues: (orgId: string) => api.get<ListVenuesResponse>(`/venues?organization_id=${orgId}`).then(r => r.venues || []),
-    createVenue: (data: CreateVenueRequest) => api.post<Venue>("/venues", data),
-    updateVenue: (id: string, data: UpdateVenueRequest) => api.put<Venue>(`/events/venues/${id}`, data),
-    getVenue: (id: string) => api.get<Venue>(`/venues/${id}`),
+    getVenues: (orgId: string) => api.get<ListVenuesResponse>(`/v1/venues?organization_id=${orgId}`).then(r => r.venues || []),
+    createVenue: (data: CreateVenueRequest) => api.post<Venue>("/v1/venues", data),
+    updateVenue: (id: string, data: UpdateVenueRequest) => api.put<Venue>(`/v1/events/venues/${id}`, data),
+    getVenue: (id: string) => api.get<Venue>(`/v1/venues/${id}`),
 
     // --- Events ---
-    getEvents: (orgId: string) => api.get<ListEventsResponse>(`/events?organization_id=${orgId}`).then(r => r.events || []),
-    createEvent: (data: CreateEventRequest) => api.post<Event>("/events", data),
-    updateEvent: (id: string, data: UpdateEventRequest) => api.put<Event>(`/events/${id}`, data),
-    getEvent: (id: string) => api.get<Event>(`/events/${id}`),
-    publishEvent: (id: string) => api.post<Event>(`/events/${id}/publish`, {}),
+    getEvents: (orgId: string) => api.get<ListEventsResponse>(`/v1/events?organization_id=${orgId}`).then(r => r.events || []),
+    createEvent: (data: CreateEventRequest) => api.post<Event>("/v1/events", data),
+    updateEvent: (id: string, data: UpdateEventRequest) => api.put<Event>(`/v1/events/${id}`, data),
+    getEvent: (id: string) => api.get<Event>(`/v1/events/${id}`),
+    publishEvent: (id: string) => api.post<Event>(`/v1/events/${id}/publish`, {}),
 
     // --- Search ---
     searchEvents: (query: string, city?: string, category?: string) => {
         const params = new URLSearchParams({ q: query });
         if (city) params.append("city", city);
         if (category) params.append("category", category);
-        return api.get<SearchEventsResponse>(`/search/events?${params.toString()}`);
+        return api.get<SearchEventsResponse>(`/v1/search/events?${params.toString()}`);
     },
 
     // --- Tickets ---
-    getTicketTypes: (eventId: string) => api.get<any>(`/events/${eventId}/tickets`).then(r => r.ticket_types || []),
-    createTicketType: (data: CreateTicketTypeRequest) => api.post<TicketType>("/tickets/types", data),
+    getTicketTypes: (eventId: string) => api.get<any>(`/v1/events/${eventId}/tickets`).then(r => r.ticket_types || []),
+    createTicketType: (data: CreateTicketTypeRequest) => api.post<TicketType>("/v1/tickets/types", data),
 };

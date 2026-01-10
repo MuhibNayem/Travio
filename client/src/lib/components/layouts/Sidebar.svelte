@@ -10,7 +10,7 @@
         Users,
         Route,
         Building,
-    } from "lucide-svelte";
+    } from "@lucide/svelte";
     import { cn } from "$lib/utils";
 
     const navItems = [

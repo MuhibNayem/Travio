@@ -3,16 +3,10 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import * as Card from "$lib/components/ui/card";
-    import * as Select from "$lib/components/ui/select";
-    import * as RadioGroup from "$lib/components/ui/radio-group";
     import { Textarea } from "$lib/components/ui/textarea";
-    import {
-        eventsApi,
-        type CreateEventRequest,
-        type Venue,
-    } from "$lib/api/events";
+    import { eventsApi, type Venue } from "$lib/api/events";
     import { toast } from "svelte-sonner";
-    import { page } from "$app/stores";
+    import { auth } from "$lib/runes/auth.svelte";
     import {
         Loader2,
         Calendar,
@@ -21,6 +15,7 @@
         CheckCircle,
         ArrowRight,
         ArrowLeft,
+        Plus,
     } from "@lucide/svelte";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
@@ -42,8 +37,10 @@
 
     onMount(async () => {
         try {
-            const orgId = $page.data.user.organization_id;
-            venues = await eventsApi.getVenues(orgId);
+            const orgId = auth.user?.organizationId;
+            if (orgId) {
+                venues = await eventsApi.getVenues(orgId);
+            }
         } catch (e) {
             console.error("Failed to load venues", e);
         }
@@ -57,7 +54,8 @@
 
         loading = true;
         try {
-            const orgId = $page.data.user.organization_id;
+            const orgId = auth.user?.organizationId;
+            if (!orgId) throw new Error("User organization not found");
 
             // Combine Date & Time to ISO
             const startISO = new Date(

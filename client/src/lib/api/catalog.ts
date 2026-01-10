@@ -20,23 +20,23 @@ export interface ListStationsResponse {
 
 export const catalogApi = {
     getStations: async (): Promise<Station[]> => {
-        const response = await api.get<ListStationsResponse>('/stations');
+        const response = await api.get<ListStationsResponse>('/v1/stations');
         return response.stations;
     },
 
     getStation: async (id: string): Promise<Station> => {
-        const response = await api.get<Station>(`/stations/${id}`);
+        const response = await api.get<Station>(`/v1/stations/${id}`);
         return response;
     },
 
     // Routes
     getRoutes: async (): Promise<Route[]> => {
-        const response = await api.get<ListRoutesResponse>('/routes');
+        const response = await api.get<ListRoutesResponse>('/v1/routes');
         return response.routes;
     },
 
     createRoute: async (route: CreateRouteRequest): Promise<Route> => {
-        const response = await api.post<Route>('/routes', route);
+        const response = await api.post<Route>('/v1/routes', route);
         return response;
     },
 
@@ -55,12 +55,12 @@ export const catalogApi = {
         // Checking Main.go: No "ListTrips" exposed except Search.
         // I will add ListTrips to Gateway first.
         // For now, I'll add the method here and fix Gateway next.
-        const response = await api.get<ListTripsResponse>('/trips');
+        const response = await api.get<ListTripsResponse>('/v1/trips');
         return response.trips;
     },
 
     createTrip: async (trip: CreateTripRequest): Promise<Trip> => {
-        const response = await api.post<Trip>('/trips', trip);
+        const response = await api.post<Trip>('/v1/trips', trip);
         return response;
     }
 };

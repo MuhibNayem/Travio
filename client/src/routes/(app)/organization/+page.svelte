@@ -1,6 +1,6 @@
 <script lang="ts">
     import { auth } from "$lib/runes/auth.svelte";
-    import { BarChart3, TrendingUp, Users, Wallet } from "lucide-svelte";
+    import { BarChart3, TrendingUp, Users, Wallet } from "@lucide/svelte";
 
     const stats = [
         {
@@ -14,7 +14,7 @@
         { label: "Occupancy", value: "78%", icon: Users, trend: "+2%" },
     ];
 
-    import { Ticket as TicketIcon, Bus as BusIcon } from "lucide-svelte";
+    import { Ticket as TicketIcon, Bus as BusIcon } from "@lucide/svelte";
 </script>
 
 <div class="space-y-8">
