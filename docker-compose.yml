@@ -647,7 +647,7 @@ services:
       - SUBSCRIPTION_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
       - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
       - REPORTING_URL=reporting:${REPORTING_GRPC_PORT:-50091}
-      - EVENTS_URL=events:${EVENTS_GRPC_PORT:-9092}
+      - EVENTS_URL=events:${EVENTS_GRPC_PORT:-9093}
       - REDIS_URL=redis:${REDIS_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_PORT=${GATEWAY_HTTP_PORT}
@@ -700,10 +700,10 @@ services:
       - DB_NAME=travio_events
       - KAFKA_BROKERS=kafka:29092
       - HTTP_PORT=${EVENTS_HTTP_PORT:-8092}
-      - GRPC_PORT=${EVENTS_GRPC_PORT:-9092}
+      - GRPC_PORT=${EVENTS_GRPC_PORT:-9093}
     ports:
       - "${EVENTS_HTTP_PORT:-8092}:${EVENTS_HTTP_PORT:-8092}"
-      - "${EVENTS_GRPC_PORT:-9092}:${EVENTS_GRPC_PORT:-9092}"
+      - "${EVENTS_GRPC_PORT:-9093}:${EVENTS_GRPC_PORT:-9093}"
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,5 +1,7 @@
 <script lang="ts">
     import BusLayout from "./BusLayout.svelte";
+    import TrainLayout from "./TrainLayout.svelte";
+    import LaunchLayout from "./LaunchLayout.svelte";
     import VenueLayout from "./VenueLayout.svelte";
     import { createEventDispatcher } from "svelte";
 
@@ -41,7 +43,54 @@
         <BusLayout
             rows={config.rows || 10}
             columns={config.columns || 4}
-            aisleIndex={config.aisleIndex ?? 1}
+            aisleIndex={config.aisleIndex ?? 2}
+            {seatData}
+            on:seatClick={handleSeatClick}
+        />
+    {:else if type === "train"}
+        <TrainLayout
+            coaches={config.coaches || [
+                {
+                    id: "S1",
+                    name: "S1",
+                    class: "S_Chair",
+                    rows: 15,
+                    seatsPerRow: 6,
+                    hasBerths: false,
+                },
+                {
+                    id: "AC1",
+                    name: "AC1",
+                    class: "AC",
+                    rows: 12,
+                    seatsPerRow: 4,
+                    hasBerths: false,
+                },
+            ]}
+            {seatData}
+            on:seatClick={handleSeatClick}
+        />
+    {:else if type === "launch"}
+        <LaunchLayout
+            decks={config.decks || [
+                {
+                    id: "D1",
+                    name: "Deck 1",
+                    type: "economy",
+                    rows: 8,
+                    cols: 6,
+                    seatPrice: 500,
+                },
+                {
+                    id: "VIP",
+                    name: "VIP Cabin",
+                    type: "vip_cabin",
+                    cabins: [
+                        { id: "C1", beds: 4, price: 2000 },
+                        { id: "C2", beds: 2, price: 3000 },
+                    ],
+                },
+            ]}
             {seatData}
             on:seatClick={handleSeatClick}
         />
@@ -51,10 +100,5 @@
             {seatData}
             on:seatClick={handleSeatClick}
         />
-    {:else}
-        <!-- Fallback / TODO for Train/Launch -->
-        <div class="p-8 text-center text-gray-500">
-            {type} layout coming soon
-        </div>
     {/if}
 </div>

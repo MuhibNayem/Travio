@@ -29,14 +29,93 @@ func (h *GRPCHandler) RegisterAsset(ctx context.Context, req *fleetv1.RegisterAs
 		return nil, status.Error(codes.InvalidArgument, "Name and OrganizationID are required")
 	}
 
-	// Serialize Config
+	// Serialize full Config structure as JSON
 	configJSON := "{}"
 	if req.Config != nil {
-		cfgMap := map[string]string{
-			"layout_type": req.Config.LayoutType,
-			"features":    req.Config.Features,
+		// Convert proto Config to JSON-serializable map
+		configMap := make(map[string]interface{})
+		configMap["features"] = req.Config.Features
+
+		// Handle oneof layout based on asset type
+		switch layout := req.Config.GetLayout().(type) {
+		case *fleetv1.Config_Bus:
+			if layout.Bus != nil {
+				busConfig := map[string]interface{}{
+					"rows":             layout.Bus.Rows,
+					"seats_per_row":    layout.Bus.SeatsPerRow,
+					"aisle_after_seat": layout.Bus.AisleAfterSeat,
+					"has_toilet":       layout.Bus.HasToilet,
+					"has_sleeper":      layout.Bus.HasSleeper,
+				}
+				if len(layout.Bus.Categories) > 0 {
+					categories := make([]map[string]interface{}, 0)
+					for _, cat := range layout.Bus.Categories {
+						categories = append(categories, map[string]interface{}{
+							"name":        cat.Name,
+							"price_paisa": cat.PricePaisa,
+							"seat_ids":    cat.SeatIds,
+						})
+					}
+					busConfig["categories"] = categories
+				}
+				configMap["bus"] = busConfig
+			}
+		case *fleetv1.Config_Train:
+			if layout.Train != nil {
+				coaches := make([]map[string]interface{}, 0)
+				for _, c := range layout.Train.Coaches {
+					coach := map[string]interface{}{
+						"id":            c.Id,
+						"name":          c.Name,
+						"class":         c.Class.String(),
+						"rows":          c.Rows,
+						"seats_per_row": c.SeatsPerRow,
+						"has_berths":    c.HasBerths,
+						"price_paisa":   c.PricePaisa,
+					}
+					if c.BerthConfig != nil {
+						coach["berth_config"] = map[string]interface{}{
+							"type":                   c.BerthConfig.Type.String(),
+							"berths_per_compartment": c.BerthConfig.BerthsPerCompartment,
+							"has_side_berths":        c.BerthConfig.HasSideBerths,
+						}
+					}
+					coaches = append(coaches, coach)
+				}
+				configMap["train"] = map[string]interface{}{"coaches": coaches}
+			}
+		case *fleetv1.Config_Launch:
+			if layout.Launch != nil {
+				decks := make([]map[string]interface{}, 0)
+				for _, d := range layout.Launch.Decks {
+					deck := map[string]interface{}{
+						"id":               d.Id,
+						"name":             d.Name,
+						"type":             d.Type.String(),
+						"rows":             d.Rows,
+						"cols":             d.Cols,
+						"seat_price_paisa": d.SeatPricePaisa,
+					}
+					if len(d.Cabins) > 0 {
+						cabins := make([]map[string]interface{}, 0)
+						for _, cab := range d.Cabins {
+							cabins = append(cabins, map[string]interface{}{
+								"id":          cab.Id,
+								"name":        cab.Name,
+								"beds":        cab.Beds,
+								"price_paisa": cab.PricePaisa,
+								"is_suite":    cab.IsSuite,
+							})
+						}
+						deck["cabins"] = cabins
+					}
+					decks = append(decks, deck)
+				}
+				configMap["launch"] = map[string]interface{}{"decks": decks}
+			}
 		}
-		bytes, err := json.Marshal(cfgMap)
+
+		bytes, err := json.Marshal(configMap)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "Invalid config format")
 		}
@@ -147,14 +226,99 @@ func mapAssetToProto(a *domain.Asset) *fleetv1.Asset {
 		aStatus = fleetv1.AssetStatus_ASSET_STATUS_ACTIVE
 	}
 
-	// Config Parsing
+	// Config Parsing - deserialize JSON back to proto Config
 	var config *fleetv1.Config
 	if a.Config != "" {
-		var cfgMap map[string]string
+		var cfgMap map[string]interface{}
 		if err := json.Unmarshal([]byte(a.Config), &cfgMap); err == nil {
-			config = &fleetv1.Config{
-				LayoutType: cfgMap["layout_type"],
-				Features:   cfgMap["features"],
+			config = &fleetv1.Config{}
+
+			// Features ([]string)
+			if features, ok := cfgMap["features"].([]interface{}); ok {
+				for _, f := range features {
+					if s, ok := f.(string); ok {
+						config.Features = append(config.Features, s)
+					}
+				}
+			}
+
+			// Bus config
+			if busData, ok := cfgMap["bus"].(map[string]interface{}); ok {
+				busConfig := &fleetv1.BusConfig{}
+				if v, ok := busData["rows"].(float64); ok {
+					busConfig.Rows = int32(v)
+				}
+				if v, ok := busData["seats_per_row"].(float64); ok {
+					busConfig.SeatsPerRow = int32(v)
+				}
+				if v, ok := busData["aisle_after_seat"].(float64); ok {
+					busConfig.AisleAfterSeat = int32(v)
+				}
+				if v, ok := busData["has_toilet"].(bool); ok {
+					busConfig.HasToilet = v
+				}
+				if v, ok := busData["has_sleeper"].(bool); ok {
+					busConfig.HasSleeper = v
+				}
+				config.Layout = &fleetv1.Config_Bus{Bus: busConfig}
+			}
+
+			// Train config
+			if trainData, ok := cfgMap["train"].(map[string]interface{}); ok {
+				trainConfig := &fleetv1.TrainConfig{}
+				if coaches, ok := trainData["coaches"].([]interface{}); ok {
+					for _, c := range coaches {
+						if coachMap, ok := c.(map[string]interface{}); ok {
+							coach := &fleetv1.TrainCoach{}
+							if v, ok := coachMap["id"].(string); ok {
+								coach.Id = v
+							}
+							if v, ok := coachMap["name"].(string); ok {
+								coach.Name = v
+							}
+							if v, ok := coachMap["rows"].(float64); ok {
+								coach.Rows = int32(v)
+							}
+							if v, ok := coachMap["seats_per_row"].(float64); ok {
+								coach.SeatsPerRow = int32(v)
+							}
+							if v, ok := coachMap["price_paisa"].(float64); ok {
+								coach.PricePaisa = int32(v)
+							}
+							trainConfig.Coaches = append(trainConfig.Coaches, coach)
+						}
+					}
+				}
+				config.Layout = &fleetv1.Config_Train{Train: trainConfig}
+			}
+
+			// Launch config
+			if launchData, ok := cfgMap["launch"].(map[string]interface{}); ok {
+				launchConfig := &fleetv1.LaunchConfig{}
+				if decks, ok := launchData["decks"].([]interface{}); ok {
+					for _, d := range decks {
+						if deckMap, ok := d.(map[string]interface{}); ok {
+							deck := &fleetv1.LaunchDeck{}
+							if v, ok := deckMap["id"].(string); ok {
+								deck.Id = v
+							}
+							if v, ok := deckMap["name"].(string); ok {
+								deck.Name = v
+							}
+							if v, ok := deckMap["rows"].(float64); ok {
+								deck.Rows = int32(v)
+							}
+							if v, ok := deckMap["cols"].(float64); ok {
+								deck.Cols = int32(v)
+							}
+							if v, ok := deckMap["seat_price_paisa"].(float64); ok {
+								deck.SeatPricePaisa = int32(v)
+							}
+							launchConfig.Decks = append(launchConfig.Decks, deck)
+						}
+					}
+				}
+				config.Layout = &fleetv1.Config_Launch{Launch: launchConfig}
 			}
 		}
 	}

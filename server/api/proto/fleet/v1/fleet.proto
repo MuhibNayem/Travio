@@ -59,9 +59,101 @@ enum AssetStatus {
 }
 
 message Config {
-    // Arbitrary JSON or explicit fields
-    string layout_type = 1; // "2+2", "Sleeping_Cabin"
-    string features = 2; // "Wifi, AC"
+    // Type-specific layout configuration
+    oneof layout {
+        BusConfig bus = 1;
+        TrainConfig train = 2;
+        LaunchConfig launch = 3;
+    }
+    // Common features applicable to all
+    repeated string features = 10;  // ["AC", "WiFi", "Recliner"]
+}
+
+// ========== BUS CONFIGURATION ==========
+message BusConfig {
+    int32 rows = 1;                 // Number of seat rows
+    int32 seats_per_row = 2;        // e.g., 4 for 2+2 layout
+    int32 aisle_after_seat = 3;     // Position of aisle (2 means after seat 2)
+    bool has_toilet = 4;
+    bool has_sleeper = 5;           // For overnight buses with berths
+    repeated SeatCategory categories = 6;  // Different seat tiers
+}
+
+message SeatCategory {
+    string name = 1;                // "Economy", "Business", "VIP"
+    int32 price_paisa = 2;
+    repeated string seat_ids = 3;   // Which seats belong to this category
+}
+
+// ========== TRAIN CONFIGURATION ==========
+message TrainConfig {
+    repeated TrainCoach coaches = 1;
+}
+
+message TrainCoach {
+    string id = 1;                  // e.g., "S1", "AC1", "B2"
+    string name = 2;                // "Shatabdi Chair Car", "Sleeper Coach"
+    TrainCoachClass class = 3;
+    int32 rows = 4;                 // Number of compartment rows
+    int32 seats_per_row = 5;        // 4 for 2+2, 6 for 3+3, 8 for 4+4
+    bool has_berths = 6;            // For sleeper coaches
+    BerthConfiguration berth_config = 7;
+    int32 price_paisa = 8;          // Base price for this coach class
+}
+
+message BerthConfiguration {
+    BerthType type = 1;
+    int32 berths_per_compartment = 2;  // 6 for 3-tier, 4 for 2-tier
+    bool has_side_berths = 3;
+}
+
+enum TrainCoachClass {
+    TRAIN_COACH_CLASS_UNSPECIFIED = 0;
+    TRAIN_COACH_CLASS_AC_FIRST = 1;      // AC First Class (2-tier)
+    TRAIN_COACH_CLASS_AC_SECOND = 2;     // AC Second Class (3-tier)
+    TRAIN_COACH_CLASS_AC_CHAIR = 3;      // AC Chair Car
+    TRAIN_COACH_CLASS_SLEEPER = 4;       // Non-AC Sleeper
+    TRAIN_COACH_CLASS_S_CHAIR = 5;       // Shovan/Sitting Chair
+    TRAIN_COACH_CLASS_GENERAL = 6;       // General/Unreserved
+}
+
+enum BerthType {
+    BERTH_TYPE_UNSPECIFIED = 0;
+    BERTH_TYPE_TWO_TIER = 1;        // Lower + Upper
+    BERTH_TYPE_THREE_TIER = 2;      // Lower + Middle + Upper
+    BERTH_TYPE_CHAIR = 3;           // Chair seating (no berths)
+}
+
+// ========== LAUNCH CONFIGURATION ==========
+message LaunchConfig {
+    repeated LaunchDeck decks = 1;
+}
+
+message LaunchDeck {
+    string id = 1;                  // "D1", "D2", "VIP"
+    string name = 2;                // "Deck 1", "VIP Cabin Deck"
+    LaunchDeckType type = 3;
+    // For open seating (economy/business)
+    int32 rows = 4;
+    int32 cols = 5;
+    int32 seat_price_paisa = 6;
+    // For cabin-based (VIP)
+    repeated LaunchCabin cabins = 7;
+}
+
+message LaunchCabin {
+    string id = 1;                  // "C1", "C2"
+    string name = 2;                // "Cabin 1", "Royal Suite"
+    int32 beds = 3;                 // Number of beds in cabin
+    int32 price_paisa = 4;          // Total cabin price
+    bool is_suite = 5;              // Premium cabin with bathroom
+}
+
+enum LaunchDeckType {
+    LAUNCH_DECK_TYPE_UNSPECIFIED = 0;
+    LAUNCH_DECK_TYPE_ECONOMY = 1;
+    LAUNCH_DECK_TYPE_BUSINESS = 2;
+    LAUNCH_DECK_TYPE_VIP_CABIN = 3;
 }
 
 message RegisterAssetRequest {

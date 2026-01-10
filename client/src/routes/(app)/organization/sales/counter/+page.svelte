@@ -20,6 +20,7 @@
     import { Separator } from "$lib/components/ui/separator";
     import { eventsApi } from "$lib/api/events";
     import { catalogApi } from "$lib/api/catalog";
+    import { fleetApi, type AssetConfig, AssetType } from "$lib/api/fleet";
     import * as Dialog from "$lib/components/ui/dialog";
     import TicketPrint from "$lib/components/sales/TicketPrint.svelte";
     import { ordersApi, type CreateOrderRequest } from "$lib/api/orders";
@@ -42,6 +43,10 @@
     let customerName = "";
     let customerPhone = "";
     let selectedPaymentId = "cash";
+
+    // Asset config for SeatMap
+    let assetConfig: AssetConfig | null = null;
+    let loadingAsset = false;
 
     $: subtotal = selectedSeats.length * (selectedItem?.price || 0);
 
@@ -114,9 +119,92 @@
     }
 
     // Handlers
-    function selectItem(item: any) {
+    async function selectItem(item: any) {
         selectedItem = item;
         selectedSeats = []; // Reset selection
+        assetConfig = null;
+
+        // Fetch asset config for trips
+        if (activeTab === "trips" && item.raw?.vehicle_id) {
+            loadingAsset = true;
+            try {
+                const asset = await fleetApi.getAsset(item.raw.vehicle_id);
+                assetConfig = asset.config || null;
+            } catch (e) {
+                console.error("Failed to load asset config", e);
+                // Fall back to defaults
+            } finally {
+                loadingAsset = false;
+            }
+        }
+    }
+
+    // Helper: Determine SeatMap type from item
+    function getSeatMapType(item: any): "bus" | "train" | "launch" | "event" {
+        if (activeTab === "events") return "event";
+
+        // Map vehicle_type to SeatMap type
+        const vehicleType = item.raw?.vehicle_type || "ASSET_TYPE_BUS";
+        if (vehicleType.includes("TRAIN")) return "train";
+        if (vehicleType.includes("LAUNCH")) return "launch";
+        return "bus";
+    }
+
+    // Helper: Build SeatMap config from asset config
+    function buildSeatMapConfig(item: any, config: AssetConfig | null): any {
+        const type = getSeatMapType(item);
+
+        // Use asset config if available
+        if (config) {
+            if (type === "bus" && config.bus) {
+                return {
+                    rows: config.bus.rows || 10,
+                    columns: config.bus.seats_per_row || 4,
+                    aisleIndex: config.bus.aisle_after_seat || 2,
+                };
+            }
+            if (type === "train" && config.train) {
+                return { coaches: config.train.coaches || [] };
+            }
+            if (type === "launch" && config.launch) {
+                return { decks: config.launch.decks || [] };
+            }
+        }
+
+        // Default fallbacks
+        if (type === "bus") {
+            return { rows: 10, columns: 4, aisleIndex: 2 };
+        }
+        if (type === "train") {
+            return {
+                coaches: [
+                    {
+                        id: "S1",
+                        name: "S1",
+                        class: "S_Chair",
+                        rows: 15,
+                        seatsPerRow: 6,
+                        hasBerths: false,
+                    },
+                ],
+            };
+        }
+        if (type === "launch") {
+            return {
+                decks: [
+                    {
+                        id: "D1",
+                        name: "Deck 1",
+                        type: "economy",
+                        rows: 8,
+                        cols: 6,
+                        seatPrice: 500,
+                    },
+                ],
+            };
+        }
+        // Event fallback
+        return { zones: [] };
     }
 
     function handleSeatSelection(e: CustomEvent) {
@@ -295,30 +383,17 @@
             <div
                 class="flex-1 overflow-auto p-8 flex items-start justify-center"
             >
-                <SeatMap
-                    type={selectedItem.type}
-                    config={selectedItem.type === "bus"
-                        ? { rows: 10, columns: 4, aisleIndex: 1 }
-                        : {
-                              zones: [
-                                  {
-                                      id: "vip",
-                                      name: "VIP",
-                                      price: 5000,
-                                      rows: 4,
-                                      cols: 8,
-                                  },
-                                  {
-                                      id: "reg",
-                                      name: "Regular",
-                                      price: 2500,
-                                      rows: 8,
-                                      cols: 12,
-                                  },
-                              ],
-                          }}
-                    on:selectionChange={handleSeatSelection}
-                />
+                {#if loadingAsset}
+                    <div class="flex items-center justify-center h-64">
+                        <Loader2 class="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                {:else}
+                    <SeatMap
+                        type={getSeatMapType(selectedItem)}
+                        config={buildSeatMapConfig(selectedItem, assetConfig)}
+                        on:selectionChange={handleSeatSelection}
+                    />
+                {/if}
             </div>
         {:else}
             <div

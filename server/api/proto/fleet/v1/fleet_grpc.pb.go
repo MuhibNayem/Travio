@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: server/api/proto/fleet/v1/fleet.proto
+// source: api/proto/fleet/v1/fleet.proto
 
 package fleetv1
 
@@ -353,5 +353,5 @@ var FleetService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "server/api/proto/fleet/v1/fleet.proto",
+	Metadata: "api/proto/fleet/v1/fleet.proto",
 }

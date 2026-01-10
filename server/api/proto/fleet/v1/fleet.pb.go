@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: server/api/proto/fleet/v1/fleet.proto
+// source: api/proto/fleet/v1/fleet.proto
 
 package fleetv1
 
@@ -57,11 +57,11 @@ func (x AssetType) String() string {
 }
 
 func (AssetType) Descriptor() protoreflect.EnumDescriptor {
-	return file_server_api_proto_fleet_v1_fleet_proto_enumTypes[0].Descriptor()
+	return file_api_proto_fleet_v1_fleet_proto_enumTypes[0].Descriptor()
 }
 
 func (AssetType) Type() protoreflect.EnumType {
-	return &file_server_api_proto_fleet_v1_fleet_proto_enumTypes[0]
+	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[0]
 }
 
 func (x AssetType) Number() protoreflect.EnumNumber {
@@ -70,7 +70,7 @@ func (x AssetType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AssetType.Descriptor instead.
 func (AssetType) EnumDescriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
 }
 
 type AssetStatus int32
@@ -106,11 +106,11 @@ func (x AssetStatus) String() string {
 }
 
 func (AssetStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_server_api_proto_fleet_v1_fleet_proto_enumTypes[1].Descriptor()
+	return file_api_proto_fleet_v1_fleet_proto_enumTypes[1].Descriptor()
 }
 
 func (AssetStatus) Type() protoreflect.EnumType {
-	return &file_server_api_proto_fleet_v1_fleet_proto_enumTypes[1]
+	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[1]
 }
 
 func (x AssetStatus) Number() protoreflect.EnumNumber {
@@ -119,7 +119,172 @@ func (x AssetStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AssetStatus.Descriptor instead.
 func (AssetStatus) EnumDescriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+}
+
+type TrainCoachClass int32
+
+const (
+	TrainCoachClass_TRAIN_COACH_CLASS_UNSPECIFIED TrainCoachClass = 0
+	TrainCoachClass_TRAIN_COACH_CLASS_AC_FIRST    TrainCoachClass = 1 // AC First Class (2-tier)
+	TrainCoachClass_TRAIN_COACH_CLASS_AC_SECOND   TrainCoachClass = 2 // AC Second Class (3-tier)
+	TrainCoachClass_TRAIN_COACH_CLASS_AC_CHAIR    TrainCoachClass = 3 // AC Chair Car
+	TrainCoachClass_TRAIN_COACH_CLASS_SLEEPER     TrainCoachClass = 4 // Non-AC Sleeper
+	TrainCoachClass_TRAIN_COACH_CLASS_S_CHAIR     TrainCoachClass = 5 // Shovan/Sitting Chair
+	TrainCoachClass_TRAIN_COACH_CLASS_GENERAL     TrainCoachClass = 6 // General/Unreserved
+)
+
+// Enum value maps for TrainCoachClass.
+var (
+	TrainCoachClass_name = map[int32]string{
+		0: "TRAIN_COACH_CLASS_UNSPECIFIED",
+		1: "TRAIN_COACH_CLASS_AC_FIRST",
+		2: "TRAIN_COACH_CLASS_AC_SECOND",
+		3: "TRAIN_COACH_CLASS_AC_CHAIR",
+		4: "TRAIN_COACH_CLASS_SLEEPER",
+		5: "TRAIN_COACH_CLASS_S_CHAIR",
+		6: "TRAIN_COACH_CLASS_GENERAL",
+	}
+	TrainCoachClass_value = map[string]int32{
+		"TRAIN_COACH_CLASS_UNSPECIFIED": 0,
+		"TRAIN_COACH_CLASS_AC_FIRST":    1,
+		"TRAIN_COACH_CLASS_AC_SECOND":   2,
+		"TRAIN_COACH_CLASS_AC_CHAIR":    3,
+		"TRAIN_COACH_CLASS_SLEEPER":     4,
+		"TRAIN_COACH_CLASS_S_CHAIR":     5,
+		"TRAIN_COACH_CLASS_GENERAL":     6,
+	}
+)
+
+func (x TrainCoachClass) Enum() *TrainCoachClass {
+	p := new(TrainCoachClass)
+	*p = x
+	return p
+}
+
+func (x TrainCoachClass) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TrainCoachClass) Descriptor() protoreflect.EnumDescriptor {
+	return file_api_proto_fleet_v1_fleet_proto_enumTypes[2].Descriptor()
+}
+
+func (TrainCoachClass) Type() protoreflect.EnumType {
+	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[2]
+}
+
+func (x TrainCoachClass) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TrainCoachClass.Descriptor instead.
+func (TrainCoachClass) EnumDescriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{2}
+}
+
+type BerthType int32
+
+const (
+	BerthType_BERTH_TYPE_UNSPECIFIED BerthType = 0
+	BerthType_BERTH_TYPE_TWO_TIER    BerthType = 1 // Lower + Upper
+	BerthType_BERTH_TYPE_THREE_TIER  BerthType = 2 // Lower + Middle + Upper
+	BerthType_BERTH_TYPE_CHAIR       BerthType = 3 // Chair seating (no berths)
+)
+
+// Enum value maps for BerthType.
+var (
+	BerthType_name = map[int32]string{
+		0: "BERTH_TYPE_UNSPECIFIED",
+		1: "BERTH_TYPE_TWO_TIER",
+		2: "BERTH_TYPE_THREE_TIER",
+		3: "BERTH_TYPE_CHAIR",
+	}
+	BerthType_value = map[string]int32{
+		"BERTH_TYPE_UNSPECIFIED": 0,
+		"BERTH_TYPE_TWO_TIER":    1,
+		"BERTH_TYPE_THREE_TIER":  2,
+		"BERTH_TYPE_CHAIR":       3,
+	}
+)
+
+func (x BerthType) Enum() *BerthType {
+	p := new(BerthType)
+	*p = x
+	return p
+}
+
+func (x BerthType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BerthType) Descriptor() protoreflect.EnumDescriptor {
+	return file_api_proto_fleet_v1_fleet_proto_enumTypes[3].Descriptor()
+}
+
+func (BerthType) Type() protoreflect.EnumType {
+	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[3]
+}
+
+func (x BerthType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BerthType.Descriptor instead.
+func (BerthType) EnumDescriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{3}
+}
+
+type LaunchDeckType int32
+
+const (
+	LaunchDeckType_LAUNCH_DECK_TYPE_UNSPECIFIED LaunchDeckType = 0
+	LaunchDeckType_LAUNCH_DECK_TYPE_ECONOMY     LaunchDeckType = 1
+	LaunchDeckType_LAUNCH_DECK_TYPE_BUSINESS    LaunchDeckType = 2
+	LaunchDeckType_LAUNCH_DECK_TYPE_VIP_CABIN   LaunchDeckType = 3
+)
+
+// Enum value maps for LaunchDeckType.
+var (
+	LaunchDeckType_name = map[int32]string{
+		0: "LAUNCH_DECK_TYPE_UNSPECIFIED",
+		1: "LAUNCH_DECK_TYPE_ECONOMY",
+		2: "LAUNCH_DECK_TYPE_BUSINESS",
+		3: "LAUNCH_DECK_TYPE_VIP_CABIN",
+	}
+	LaunchDeckType_value = map[string]int32{
+		"LAUNCH_DECK_TYPE_UNSPECIFIED": 0,
+		"LAUNCH_DECK_TYPE_ECONOMY":     1,
+		"LAUNCH_DECK_TYPE_BUSINESS":    2,
+		"LAUNCH_DECK_TYPE_VIP_CABIN":   3,
+	}
+)
+
+func (x LaunchDeckType) Enum() *LaunchDeckType {
+	p := new(LaunchDeckType)
+	*p = x
+	return p
+}
+
+func (x LaunchDeckType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LaunchDeckType) Descriptor() protoreflect.EnumDescriptor {
+	return file_api_proto_fleet_v1_fleet_proto_enumTypes[4].Descriptor()
+}
+
+func (LaunchDeckType) Type() protoreflect.EnumType {
+	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[4]
+}
+
+func (x LaunchDeckType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LaunchDeckType.Descriptor instead.
+func (LaunchDeckType) EnumDescriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{4}
 }
 
 type ListAssetsRequest struct {
@@ -133,7 +298,7 @@ type ListAssetsRequest struct {
 
 func (x *ListAssetsRequest) Reset() {
 	*x = ListAssetsRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[0]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -145,7 +310,7 @@ func (x *ListAssetsRequest) String() string {
 func (*ListAssetsRequest) ProtoMessage() {}
 
 func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[0]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -158,7 +323,7 @@ func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAssetsRequest.ProtoReflect.Descriptor instead.
 func (*ListAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ListAssetsRequest) GetOrganizationId() string {
@@ -193,7 +358,7 @@ type ListAssetsResponse struct {
 
 func (x *ListAssetsResponse) Reset() {
 	*x = ListAssetsResponse{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[1]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -205,7 +370,7 @@ func (x *ListAssetsResponse) String() string {
 func (*ListAssetsResponse) ProtoMessage() {}
 
 func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[1]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -218,7 +383,7 @@ func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAssetsResponse.ProtoReflect.Descriptor instead.
 func (*ListAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ListAssetsResponse) GetAssets() []*Asset {
@@ -263,7 +428,7 @@ type Asset struct {
 
 func (x *Asset) Reset() {
 	*x = Asset{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[2]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -275,7 +440,7 @@ func (x *Asset) String() string {
 func (*Asset) ProtoMessage() {}
 
 func (x *Asset) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[2]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -288,7 +453,7 @@ func (x *Asset) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Asset.ProtoReflect.Descriptor instead.
 func (*Asset) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Asset) GetId() string {
@@ -384,16 +549,23 @@ func (x *Asset) GetUpdatedAt() string {
 
 type Config struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Arbitrary JSON or explicit fields
-	LayoutType    string `protobuf:"bytes,1,opt,name=layout_type,json=layoutType,proto3" json:"layout_type,omitempty"` // "2+2", "Sleeping_Cabin"
-	Features      string `protobuf:"bytes,2,opt,name=features,proto3" json:"features,omitempty"`                       // "Wifi, AC"
+	// Type-specific layout configuration
+	//
+	// Types that are valid to be assigned to Layout:
+	//
+	//	*Config_Bus
+	//	*Config_Train
+	//	*Config_Launch
+	Layout isConfig_Layout `protobuf_oneof:"layout"`
+	// Common features applicable to all
+	Features      []string `protobuf:"bytes,10,rep,name=features,proto3" json:"features,omitempty"` // ["AC", "WiFi", "Recliner"]
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[3]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -405,7 +577,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[3]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -418,21 +590,635 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Config) GetLayoutType() string {
+func (x *Config) GetLayout() isConfig_Layout {
 	if x != nil {
-		return x.LayoutType
+		return x.Layout
 	}
-	return ""
+	return nil
 }
 
-func (x *Config) GetFeatures() string {
+func (x *Config) GetBus() *BusConfig {
+	if x != nil {
+		if x, ok := x.Layout.(*Config_Bus); ok {
+			return x.Bus
+		}
+	}
+	return nil
+}
+
+func (x *Config) GetTrain() *TrainConfig {
+	if x != nil {
+		if x, ok := x.Layout.(*Config_Train); ok {
+			return x.Train
+		}
+	}
+	return nil
+}
+
+func (x *Config) GetLaunch() *LaunchConfig {
+	if x != nil {
+		if x, ok := x.Layout.(*Config_Launch); ok {
+			return x.Launch
+		}
+	}
+	return nil
+}
+
+func (x *Config) GetFeatures() []string {
 	if x != nil {
 		return x.Features
 	}
+	return nil
+}
+
+type isConfig_Layout interface {
+	isConfig_Layout()
+}
+
+type Config_Bus struct {
+	Bus *BusConfig `protobuf:"bytes,1,opt,name=bus,proto3,oneof"`
+}
+
+type Config_Train struct {
+	Train *TrainConfig `protobuf:"bytes,2,opt,name=train,proto3,oneof"`
+}
+
+type Config_Launch struct {
+	Launch *LaunchConfig `protobuf:"bytes,3,opt,name=launch,proto3,oneof"`
+}
+
+func (*Config_Bus) isConfig_Layout() {}
+
+func (*Config_Train) isConfig_Layout() {}
+
+func (*Config_Launch) isConfig_Layout() {}
+
+// ========== BUS CONFIGURATION ==========
+type BusConfig struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Rows           int32                  `protobuf:"varint,1,opt,name=rows,proto3" json:"rows,omitempty"`                                             // Number of seat rows
+	SeatsPerRow    int32                  `protobuf:"varint,2,opt,name=seats_per_row,json=seatsPerRow,proto3" json:"seats_per_row,omitempty"`          // e.g., 4 for 2+2 layout
+	AisleAfterSeat int32                  `protobuf:"varint,3,opt,name=aisle_after_seat,json=aisleAfterSeat,proto3" json:"aisle_after_seat,omitempty"` // Position of aisle (2 means after seat 2)
+	HasToilet      bool                   `protobuf:"varint,4,opt,name=has_toilet,json=hasToilet,proto3" json:"has_toilet,omitempty"`
+	HasSleeper     bool                   `protobuf:"varint,5,opt,name=has_sleeper,json=hasSleeper,proto3" json:"has_sleeper,omitempty"` // For overnight buses with berths
+	Categories     []*SeatCategory        `protobuf:"bytes,6,rep,name=categories,proto3" json:"categories,omitempty"`                    // Different seat tiers
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BusConfig) Reset() {
+	*x = BusConfig{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BusConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BusConfig) ProtoMessage() {}
+
+func (x *BusConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BusConfig.ProtoReflect.Descriptor instead.
+func (*BusConfig) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *BusConfig) GetRows() int32 {
+	if x != nil {
+		return x.Rows
+	}
+	return 0
+}
+
+func (x *BusConfig) GetSeatsPerRow() int32 {
+	if x != nil {
+		return x.SeatsPerRow
+	}
+	return 0
+}
+
+func (x *BusConfig) GetAisleAfterSeat() int32 {
+	if x != nil {
+		return x.AisleAfterSeat
+	}
+	return 0
+}
+
+func (x *BusConfig) GetHasToilet() bool {
+	if x != nil {
+		return x.HasToilet
+	}
+	return false
+}
+
+func (x *BusConfig) GetHasSleeper() bool {
+	if x != nil {
+		return x.HasSleeper
+	}
+	return false
+}
+
+func (x *BusConfig) GetCategories() []*SeatCategory {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
+}
+
+type SeatCategory struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // "Economy", "Business", "VIP"
+	PricePaisa    int32                  `protobuf:"varint,2,opt,name=price_paisa,json=pricePaisa,proto3" json:"price_paisa,omitempty"`
+	SeatIds       []string               `protobuf:"bytes,3,rep,name=seat_ids,json=seatIds,proto3" json:"seat_ids,omitempty"` // Which seats belong to this category
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SeatCategory) Reset() {
+	*x = SeatCategory{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SeatCategory) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SeatCategory) ProtoMessage() {}
+
+func (x *SeatCategory) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SeatCategory.ProtoReflect.Descriptor instead.
+func (*SeatCategory) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SeatCategory) GetName() string {
+	if x != nil {
+		return x.Name
+	}
 	return ""
+}
+
+func (x *SeatCategory) GetPricePaisa() int32 {
+	if x != nil {
+		return x.PricePaisa
+	}
+	return 0
+}
+
+func (x *SeatCategory) GetSeatIds() []string {
+	if x != nil {
+		return x.SeatIds
+	}
+	return nil
+}
+
+// ========== TRAIN CONFIGURATION ==========
+type TrainConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Coaches       []*TrainCoach          `protobuf:"bytes,1,rep,name=coaches,proto3" json:"coaches,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrainConfig) Reset() {
+	*x = TrainConfig{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrainConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrainConfig) ProtoMessage() {}
+
+func (x *TrainConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrainConfig.ProtoReflect.Descriptor instead.
+func (*TrainConfig) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *TrainConfig) GetCoaches() []*TrainCoach {
+	if x != nil {
+		return x.Coaches
+	}
+	return nil
+}
+
+type TrainCoach struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`     // e.g., "S1", "AC1", "B2"
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"` // "Shatabdi Chair Car", "Sleeper Coach"
+	Class         TrainCoachClass        `protobuf:"varint,3,opt,name=class,proto3,enum=fleet.v1.TrainCoachClass" json:"class,omitempty"`
+	Rows          int32                  `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`                                    // Number of compartment rows
+	SeatsPerRow   int32                  `protobuf:"varint,5,opt,name=seats_per_row,json=seatsPerRow,proto3" json:"seats_per_row,omitempty"` // 4 for 2+2, 6 for 3+3, 8 for 4+4
+	HasBerths     bool                   `protobuf:"varint,6,opt,name=has_berths,json=hasBerths,proto3" json:"has_berths,omitempty"`         // For sleeper coaches
+	BerthConfig   *BerthConfiguration    `protobuf:"bytes,7,opt,name=berth_config,json=berthConfig,proto3" json:"berth_config,omitempty"`
+	PricePaisa    int32                  `protobuf:"varint,8,opt,name=price_paisa,json=pricePaisa,proto3" json:"price_paisa,omitempty"` // Base price for this coach class
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrainCoach) Reset() {
+	*x = TrainCoach{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrainCoach) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrainCoach) ProtoMessage() {}
+
+func (x *TrainCoach) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrainCoach.ProtoReflect.Descriptor instead.
+func (*TrainCoach) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TrainCoach) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TrainCoach) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TrainCoach) GetClass() TrainCoachClass {
+	if x != nil {
+		return x.Class
+	}
+	return TrainCoachClass_TRAIN_COACH_CLASS_UNSPECIFIED
+}
+
+func (x *TrainCoach) GetRows() int32 {
+	if x != nil {
+		return x.Rows
+	}
+	return 0
+}
+
+func (x *TrainCoach) GetSeatsPerRow() int32 {
+	if x != nil {
+		return x.SeatsPerRow
+	}
+	return 0
+}
+
+func (x *TrainCoach) GetHasBerths() bool {
+	if x != nil {
+		return x.HasBerths
+	}
+	return false
+}
+
+func (x *TrainCoach) GetBerthConfig() *BerthConfiguration {
+	if x != nil {
+		return x.BerthConfig
+	}
+	return nil
+}
+
+func (x *TrainCoach) GetPricePaisa() int32 {
+	if x != nil {
+		return x.PricePaisa
+	}
+	return 0
+}
+
+type BerthConfiguration struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Type                 BerthType              `protobuf:"varint,1,opt,name=type,proto3,enum=fleet.v1.BerthType" json:"type,omitempty"`
+	BerthsPerCompartment int32                  `protobuf:"varint,2,opt,name=berths_per_compartment,json=berthsPerCompartment,proto3" json:"berths_per_compartment,omitempty"` // 6 for 3-tier, 4 for 2-tier
+	HasSideBerths        bool                   `protobuf:"varint,3,opt,name=has_side_berths,json=hasSideBerths,proto3" json:"has_side_berths,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *BerthConfiguration) Reset() {
+	*x = BerthConfiguration{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BerthConfiguration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BerthConfiguration) ProtoMessage() {}
+
+func (x *BerthConfiguration) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BerthConfiguration.ProtoReflect.Descriptor instead.
+func (*BerthConfiguration) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *BerthConfiguration) GetType() BerthType {
+	if x != nil {
+		return x.Type
+	}
+	return BerthType_BERTH_TYPE_UNSPECIFIED
+}
+
+func (x *BerthConfiguration) GetBerthsPerCompartment() int32 {
+	if x != nil {
+		return x.BerthsPerCompartment
+	}
+	return 0
+}
+
+func (x *BerthConfiguration) GetHasSideBerths() bool {
+	if x != nil {
+		return x.HasSideBerths
+	}
+	return false
+}
+
+// ========== LAUNCH CONFIGURATION ==========
+type LaunchConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Decks         []*LaunchDeck          `protobuf:"bytes,1,rep,name=decks,proto3" json:"decks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LaunchConfig) Reset() {
+	*x = LaunchConfig{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LaunchConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LaunchConfig) ProtoMessage() {}
+
+func (x *LaunchConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LaunchConfig.ProtoReflect.Descriptor instead.
+func (*LaunchConfig) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *LaunchConfig) GetDecks() []*LaunchDeck {
+	if x != nil {
+		return x.Decks
+	}
+	return nil
+}
+
+type LaunchDeck struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`     // "D1", "D2", "VIP"
+	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"` // "Deck 1", "VIP Cabin Deck"
+	Type  LaunchDeckType         `protobuf:"varint,3,opt,name=type,proto3,enum=fleet.v1.LaunchDeckType" json:"type,omitempty"`
+	// For open seating (economy/business)
+	Rows           int32 `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`
+	Cols           int32 `protobuf:"varint,5,opt,name=cols,proto3" json:"cols,omitempty"`
+	SeatPricePaisa int32 `protobuf:"varint,6,opt,name=seat_price_paisa,json=seatPricePaisa,proto3" json:"seat_price_paisa,omitempty"`
+	// For cabin-based (VIP)
+	Cabins        []*LaunchCabin `protobuf:"bytes,7,rep,name=cabins,proto3" json:"cabins,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LaunchDeck) Reset() {
+	*x = LaunchDeck{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LaunchDeck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LaunchDeck) ProtoMessage() {}
+
+func (x *LaunchDeck) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LaunchDeck.ProtoReflect.Descriptor instead.
+func (*LaunchDeck) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *LaunchDeck) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LaunchDeck) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LaunchDeck) GetType() LaunchDeckType {
+	if x != nil {
+		return x.Type
+	}
+	return LaunchDeckType_LAUNCH_DECK_TYPE_UNSPECIFIED
+}
+
+func (x *LaunchDeck) GetRows() int32 {
+	if x != nil {
+		return x.Rows
+	}
+	return 0
+}
+
+func (x *LaunchDeck) GetCols() int32 {
+	if x != nil {
+		return x.Cols
+	}
+	return 0
+}
+
+func (x *LaunchDeck) GetSeatPricePaisa() int32 {
+	if x != nil {
+		return x.SeatPricePaisa
+	}
+	return 0
+}
+
+func (x *LaunchDeck) GetCabins() []*LaunchCabin {
+	if x != nil {
+		return x.Cabins
+	}
+	return nil
+}
+
+type LaunchCabin struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                    // "C1", "C2"
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                                // "Cabin 1", "Royal Suite"
+	Beds          int32                  `protobuf:"varint,3,opt,name=beds,proto3" json:"beds,omitempty"`                               // Number of beds in cabin
+	PricePaisa    int32                  `protobuf:"varint,4,opt,name=price_paisa,json=pricePaisa,proto3" json:"price_paisa,omitempty"` // Total cabin price
+	IsSuite       bool                   `protobuf:"varint,5,opt,name=is_suite,json=isSuite,proto3" json:"is_suite,omitempty"`          // Premium cabin with bathroom
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LaunchCabin) Reset() {
+	*x = LaunchCabin{}
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LaunchCabin) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LaunchCabin) ProtoMessage() {}
+
+func (x *LaunchCabin) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LaunchCabin.ProtoReflect.Descriptor instead.
+func (*LaunchCabin) Descriptor() ([]byte, []int) {
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LaunchCabin) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LaunchCabin) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LaunchCabin) GetBeds() int32 {
+	if x != nil {
+		return x.Beds
+	}
+	return 0
+}
+
+func (x *LaunchCabin) GetPricePaisa() int32 {
+	if x != nil {
+		return x.PricePaisa
+	}
+	return 0
+}
+
+func (x *LaunchCabin) GetIsSuite() bool {
+	if x != nil {
+		return x.IsSuite
+	}
+	return false
 }
 
 type RegisterAssetRequest struct {
@@ -453,7 +1239,7 @@ type RegisterAssetRequest struct {
 
 func (x *RegisterAssetRequest) Reset() {
 	*x = RegisterAssetRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[4]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -465,7 +1251,7 @@ func (x *RegisterAssetRequest) String() string {
 func (*RegisterAssetRequest) ProtoMessage() {}
 
 func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[4]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -478,7 +1264,7 @@ func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterAssetRequest.ProtoReflect.Descriptor instead.
 func (*RegisterAssetRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RegisterAssetRequest) GetOrganizationId() string {
@@ -561,7 +1347,7 @@ type GetAssetRequest struct {
 
 func (x *GetAssetRequest) Reset() {
 	*x = GetAssetRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[5]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -573,7 +1359,7 @@ func (x *GetAssetRequest) String() string {
 func (*GetAssetRequest) ProtoMessage() {}
 
 func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[5]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -586,7 +1372,7 @@ func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetRequest.ProtoReflect.Descriptor instead.
 func (*GetAssetRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetAssetRequest) GetId() string {
@@ -614,7 +1400,7 @@ type UpdateAssetStatusRequest struct {
 
 func (x *UpdateAssetStatusRequest) Reset() {
 	*x = UpdateAssetStatusRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[6]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +1412,7 @@ func (x *UpdateAssetStatusRequest) String() string {
 func (*UpdateAssetStatusRequest) ProtoMessage() {}
 
 func (x *UpdateAssetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[6]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +1425,7 @@ func (x *UpdateAssetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAssetStatusRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAssetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateAssetStatusRequest) GetId() string {
@@ -678,7 +1464,7 @@ type AssetLocation struct {
 
 func (x *AssetLocation) Reset() {
 	*x = AssetLocation{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[7]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -690,7 +1476,7 @@ func (x *AssetLocation) String() string {
 func (*AssetLocation) ProtoMessage() {}
 
 func (x *AssetLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[7]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -703,7 +1489,7 @@ func (x *AssetLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssetLocation.ProtoReflect.Descriptor instead.
 func (*AssetLocation) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AssetLocation) GetAssetId() string {
@@ -770,7 +1556,7 @@ type UpdateLocationRequest struct {
 
 func (x *UpdateLocationRequest) Reset() {
 	*x = UpdateLocationRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[8]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +1568,7 @@ func (x *UpdateLocationRequest) String() string {
 func (*UpdateLocationRequest) ProtoMessage() {}
 
 func (x *UpdateLocationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[8]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +1581,7 @@ func (x *UpdateLocationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLocationRequest.ProtoReflect.Descriptor instead.
 func (*UpdateLocationRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateLocationRequest) GetAssetId() string {
@@ -856,7 +1642,7 @@ type UpdateLocationResponse struct {
 
 func (x *UpdateLocationResponse) Reset() {
 	*x = UpdateLocationResponse{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[9]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -868,7 +1654,7 @@ func (x *UpdateLocationResponse) String() string {
 func (*UpdateLocationResponse) ProtoMessage() {}
 
 func (x *UpdateLocationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[9]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -881,7 +1667,7 @@ func (x *UpdateLocationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLocationResponse.ProtoReflect.Descriptor instead.
 func (*UpdateLocationResponse) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UpdateLocationResponse) GetSuccess() bool {
@@ -900,7 +1686,7 @@ type GetLocationRequest struct {
 
 func (x *GetLocationRequest) Reset() {
 	*x = GetLocationRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[10]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -912,7 +1698,7 @@ func (x *GetLocationRequest) String() string {
 func (*GetLocationRequest) ProtoMessage() {}
 
 func (x *GetLocationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[10]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -925,7 +1711,7 @@ func (x *GetLocationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocationRequest.ProtoReflect.Descriptor instead.
 func (*GetLocationRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetLocationRequest) GetAssetId() string {
@@ -944,7 +1730,7 @@ type StreamLocationsRequest struct {
 
 func (x *StreamLocationsRequest) Reset() {
 	*x = StreamLocationsRequest{}
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[11]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -956,7 +1742,7 @@ func (x *StreamLocationsRequest) String() string {
 func (*StreamLocationsRequest) ProtoMessage() {}
 
 func (x *StreamLocationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[11]
+	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -969,7 +1755,7 @@ func (x *StreamLocationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamLocationsRequest.ProtoReflect.Descriptor instead.
 func (*StreamLocationsRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *StreamLocationsRequest) GetOrganizationId() string {
@@ -979,11 +1765,11 @@ func (x *StreamLocationsRequest) GetOrganizationId() string {
 	return ""
 }
 
-var File_server_api_proto_fleet_v1_fleet_proto protoreflect.FileDescriptor
+var File_api_proto_fleet_v1_fleet_proto protoreflect.FileDescriptor
 
-const file_server_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
+const file_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
 	"\n" +
-	"%server/api/proto/fleet/v1/fleet.proto\x12\bfleet.v1\"x\n" +
+	"\x1eapi/proto/fleet/v1/fleet.proto\x12\bfleet.v1\"x\n" +
 	"\x11ListAssetsRequest\x12'\n" +
 	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
@@ -1010,11 +1796,66 @@ const file_server_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\tR\tupdatedAt\"E\n" +
-	"\x06Config\x12\x1f\n" +
-	"\vlayout_type\x18\x01 \x01(\tR\n" +
-	"layoutType\x12\x1a\n" +
-	"\bfeatures\x18\x02 \x01(\tR\bfeatures\"\xca\x02\n" +
+	"updated_at\x18\r \x01(\tR\tupdatedAt\"\xb8\x01\n" +
+	"\x06Config\x12'\n" +
+	"\x03bus\x18\x01 \x01(\v2\x13.fleet.v1.BusConfigH\x00R\x03bus\x12-\n" +
+	"\x05train\x18\x02 \x01(\v2\x15.fleet.v1.TrainConfigH\x00R\x05train\x120\n" +
+	"\x06launch\x18\x03 \x01(\v2\x16.fleet.v1.LaunchConfigH\x00R\x06launch\x12\x1a\n" +
+	"\bfeatures\x18\n" +
+	" \x03(\tR\bfeaturesB\b\n" +
+	"\x06layout\"\xe5\x01\n" +
+	"\tBusConfig\x12\x12\n" +
+	"\x04rows\x18\x01 \x01(\x05R\x04rows\x12\"\n" +
+	"\rseats_per_row\x18\x02 \x01(\x05R\vseatsPerRow\x12(\n" +
+	"\x10aisle_after_seat\x18\x03 \x01(\x05R\x0eaisleAfterSeat\x12\x1d\n" +
+	"\n" +
+	"has_toilet\x18\x04 \x01(\bR\thasToilet\x12\x1f\n" +
+	"\vhas_sleeper\x18\x05 \x01(\bR\n" +
+	"hasSleeper\x126\n" +
+	"\n" +
+	"categories\x18\x06 \x03(\v2\x16.fleet.v1.SeatCategoryR\n" +
+	"categories\"^\n" +
+	"\fSeatCategory\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\vprice_paisa\x18\x02 \x01(\x05R\n" +
+	"pricePaisa\x12\x19\n" +
+	"\bseat_ids\x18\x03 \x03(\tR\aseatIds\"=\n" +
+	"\vTrainConfig\x12.\n" +
+	"\acoaches\x18\x01 \x03(\v2\x14.fleet.v1.TrainCoachR\acoaches\"\x9a\x02\n" +
+	"\n" +
+	"TrainCoach\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12/\n" +
+	"\x05class\x18\x03 \x01(\x0e2\x19.fleet.v1.TrainCoachClassR\x05class\x12\x12\n" +
+	"\x04rows\x18\x04 \x01(\x05R\x04rows\x12\"\n" +
+	"\rseats_per_row\x18\x05 \x01(\x05R\vseatsPerRow\x12\x1d\n" +
+	"\n" +
+	"has_berths\x18\x06 \x01(\bR\thasBerths\x12?\n" +
+	"\fberth_config\x18\a \x01(\v2\x1c.fleet.v1.BerthConfigurationR\vberthConfig\x12\x1f\n" +
+	"\vprice_paisa\x18\b \x01(\x05R\n" +
+	"pricePaisa\"\x9b\x01\n" +
+	"\x12BerthConfiguration\x12'\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x13.fleet.v1.BerthTypeR\x04type\x124\n" +
+	"\x16berths_per_compartment\x18\x02 \x01(\x05R\x14berthsPerCompartment\x12&\n" +
+	"\x0fhas_side_berths\x18\x03 \x01(\bR\rhasSideBerths\":\n" +
+	"\fLaunchConfig\x12*\n" +
+	"\x05decks\x18\x01 \x03(\v2\x14.fleet.v1.LaunchDeckR\x05decks\"\xdf\x01\n" +
+	"\n" +
+	"LaunchDeck\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12,\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x18.fleet.v1.LaunchDeckTypeR\x04type\x12\x12\n" +
+	"\x04rows\x18\x04 \x01(\x05R\x04rows\x12\x12\n" +
+	"\x04cols\x18\x05 \x01(\x05R\x04cols\x12(\n" +
+	"\x10seat_price_paisa\x18\x06 \x01(\x05R\x0eseatPricePaisa\x12-\n" +
+	"\x06cabins\x18\a \x03(\v2\x15.fleet.v1.LaunchCabinR\x06cabins\"\x81\x01\n" +
+	"\vLaunchCabin\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04beds\x18\x03 \x01(\x05R\x04beds\x12\x1f\n" +
+	"\vprice_paisa\x18\x04 \x01(\x05R\n" +
+	"pricePaisa\x12\x19\n" +
+	"\bis_suite\x18\x05 \x01(\bR\aisSuite\"\xca\x02\n" +
 	"\x14RegisterAssetRequest\x12'\n" +
 	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
@@ -1064,7 +1905,25 @@ const file_server_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
 	"\vAssetStatus\x12\x17\n" +
 	"\x13ASSET_STATUS_ACTIVE\x10\x00\x12\x1c\n" +
 	"\x18ASSET_STATUS_MAINTENANCE\x10\x01\x12\x18\n" +
-	"\x14ASSET_STATUS_RETIRED\x10\x022\x86\x04\n" +
+	"\x14ASSET_STATUS_RETIRED\x10\x02*\xf2\x01\n" +
+	"\x0fTrainCoachClass\x12!\n" +
+	"\x1dTRAIN_COACH_CLASS_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aTRAIN_COACH_CLASS_AC_FIRST\x10\x01\x12\x1f\n" +
+	"\x1bTRAIN_COACH_CLASS_AC_SECOND\x10\x02\x12\x1e\n" +
+	"\x1aTRAIN_COACH_CLASS_AC_CHAIR\x10\x03\x12\x1d\n" +
+	"\x19TRAIN_COACH_CLASS_SLEEPER\x10\x04\x12\x1d\n" +
+	"\x19TRAIN_COACH_CLASS_S_CHAIR\x10\x05\x12\x1d\n" +
+	"\x19TRAIN_COACH_CLASS_GENERAL\x10\x06*q\n" +
+	"\tBerthType\x12\x1a\n" +
+	"\x16BERTH_TYPE_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13BERTH_TYPE_TWO_TIER\x10\x01\x12\x19\n" +
+	"\x15BERTH_TYPE_THREE_TIER\x10\x02\x12\x14\n" +
+	"\x10BERTH_TYPE_CHAIR\x10\x03*\x8f\x01\n" +
+	"\x0eLaunchDeckType\x12 \n" +
+	"\x1cLAUNCH_DECK_TYPE_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18LAUNCH_DECK_TYPE_ECONOMY\x10\x01\x12\x1d\n" +
+	"\x19LAUNCH_DECK_TYPE_BUSINESS\x10\x02\x12\x1e\n" +
+	"\x1aLAUNCH_DECK_TYPE_VIP_CABIN\x10\x032\x86\x04\n" +
 	"\fFleetService\x12@\n" +
 	"\rRegisterAsset\x12\x1e.fleet.v1.RegisterAssetRequest\x1a\x0f.fleet.v1.Asset\x126\n" +
 	"\bGetAsset\x12\x19.fleet.v1.GetAssetRequest\x1a\x0f.fleet.v1.Asset\x12H\n" +
@@ -1076,86 +1935,113 @@ const file_server_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
 	"\x0fStreamLocations\x12 .fleet.v1.StreamLocationsRequest\x1a\x17.fleet.v1.AssetLocation0\x01B@Z>github.com/MuhibNayem/Travio/server/api/proto/fleet/v1;fleetv1b\x06proto3"
 
 var (
-	file_server_api_proto_fleet_v1_fleet_proto_rawDescOnce sync.Once
-	file_server_api_proto_fleet_v1_fleet_proto_rawDescData []byte
+	file_api_proto_fleet_v1_fleet_proto_rawDescOnce sync.Once
+	file_api_proto_fleet_v1_fleet_proto_rawDescData []byte
 )
 
-func file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP() []byte {
-	file_server_api_proto_fleet_v1_fleet_proto_rawDescOnce.Do(func() {
-		file_server_api_proto_fleet_v1_fleet_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_server_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_server_api_proto_fleet_v1_fleet_proto_rawDesc)))
+func file_api_proto_fleet_v1_fleet_proto_rawDescGZIP() []byte {
+	file_api_proto_fleet_v1_fleet_proto_rawDescOnce.Do(func() {
+		file_api_proto_fleet_v1_fleet_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_api_proto_fleet_v1_fleet_proto_rawDesc)))
 	})
-	return file_server_api_proto_fleet_v1_fleet_proto_rawDescData
+	return file_api_proto_fleet_v1_fleet_proto_rawDescData
 }
 
-var file_server_api_proto_fleet_v1_fleet_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_server_api_proto_fleet_v1_fleet_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_server_api_proto_fleet_v1_fleet_proto_goTypes = []any{
+var file_api_proto_fleet_v1_fleet_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_api_proto_fleet_v1_fleet_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_api_proto_fleet_v1_fleet_proto_goTypes = []any{
 	(AssetType)(0),                   // 0: fleet.v1.AssetType
 	(AssetStatus)(0),                 // 1: fleet.v1.AssetStatus
-	(*ListAssetsRequest)(nil),        // 2: fleet.v1.ListAssetsRequest
-	(*ListAssetsResponse)(nil),       // 3: fleet.v1.ListAssetsResponse
-	(*Asset)(nil),                    // 4: fleet.v1.Asset
-	(*Config)(nil),                   // 5: fleet.v1.Config
-	(*RegisterAssetRequest)(nil),     // 6: fleet.v1.RegisterAssetRequest
-	(*GetAssetRequest)(nil),          // 7: fleet.v1.GetAssetRequest
-	(*UpdateAssetStatusRequest)(nil), // 8: fleet.v1.UpdateAssetStatusRequest
-	(*AssetLocation)(nil),            // 9: fleet.v1.AssetLocation
-	(*UpdateLocationRequest)(nil),    // 10: fleet.v1.UpdateLocationRequest
-	(*UpdateLocationResponse)(nil),   // 11: fleet.v1.UpdateLocationResponse
-	(*GetLocationRequest)(nil),       // 12: fleet.v1.GetLocationRequest
-	(*StreamLocationsRequest)(nil),   // 13: fleet.v1.StreamLocationsRequest
+	(TrainCoachClass)(0),             // 2: fleet.v1.TrainCoachClass
+	(BerthType)(0),                   // 3: fleet.v1.BerthType
+	(LaunchDeckType)(0),              // 4: fleet.v1.LaunchDeckType
+	(*ListAssetsRequest)(nil),        // 5: fleet.v1.ListAssetsRequest
+	(*ListAssetsResponse)(nil),       // 6: fleet.v1.ListAssetsResponse
+	(*Asset)(nil),                    // 7: fleet.v1.Asset
+	(*Config)(nil),                   // 8: fleet.v1.Config
+	(*BusConfig)(nil),                // 9: fleet.v1.BusConfig
+	(*SeatCategory)(nil),             // 10: fleet.v1.SeatCategory
+	(*TrainConfig)(nil),              // 11: fleet.v1.TrainConfig
+	(*TrainCoach)(nil),               // 12: fleet.v1.TrainCoach
+	(*BerthConfiguration)(nil),       // 13: fleet.v1.BerthConfiguration
+	(*LaunchConfig)(nil),             // 14: fleet.v1.LaunchConfig
+	(*LaunchDeck)(nil),               // 15: fleet.v1.LaunchDeck
+	(*LaunchCabin)(nil),              // 16: fleet.v1.LaunchCabin
+	(*RegisterAssetRequest)(nil),     // 17: fleet.v1.RegisterAssetRequest
+	(*GetAssetRequest)(nil),          // 18: fleet.v1.GetAssetRequest
+	(*UpdateAssetStatusRequest)(nil), // 19: fleet.v1.UpdateAssetStatusRequest
+	(*AssetLocation)(nil),            // 20: fleet.v1.AssetLocation
+	(*UpdateLocationRequest)(nil),    // 21: fleet.v1.UpdateLocationRequest
+	(*UpdateLocationResponse)(nil),   // 22: fleet.v1.UpdateLocationResponse
+	(*GetLocationRequest)(nil),       // 23: fleet.v1.GetLocationRequest
+	(*StreamLocationsRequest)(nil),   // 24: fleet.v1.StreamLocationsRequest
 }
-var file_server_api_proto_fleet_v1_fleet_proto_depIdxs = []int32{
-	4,  // 0: fleet.v1.ListAssetsResponse.assets:type_name -> fleet.v1.Asset
+var file_api_proto_fleet_v1_fleet_proto_depIdxs = []int32{
+	7,  // 0: fleet.v1.ListAssetsResponse.assets:type_name -> fleet.v1.Asset
 	0,  // 1: fleet.v1.Asset.type:type_name -> fleet.v1.AssetType
 	1,  // 2: fleet.v1.Asset.status:type_name -> fleet.v1.AssetStatus
-	5,  // 3: fleet.v1.Asset.config:type_name -> fleet.v1.Config
-	0,  // 4: fleet.v1.RegisterAssetRequest.type:type_name -> fleet.v1.AssetType
-	1,  // 5: fleet.v1.RegisterAssetRequest.status:type_name -> fleet.v1.AssetStatus
-	5,  // 6: fleet.v1.RegisterAssetRequest.config:type_name -> fleet.v1.Config
-	1,  // 7: fleet.v1.UpdateAssetStatusRequest.status:type_name -> fleet.v1.AssetStatus
-	6,  // 8: fleet.v1.FleetService.RegisterAsset:input_type -> fleet.v1.RegisterAssetRequest
-	7,  // 9: fleet.v1.FleetService.GetAsset:input_type -> fleet.v1.GetAssetRequest
-	8,  // 10: fleet.v1.FleetService.UpdateAssetStatus:input_type -> fleet.v1.UpdateAssetStatusRequest
-	2,  // 11: fleet.v1.FleetService.ListAssets:input_type -> fleet.v1.ListAssetsRequest
-	10, // 12: fleet.v1.FleetService.UpdateLocation:input_type -> fleet.v1.UpdateLocationRequest
-	12, // 13: fleet.v1.FleetService.GetLocation:input_type -> fleet.v1.GetLocationRequest
-	13, // 14: fleet.v1.FleetService.StreamLocations:input_type -> fleet.v1.StreamLocationsRequest
-	4,  // 15: fleet.v1.FleetService.RegisterAsset:output_type -> fleet.v1.Asset
-	4,  // 16: fleet.v1.FleetService.GetAsset:output_type -> fleet.v1.Asset
-	4,  // 17: fleet.v1.FleetService.UpdateAssetStatus:output_type -> fleet.v1.Asset
-	3,  // 18: fleet.v1.FleetService.ListAssets:output_type -> fleet.v1.ListAssetsResponse
-	11, // 19: fleet.v1.FleetService.UpdateLocation:output_type -> fleet.v1.UpdateLocationResponse
-	9,  // 20: fleet.v1.FleetService.GetLocation:output_type -> fleet.v1.AssetLocation
-	9,  // 21: fleet.v1.FleetService.StreamLocations:output_type -> fleet.v1.AssetLocation
-	15, // [15:22] is the sub-list for method output_type
-	8,  // [8:15] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	8,  // 3: fleet.v1.Asset.config:type_name -> fleet.v1.Config
+	9,  // 4: fleet.v1.Config.bus:type_name -> fleet.v1.BusConfig
+	11, // 5: fleet.v1.Config.train:type_name -> fleet.v1.TrainConfig
+	14, // 6: fleet.v1.Config.launch:type_name -> fleet.v1.LaunchConfig
+	10, // 7: fleet.v1.BusConfig.categories:type_name -> fleet.v1.SeatCategory
+	12, // 8: fleet.v1.TrainConfig.coaches:type_name -> fleet.v1.TrainCoach
+	2,  // 9: fleet.v1.TrainCoach.class:type_name -> fleet.v1.TrainCoachClass
+	13, // 10: fleet.v1.TrainCoach.berth_config:type_name -> fleet.v1.BerthConfiguration
+	3,  // 11: fleet.v1.BerthConfiguration.type:type_name -> fleet.v1.BerthType
+	15, // 12: fleet.v1.LaunchConfig.decks:type_name -> fleet.v1.LaunchDeck
+	4,  // 13: fleet.v1.LaunchDeck.type:type_name -> fleet.v1.LaunchDeckType
+	16, // 14: fleet.v1.LaunchDeck.cabins:type_name -> fleet.v1.LaunchCabin
+	0,  // 15: fleet.v1.RegisterAssetRequest.type:type_name -> fleet.v1.AssetType
+	1,  // 16: fleet.v1.RegisterAssetRequest.status:type_name -> fleet.v1.AssetStatus
+	8,  // 17: fleet.v1.RegisterAssetRequest.config:type_name -> fleet.v1.Config
+	1,  // 18: fleet.v1.UpdateAssetStatusRequest.status:type_name -> fleet.v1.AssetStatus
+	17, // 19: fleet.v1.FleetService.RegisterAsset:input_type -> fleet.v1.RegisterAssetRequest
+	18, // 20: fleet.v1.FleetService.GetAsset:input_type -> fleet.v1.GetAssetRequest
+	19, // 21: fleet.v1.FleetService.UpdateAssetStatus:input_type -> fleet.v1.UpdateAssetStatusRequest
+	5,  // 22: fleet.v1.FleetService.ListAssets:input_type -> fleet.v1.ListAssetsRequest
+	21, // 23: fleet.v1.FleetService.UpdateLocation:input_type -> fleet.v1.UpdateLocationRequest
+	23, // 24: fleet.v1.FleetService.GetLocation:input_type -> fleet.v1.GetLocationRequest
+	24, // 25: fleet.v1.FleetService.StreamLocations:input_type -> fleet.v1.StreamLocationsRequest
+	7,  // 26: fleet.v1.FleetService.RegisterAsset:output_type -> fleet.v1.Asset
+	7,  // 27: fleet.v1.FleetService.GetAsset:output_type -> fleet.v1.Asset
+	7,  // 28: fleet.v1.FleetService.UpdateAssetStatus:output_type -> fleet.v1.Asset
+	6,  // 29: fleet.v1.FleetService.ListAssets:output_type -> fleet.v1.ListAssetsResponse
+	22, // 30: fleet.v1.FleetService.UpdateLocation:output_type -> fleet.v1.UpdateLocationResponse
+	20, // 31: fleet.v1.FleetService.GetLocation:output_type -> fleet.v1.AssetLocation
+	20, // 32: fleet.v1.FleetService.StreamLocations:output_type -> fleet.v1.AssetLocation
+	26, // [26:33] is the sub-list for method output_type
+	19, // [19:26] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
-func init() { file_server_api_proto_fleet_v1_fleet_proto_init() }
-func file_server_api_proto_fleet_v1_fleet_proto_init() {
-	if File_server_api_proto_fleet_v1_fleet_proto != nil {
+func init() { file_api_proto_fleet_v1_fleet_proto_init() }
+func file_api_proto_fleet_v1_fleet_proto_init() {
+	if File_api_proto_fleet_v1_fleet_proto != nil {
 		return
+	}
+	file_api_proto_fleet_v1_fleet_proto_msgTypes[3].OneofWrappers = []any{
+		(*Config_Bus)(nil),
+		(*Config_Train)(nil),
+		(*Config_Launch)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_server_api_proto_fleet_v1_fleet_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   12,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_api_proto_fleet_v1_fleet_proto_rawDesc)),
+			NumEnums:      5,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_server_api_proto_fleet_v1_fleet_proto_goTypes,
-		DependencyIndexes: file_server_api_proto_fleet_v1_fleet_proto_depIdxs,
-		EnumInfos:         file_server_api_proto_fleet_v1_fleet_proto_enumTypes,
-		MessageInfos:      file_server_api_proto_fleet_v1_fleet_proto_msgTypes,
+		GoTypes:           file_api_proto_fleet_v1_fleet_proto_goTypes,
+		DependencyIndexes: file_api_proto_fleet_v1_fleet_proto_depIdxs,
+		EnumInfos:         file_api_proto_fleet_v1_fleet_proto_enumTypes,
+		MessageInfos:      file_api_proto_fleet_v1_fleet_proto_msgTypes,
 	}.Build()
-	File_server_api_proto_fleet_v1_fleet_proto = out.File
-	file_server_api_proto_fleet_v1_fleet_proto_goTypes = nil
-	file_server_api_proto_fleet_v1_fleet_proto_depIdxs = nil
+	File_api_proto_fleet_v1_fleet_proto = out.File
+	file_api_proto_fleet_v1_fleet_proto_goTypes = nil
+	file_api_proto_fleet_v1_fleet_proto_depIdxs = nil
 }
