@@ -44,12 +44,12 @@ export const searchApi = {
             query.append('type', params.type);
         }
 
-        const response = await api.get<SearchResponse>(`/search/trips?${query.toString()}`);
+        const response = await api.get<SearchResponse>(`/v1/search/trips?${query.toString()}`);
         return response;
     },
 
     getTrip: async (id: string): Promise<TripSearchResult> => {
-        const response = await api.get<TripSearchResult>(`/trips/${id}`);
+        const response = await api.get<TripSearchResult>(`/v1/trips/${id}`);
         return response;
     }
 };

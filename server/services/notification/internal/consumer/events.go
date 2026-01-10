@@ -94,6 +94,8 @@ type OrderCancelledPayload struct {
 	BookingID    string `json:"booking_id"`
 	RefundAmount int64  `json:"refund_amount"`
 	Reason       string `json:"reason"`
+	ContactEmail string `json:"contact_email"`
+	ContactPhone string `json:"contact_phone"`
 }
 
 // handleOrderCancelled sends cancellation notification
@@ -105,8 +107,9 @@ func (c *EventConsumer) handleOrderCancelled(ctx context.Context, event *kafka.E
 	json.Unmarshal(payloadBytes, &payload)
 
 	// Get contact from event payload (simplified)
-	email, _ := event.Payload["contact_email"].(string)
-	phone, _ := event.Payload["contact_phone"].(string)
+	// Get contact from event payload
+	email := payload.ContactEmail
+	phone := payload.ContactPhone
 
 	if email != "" {
 		c.notificationService.SendEmail(ctx, &service.EmailRequest{

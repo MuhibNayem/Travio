@@ -26,23 +26,23 @@ export interface CreateSubscriptionResponse {
 
 export const subscriptionApi = {
     listPlans: async (): Promise<Plan[]> => {
-        const response = await api.get<ListPlansResponse>('/plans');
+        const response = await api.get<ListPlansResponse>('/v1/plans');
         return response.plans;
     },
 
     createSubscription: async (organizationId: string, planId: string): Promise<CreateSubscriptionResponse> => {
-        return api.post<CreateSubscriptionResponse>('/subscriptions', {
+        return api.post<CreateSubscriptionResponse>('/v1/subscriptions', {
             organization_id: organizationId,
             plan_id: planId
         });
     },
 
     getSubscription: async (organizationId: string): Promise<Subscription> => {
-        return api.get<Subscription>(`/subscriptions/${organizationId}`);
+        return api.get<Subscription>(`/v1/subscriptions/${organizationId}`);
     },
 
     cancelSubscription: async (organizationId: string): Promise<any> => {
-        return api.post(`/subscriptions/${organizationId}/cancel`, {});
+        return api.post(`/v1/subscriptions/${organizationId}/cancel`, {});
     }
 };
 

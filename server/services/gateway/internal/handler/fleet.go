@@ -2,11 +2,15 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	fleetv1 "github.com/MuhibNayem/Travio/server/api/proto/fleet/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/client"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type FleetHandler struct {
@@ -20,9 +24,24 @@ func NewFleetHandler(c *client.FleetClient) *FleetHandler {
 // --- Assets ---
 
 func (h *FleetHandler) RegisterAsset(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	var req fleetv1.RegisterAssetRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := protojson.Unmarshal(body, &req); err != nil {
+		logger.Error("Failed to unmarshal request", "error", err)
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Inject Organization ID from context
+	req.OrganizationId = middleware.GetOrgID(r.Context())
+	if req.OrganizationId == "" {
+		http.Error(w, "Unauthorized: missing organization context", http.StatusUnauthorized)
 		return
 	}
 
@@ -33,7 +52,13 @@ func (h *FleetHandler) RegisterAsset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(asset)
+	// Use protojson for response marshaling as well to handle Enums correctly
+	respBytes, err := protojson.Marshal(asset)
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBytes)
 }
 
 func (h *FleetHandler) GetAsset(w http.ResponseWriter, r *http.Request) {

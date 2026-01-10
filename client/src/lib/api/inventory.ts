@@ -53,22 +53,22 @@ export interface HoldSeatsResponse {
 export const inventoryApi = {
     getSeatMap: async (tripId: string, fromId: string, toId: string): Promise<SeatMapResponse> => {
         const query = new URLSearchParams({ from: fromId, to: toId });
-        const response = await api.get<SeatMapResponse>(`/trips/${tripId}/seatmap?${query.toString()}`);
+        const response = await api.get<SeatMapResponse>(`/v1/trips/${tripId}/seatmap?${query.toString()}`);
         return response;
     },
 
     checkAvailability: async (tripId: string, fromId: string, toId: string, passengers: number): Promise<CheckAvailabilityResponse> => {
         const query = new URLSearchParams({ from: fromId, to: toId, passengers: passengers.toString() });
-        const response = await api.get<CheckAvailabilityResponse>(`/trips/${tripId}/availability?${query.toString()}`);
+        const response = await api.get<CheckAvailabilityResponse>(`/v1/trips/${tripId}/availability?${query.toString()}`);
         return response;
     },
 
     holdSeats: async (payload: HoldSeatsRequest): Promise<HoldSeatsResponse> => {
-        const response = await api.post<HoldSeatsResponse>('/bookings/hold', payload);
+        const response = await api.post<HoldSeatsResponse>('/v1/bookings/hold', payload);
         return response;
     },
 
     releaseHold: async (holdId: string): Promise<void> => {
-        await api.post<void>(`/bookings/release/${holdId}`, {});
+        await api.post<void>(`/v1/bookings/release/${holdId}`, {});
     }
 };

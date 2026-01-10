@@ -159,22 +159,22 @@ export interface UpdateAssetRequest {
 
 export const fleetApi = {
     getAssets: async (): Promise<Asset[]> => {
-        const response = await api.get<ListAssetsResponse>('/fleet/assets');
+        const response = await api.get<ListAssetsResponse>('/v1/fleet/assets');
         return response.assets || [];
     },
 
     registerAsset: async (req: RegisterAssetRequest): Promise<Asset> => {
-        const response = await api.post<Asset>('/fleet/assets', req);
+        const response = await api.post<Asset>('/v1/fleet/assets', req);
         return response;
     },
 
     getAsset: async (id: string): Promise<Asset> => {
-        const response = await api.get<Asset>(`/fleet/assets/${id}`);
+        const response = await api.get<Asset>(`/v1/fleet/assets/${id}`);
         return response;
     },
 
     updateAsset: async (req: UpdateAssetRequest): Promise<Asset> => {
-        const response = await api.put<Asset>(`/fleet/assets/${req.id}`, req);
+        const response = await api.put<Asset>(`/v1/fleet/assets/${req.id}`, req);
         return response;
     },
 };

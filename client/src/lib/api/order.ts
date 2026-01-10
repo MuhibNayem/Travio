@@ -48,23 +48,23 @@ export interface Order {
 
 export const orderApi = {
     createOrder: async (payload: CreateOrderRequest): Promise<Order> => {
-        const response = await api.post<Order>('/orders', payload);
+        const response = await api.post<Order>('/v1/orders', payload);
         return response;
     },
 
     getOrder: async (orderId: string): Promise<Order> => {
-        const response = await api.get<Order>(`/orders/${orderId}`);
+        const response = await api.get<Order>(`/v1/orders/${orderId}`);
         return response;
     },
 
     listOrders: async (pageToken?: string): Promise<{ orders: Order[], next_page: string, total: number }> => {
         const query = pageToken ? `?page_token=${pageToken}` : '';
-        const response = await api.get<{ orders: Order[], next_page: string, total: number }>(`/orders${query}`);
+        const response = await api.get<{ orders: Order[], next_page: string, total: number }>(`/v1/orders${query}`);
         return response;
     },
 
     cancelOrder: async (orderId: string, reason: string): Promise<{ success: boolean, order: Order, refund?: any }> => {
-        const response = await api.post<{ success: boolean, order: Order, refund?: any }>(`/orders/${orderId}/cancel`, { reason });
+        const response = await api.post<{ success: boolean, order: Order, refund?: any }>(`/v1/orders/${orderId}/cancel`, { reason });
         return response;
     }
 };
