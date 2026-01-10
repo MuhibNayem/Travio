@@ -62,13 +62,23 @@
 
         <div class="flex gap-3">
             {#if auth.isAuthenticated}
-                <Button
-                    variant="ghost"
-                    class="h-10 px-4 font-bold text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white"
-                    href="/dashboard"
-                >
-                    Dashboard
-                </Button>
+                {#if auth.user?.role === "admin" || auth.user?.role === "operator"}
+                    <Button
+                        variant="ghost"
+                        class="h-10 px-4 font-bold text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white"
+                        href="/organization"
+                    >
+                        Organization
+                    </Button>
+                {:else}
+                    <Button
+                        variant="ghost"
+                        class="h-10 px-4 font-bold text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white"
+                        href="/dashboard"
+                    >
+                        Dashboard
+                    </Button>
+                {/if}
 
                 <Button
                     variant="outline"
