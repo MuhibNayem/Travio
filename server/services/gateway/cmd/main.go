@@ -248,7 +248,9 @@ func main() {
 			"/v1/search",
 			"/v1/pricing/calculate",
 			"/v1/queue",
+			"/v1/queue",
 			"/v1/events",
+			"/v1/search/events",  // Public search
 			"/v1/fleet/location", // Allow location updates without forced user token? Probably secure it.
 			// Actually, tracking devices might need API keys, but for now let's assume secure or public tracking for demo?
 			// Let's keep it secure by default, but maybe allow public public tracking view?
@@ -293,6 +295,11 @@ func main() {
 		if searchHandler != nil {
 			r.Get("/search/trips", searchHandler.SearchTrips)
 			r.Get("/search/stations", searchHandler.SearchStations)
+		}
+
+		// Events Search (Public)
+		if eventsHandler != nil {
+			r.Get("/search/events", eventsHandler.SearchEvents)
 		}
 
 		// Pricing routes (public)
@@ -351,6 +358,7 @@ func main() {
 		// Catalog Routes (Protected - Operator Actions)
 		if catalogHandler != nil {
 			r.Post("/trips", catalogHandler.CreateTrip)
+			r.Get("/trips", catalogHandler.ListTrips)
 		}
 
 		// Inventory routes (protected)
@@ -415,7 +423,12 @@ func main() {
 			r.Group(func(r chi.Router) {
 				// r.Use(middleware.RequireRole("operator")) // Optional: Enforce role
 				r.Post("/events", eventsHandler.CreateEvent)
+				r.Put("/events/{id}", eventsHandler.UpdateEvent)
+				r.Post("/events/{id}/publish", eventsHandler.PublishEvent)
+
 				r.Post("/venues", eventsHandler.CreateVenue)
+				r.Put("/events/venues/{id}", eventsHandler.UpdateVenue)
+
 				r.Post("/tickets/types", eventsHandler.CreateTicketType)
 			})
 		}
@@ -433,6 +446,7 @@ func main() {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireRole("operator", "admin"))
 				r.Post("/fleet/assets", fleetHandler.RegisterAsset)
+				r.Get("/fleet/assets", fleetHandler.ListAssets)
 				r.Put("/fleet/assets/{id}/status", fleetHandler.UpdateAssetStatus)
 			})
 		}

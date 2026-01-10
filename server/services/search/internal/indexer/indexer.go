@@ -19,7 +19,7 @@ func New(client *opensearch.Client) *Indexer {
 }
 
 func (i *Indexer) InitIndices(ctx context.Context) error {
-	indices := []string{"trips", "stations"}
+	indices := []string{"trips", "stations", "events"}
 
 	for _, idx := range indices {
 		// Check if index exists

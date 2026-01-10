@@ -44,7 +44,7 @@ export const searchApi = {
             query.append('type', params.type);
         }
 
-        const response = await api.get<SearchResponse>(`/trips/search?${query.toString()}`);
+        const response = await api.get<SearchResponse>(`/search/trips?${query.toString()}`);
         return response;
     },
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import HeroLanding from "$lib/components/landing/HeroLanding.svelte";
+	import SearchHero from "$lib/components/blocks/SearchHero.svelte";
 	import StatsStrip from "$lib/components/landing/StatsStrip.svelte";
 	import FeatureGrid from "$lib/components/blocks/FeatureGrid.svelte";
 	import TrustedPartners from "$lib/components/landing/TrustedPartners.svelte";
@@ -16,7 +16,7 @@
 </svelte:head>
 
 <div id="top">
-	<HeroLanding />
+	<SearchHero />
 	<StatsStrip />
 
 	<div id="features" class="py-20">

@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/lib/pq"
@@ -76,6 +77,13 @@ func (r *EventRepository) ListVenues(orgID string) ([]*domain.Venue, error) {
 	return venues, nil
 }
 
+func (r *EventRepository) UpdateVenue(venue *domain.Venue) error {
+	venue.UpdatedAt = time.Now()
+	query := `UPDATE venues SET name = $1, type = $2, updated_at = $3 WHERE id = $4`
+	_, err := r.DB.Exec(query, venue.Name, venue.Type, venue.UpdatedAt, venue.ID)
+	return err
+}
+
 // --- Event Methods ---
 
 func (r *EventRepository) CreateEvent(event *domain.Event) error {
@@ -124,7 +132,89 @@ func (r *EventRepository) ListEvents(orgID string) ([]*domain.Event, error) {
 	return events, nil
 }
 
-// --- Ticket Type ---
+func (r *EventRepository) UpdateEvent(event *domain.Event) error {
+	event.UpdatedAt = time.Now()
+	query := `UPDATE events SET title = $1, description = $2, start_time = $3, end_time = $4, updated_at = $5 WHERE id = $6`
+	_, err := r.DB.Exec(query, event.Title, event.Description, event.StartTime, event.EndTime, event.UpdatedAt, event.ID)
+	return err
+}
+
+func (r *EventRepository) UpdateEventStatus(id, status string) error {
+	query := `UPDATE events SET status = $1, updated_at = $2 WHERE id = $3`
+	_, err := r.DB.Exec(query, status, time.Now(), id)
+	return err
+}
+
+func (r *EventRepository) SearchEvents(queryStr, city, category, start, end string, limit, offset int) ([]*domain.Event, int, error) {
+	// Base query structure
+	baseQuery := `SELECT e.id, e.organization_id, e.venue_id, e.title, e.description, e.category, e.images, e.start_time, e.end_time, e.status, e.created_at, e.updated_at 
+	              FROM events e 
+	              JOIN venues v ON e.venue_id = v.id 
+	              WHERE 1=1`
+
+	countQuery := `SELECT COUNT(*) FROM events e JOIN venues v ON e.venue_id = v.id WHERE 1=1`
+
+	var args []interface{}
+	idx := 1
+
+	// Helper to add condition
+	addCondition := func(condition string, val interface{}) {
+		baseQuery += " AND " + condition
+		countQuery += " AND " + condition
+		args = append(args, val)
+		idx++
+	}
+
+	if queryStr != "" {
+		// Use manual positional parameters based on current idx
+		cond := "(e.title ILIKE $" + strconv.Itoa(idx) + " OR e.description ILIKE $" + strconv.Itoa(idx) + ")"
+		addCondition(cond, "%"+queryStr+"%")
+	}
+	if city != "" {
+		cond := "v.city ILIKE $" + strconv.Itoa(idx)
+		addCondition(cond, city)
+	}
+	if category != "" {
+		cond := "e.category = $" + strconv.Itoa(idx)
+		addCondition(cond, category)
+	}
+	if start != "" {
+		cond := "e.start_time >= $" + strconv.Itoa(idx)
+		addCondition(cond, start)
+	}
+	if end != "" {
+		cond := "e.end_time <= $" + strconv.Itoa(idx)
+		addCondition(cond, end)
+	}
+
+	// 1. Get Total Count
+	var total int
+	// We need to execute count query with same args
+	if err := r.DB.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// 2. Get Data with Pagination
+	baseQuery += " ORDER BY e.start_time ASC LIMIT $" + strconv.Itoa(idx) + " OFFSET $" + strconv.Itoa(idx+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.DB.Query(baseQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var events []*domain.Event
+	for rows.Next() {
+		var e domain.Event
+		if err := rows.Scan(&e.ID, &e.OrganizationID, &e.VenueID, &e.Title, &e.Description, &e.Category, pq.Array(&e.Images), &e.StartTime, &e.EndTime, &e.Status, &e.CreatedAt, &e.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		events = append(events, &e)
+	}
+
+	return events, total, nil
+}
 
 func (r *EventRepository) CreateTicketType(tt *domain.TicketType) error {
 	tt.ID = uuid.New().String()

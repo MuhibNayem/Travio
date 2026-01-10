@@ -15,7 +15,7 @@ type EventConsumer struct {
 }
 
 func New(brokers []string, groupID string, indexer *indexer.Indexer) (*EventConsumer, error) {
-	topics := []string{kafka.TopicCatalog}
+	topics := []string{kafka.TopicCatalog, kafka.TopicEvents}
 	consumer, err := kafka.NewConsumer(brokers, groupID, topics)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,11 @@ func New(brokers []string, groupID string, indexer *indexer.Indexer) (*EventCons
 	}
 
 	consumer.RegisterHandler(kafka.EventTripCreated, c.handleTripCreated)
+	consumer.RegisterHandler(kafka.EventTripCreated, c.handleTripCreated)
 	consumer.RegisterHandler(kafka.EventStationCreated, c.handleStationCreated)
+	consumer.RegisterHandler(kafka.EventEventCreated, c.handleEventUpsert)
+	consumer.RegisterHandler(kafka.EventEventUpdated, c.handleEventUpsert)
+	consumer.RegisterHandler(kafka.EventEventPublished, c.handleEventUpsert)
 
 	return c, nil
 }
@@ -62,4 +66,15 @@ func (c *EventConsumer) handleStationCreated(ctx context.Context, event *kafka.E
 	}
 
 	return c.indexer.IndexDocument(ctx, "stations", event.AggregateID, string(payloadBytes))
+}
+
+func (c *EventConsumer) handleEventUpsert(ctx context.Context, event *kafka.Event) error {
+	logger.Info("Indexing event", "id", event.AggregateID)
+
+	payloadBytes, err := json.Marshal(event.Payload)
+	if err != nil {
+		return err
+	}
+
+	return c.indexer.IndexDocument(ctx, "events", event.AggregateID, string(payloadBytes))
 }

@@ -50,6 +50,10 @@ func (c *EventsClient) ListVenues(ctx context.Context, req *eventsv1.ListVenuesR
 	return c.client.ListVenues(ctx, req)
 }
 
+func (c *EventsClient) UpdateVenue(ctx context.Context, req *eventsv1.UpdateVenueRequest) (*eventsv1.Venue, error) {
+	return c.client.UpdateVenue(ctx, req)
+}
+
 // --- Events ---
 
 func (c *EventsClient) CreateEvent(ctx context.Context, req *eventsv1.CreateEventRequest) (*eventsv1.Event, error) {
@@ -62,6 +66,18 @@ func (c *EventsClient) GetEvent(ctx context.Context, req *eventsv1.GetEventReque
 
 func (c *EventsClient) ListEvents(ctx context.Context, req *eventsv1.ListEventsRequest) (*eventsv1.ListEventsResponse, error) {
 	return c.client.ListEvents(ctx, req)
+}
+
+func (c *EventsClient) UpdateEvent(ctx context.Context, req *eventsv1.UpdateEventRequest) (*eventsv1.Event, error) {
+	return c.client.UpdateEvent(ctx, req)
+}
+
+func (c *EventsClient) PublishEvent(ctx context.Context, req *eventsv1.PublishEventRequest) (*eventsv1.Event, error) {
+	return c.client.PublishEvent(ctx, req)
+}
+
+func (c *EventsClient) SearchEvents(ctx context.Context, req *eventsv1.SearchEventsRequest) (*eventsv1.SearchEventsResponse, error) {
+	return c.client.SearchEvents(ctx, req)
 }
 
 // --- Tickets ---

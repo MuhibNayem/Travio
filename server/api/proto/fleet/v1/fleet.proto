@@ -9,11 +9,24 @@ service FleetService {
   rpc RegisterAsset(RegisterAssetRequest) returns (Asset);
   rpc GetAsset(GetAssetRequest) returns (Asset);
   rpc UpdateAssetStatus(UpdateAssetStatusRequest) returns (Asset);
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
   
   // Tracking
   rpc UpdateLocation(UpdateLocationRequest) returns (UpdateLocationResponse);
   rpc GetLocation(GetLocationRequest) returns (AssetLocation);
   rpc StreamLocations(StreamLocationsRequest) returns (stream AssetLocation); // Live map
+}
+
+message ListAssetsRequest {
+    string organization_id = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+}
+
+message ListAssetsResponse {
+    repeated Asset assets = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
 }
 
 message Asset {

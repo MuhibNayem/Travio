@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: api/proto/fleet/v1/fleet.proto
+// source: server/api/proto/fleet/v1/fleet.proto
 
 package fleetv1
 
@@ -57,11 +57,11 @@ func (x AssetType) String() string {
 }
 
 func (AssetType) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_fleet_v1_fleet_proto_enumTypes[0].Descriptor()
+	return file_server_api_proto_fleet_v1_fleet_proto_enumTypes[0].Descriptor()
 }
 
 func (AssetType) Type() protoreflect.EnumType {
-	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[0]
+	return &file_server_api_proto_fleet_v1_fleet_proto_enumTypes[0]
 }
 
 func (x AssetType) Number() protoreflect.EnumNumber {
@@ -70,7 +70,7 @@ func (x AssetType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AssetType.Descriptor instead.
 func (AssetType) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
 }
 
 type AssetStatus int32
@@ -106,11 +106,11 @@ func (x AssetStatus) String() string {
 }
 
 func (AssetStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_fleet_v1_fleet_proto_enumTypes[1].Descriptor()
+	return file_server_api_proto_fleet_v1_fleet_proto_enumTypes[1].Descriptor()
 }
 
 func (AssetStatus) Type() protoreflect.EnumType {
-	return &file_api_proto_fleet_v1_fleet_proto_enumTypes[1]
+	return &file_server_api_proto_fleet_v1_fleet_proto_enumTypes[1]
 }
 
 func (x AssetStatus) Number() protoreflect.EnumNumber {
@@ -119,7 +119,127 @@ func (x AssetStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AssetStatus.Descriptor instead.
 func (AssetStatus) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+}
+
+type ListAssetsRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	PageSize       int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListAssetsRequest) Reset() {
+	*x = ListAssetsRequest{}
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAssetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAssetsRequest) ProtoMessage() {}
+
+func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAssetsRequest.ProtoReflect.Descriptor instead.
+func (*ListAssetsRequest) Descriptor() ([]byte, []int) {
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ListAssetsRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *ListAssetsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAssetsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListAssetsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Assets        []*Asset               `protobuf:"bytes,1,rep,name=assets,proto3" json:"assets,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	TotalCount    int32                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAssetsResponse) Reset() {
+	*x = ListAssetsResponse{}
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAssetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAssetsResponse) ProtoMessage() {}
+
+func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAssetsResponse.ProtoReflect.Descriptor instead.
+func (*ListAssetsResponse) Descriptor() ([]byte, []int) {
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ListAssetsResponse) GetAssets() []*Asset {
+	if x != nil {
+		return x.Assets
+	}
+	return nil
+}
+
+func (x *ListAssetsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListAssetsResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 type Asset struct {
@@ -143,7 +263,7 @@ type Asset struct {
 
 func (x *Asset) Reset() {
 	*x = Asset{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[0]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -155,7 +275,7 @@ func (x *Asset) String() string {
 func (*Asset) ProtoMessage() {}
 
 func (x *Asset) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[0]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -168,7 +288,7 @@ func (x *Asset) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Asset.ProtoReflect.Descriptor instead.
 func (*Asset) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{0}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Asset) GetId() string {
@@ -273,7 +393,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[1]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -285,7 +405,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[1]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -298,7 +418,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{1}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Config) GetLayoutType() string {
@@ -333,7 +453,7 @@ type RegisterAssetRequest struct {
 
 func (x *RegisterAssetRequest) Reset() {
 	*x = RegisterAssetRequest{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[2]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +465,7 @@ func (x *RegisterAssetRequest) String() string {
 func (*RegisterAssetRequest) ProtoMessage() {}
 
 func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[2]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +478,7 @@ func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterAssetRequest.ProtoReflect.Descriptor instead.
 func (*RegisterAssetRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{2}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RegisterAssetRequest) GetOrganizationId() string {
@@ -441,7 +561,7 @@ type GetAssetRequest struct {
 
 func (x *GetAssetRequest) Reset() {
 	*x = GetAssetRequest{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[3]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -453,7 +573,7 @@ func (x *GetAssetRequest) String() string {
 func (*GetAssetRequest) ProtoMessage() {}
 
 func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[3]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -466,7 +586,7 @@ func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetRequest.ProtoReflect.Descriptor instead.
 func (*GetAssetRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{3}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetAssetRequest) GetId() string {
@@ -494,7 +614,7 @@ type UpdateAssetStatusRequest struct {
 
 func (x *UpdateAssetStatusRequest) Reset() {
 	*x = UpdateAssetStatusRequest{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[4]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -506,7 +626,7 @@ func (x *UpdateAssetStatusRequest) String() string {
 func (*UpdateAssetStatusRequest) ProtoMessage() {}
 
 func (x *UpdateAssetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[4]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -519,7 +639,7 @@ func (x *UpdateAssetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAssetStatusRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAssetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{4}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateAssetStatusRequest) GetId() string {
@@ -558,7 +678,7 @@ type AssetLocation struct {
 
 func (x *AssetLocation) Reset() {
 	*x = AssetLocation{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[5]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +690,7 @@ func (x *AssetLocation) String() string {
 func (*AssetLocation) ProtoMessage() {}
 
 func (x *AssetLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[5]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +703,7 @@ func (x *AssetLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssetLocation.ProtoReflect.Descriptor instead.
 func (*AssetLocation) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{5}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AssetLocation) GetAssetId() string {
@@ -650,7 +770,7 @@ type UpdateLocationRequest struct {
 
 func (x *UpdateLocationRequest) Reset() {
 	*x = UpdateLocationRequest{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[6]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -662,7 +782,7 @@ func (x *UpdateLocationRequest) String() string {
 func (*UpdateLocationRequest) ProtoMessage() {}
 
 func (x *UpdateLocationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[6]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -675,7 +795,7 @@ func (x *UpdateLocationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLocationRequest.ProtoReflect.Descriptor instead.
 func (*UpdateLocationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{6}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateLocationRequest) GetAssetId() string {
@@ -736,7 +856,7 @@ type UpdateLocationResponse struct {
 
 func (x *UpdateLocationResponse) Reset() {
 	*x = UpdateLocationResponse{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[7]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -748,7 +868,7 @@ func (x *UpdateLocationResponse) String() string {
 func (*UpdateLocationResponse) ProtoMessage() {}
 
 func (x *UpdateLocationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[7]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -761,7 +881,7 @@ func (x *UpdateLocationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLocationResponse.ProtoReflect.Descriptor instead.
 func (*UpdateLocationResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{7}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateLocationResponse) GetSuccess() bool {
@@ -780,7 +900,7 @@ type GetLocationRequest struct {
 
 func (x *GetLocationRequest) Reset() {
 	*x = GetLocationRequest{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[8]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -792,7 +912,7 @@ func (x *GetLocationRequest) String() string {
 func (*GetLocationRequest) ProtoMessage() {}
 
 func (x *GetLocationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[8]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -805,7 +925,7 @@ func (x *GetLocationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocationRequest.ProtoReflect.Descriptor instead.
 func (*GetLocationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{8}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetLocationRequest) GetAssetId() string {
@@ -824,7 +944,7 @@ type StreamLocationsRequest struct {
 
 func (x *StreamLocationsRequest) Reset() {
 	*x = StreamLocationsRequest{}
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[9]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +956,7 @@ func (x *StreamLocationsRequest) String() string {
 func (*StreamLocationsRequest) ProtoMessage() {}
 
 func (x *StreamLocationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_fleet_v1_fleet_proto_msgTypes[9]
+	mi := &file_server_api_proto_fleet_v1_fleet_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +969,7 @@ func (x *StreamLocationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamLocationsRequest.ProtoReflect.Descriptor instead.
 func (*StreamLocationsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{9}
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StreamLocationsRequest) GetOrganizationId() string {
@@ -859,11 +979,21 @@ func (x *StreamLocationsRequest) GetOrganizationId() string {
 	return ""
 }
 
-var File_api_proto_fleet_v1_fleet_proto protoreflect.FileDescriptor
+var File_server_api_proto_fleet_v1_fleet_proto protoreflect.FileDescriptor
 
-const file_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
+const file_server_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
 	"\n" +
-	"\x1eapi/proto/fleet/v1/fleet.proto\x12\bfleet.v1\"\x89\x03\n" +
+	"%server/api/proto/fleet/v1/fleet.proto\x12\bfleet.v1\"x\n" +
+	"\x11ListAssetsRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x86\x01\n" +
+	"\x12ListAssetsResponse\x12'\n" +
+	"\x06assets\x18\x01 \x03(\v2\x0f.fleet.v1.AssetR\x06assets\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"totalCount\"\x89\x03\n" +
 	"\x05Asset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12'\n" +
@@ -934,91 +1064,98 @@ const file_api_proto_fleet_v1_fleet_proto_rawDesc = "" +
 	"\vAssetStatus\x12\x17\n" +
 	"\x13ASSET_STATUS_ACTIVE\x10\x00\x12\x1c\n" +
 	"\x18ASSET_STATUS_MAINTENANCE\x10\x01\x12\x18\n" +
-	"\x14ASSET_STATUS_RETIRED\x10\x022\xbd\x03\n" +
+	"\x14ASSET_STATUS_RETIRED\x10\x022\x86\x04\n" +
 	"\fFleetService\x12@\n" +
 	"\rRegisterAsset\x12\x1e.fleet.v1.RegisterAssetRequest\x1a\x0f.fleet.v1.Asset\x126\n" +
 	"\bGetAsset\x12\x19.fleet.v1.GetAssetRequest\x1a\x0f.fleet.v1.Asset\x12H\n" +
-	"\x11UpdateAssetStatus\x12\".fleet.v1.UpdateAssetStatusRequest\x1a\x0f.fleet.v1.Asset\x12S\n" +
+	"\x11UpdateAssetStatus\x12\".fleet.v1.UpdateAssetStatusRequest\x1a\x0f.fleet.v1.Asset\x12G\n" +
+	"\n" +
+	"ListAssets\x12\x1b.fleet.v1.ListAssetsRequest\x1a\x1c.fleet.v1.ListAssetsResponse\x12S\n" +
 	"\x0eUpdateLocation\x12\x1f.fleet.v1.UpdateLocationRequest\x1a .fleet.v1.UpdateLocationResponse\x12D\n" +
 	"\vGetLocation\x12\x1c.fleet.v1.GetLocationRequest\x1a\x17.fleet.v1.AssetLocation\x12N\n" +
 	"\x0fStreamLocations\x12 .fleet.v1.StreamLocationsRequest\x1a\x17.fleet.v1.AssetLocation0\x01B@Z>github.com/MuhibNayem/Travio/server/api/proto/fleet/v1;fleetv1b\x06proto3"
 
 var (
-	file_api_proto_fleet_v1_fleet_proto_rawDescOnce sync.Once
-	file_api_proto_fleet_v1_fleet_proto_rawDescData []byte
+	file_server_api_proto_fleet_v1_fleet_proto_rawDescOnce sync.Once
+	file_server_api_proto_fleet_v1_fleet_proto_rawDescData []byte
 )
 
-func file_api_proto_fleet_v1_fleet_proto_rawDescGZIP() []byte {
-	file_api_proto_fleet_v1_fleet_proto_rawDescOnce.Do(func() {
-		file_api_proto_fleet_v1_fleet_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_api_proto_fleet_v1_fleet_proto_rawDesc)))
+func file_server_api_proto_fleet_v1_fleet_proto_rawDescGZIP() []byte {
+	file_server_api_proto_fleet_v1_fleet_proto_rawDescOnce.Do(func() {
+		file_server_api_proto_fleet_v1_fleet_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_server_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_server_api_proto_fleet_v1_fleet_proto_rawDesc)))
 	})
-	return file_api_proto_fleet_v1_fleet_proto_rawDescData
+	return file_server_api_proto_fleet_v1_fleet_proto_rawDescData
 }
 
-var file_api_proto_fleet_v1_fleet_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_api_proto_fleet_v1_fleet_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_api_proto_fleet_v1_fleet_proto_goTypes = []any{
+var file_server_api_proto_fleet_v1_fleet_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_server_api_proto_fleet_v1_fleet_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_server_api_proto_fleet_v1_fleet_proto_goTypes = []any{
 	(AssetType)(0),                   // 0: fleet.v1.AssetType
 	(AssetStatus)(0),                 // 1: fleet.v1.AssetStatus
-	(*Asset)(nil),                    // 2: fleet.v1.Asset
-	(*Config)(nil),                   // 3: fleet.v1.Config
-	(*RegisterAssetRequest)(nil),     // 4: fleet.v1.RegisterAssetRequest
-	(*GetAssetRequest)(nil),          // 5: fleet.v1.GetAssetRequest
-	(*UpdateAssetStatusRequest)(nil), // 6: fleet.v1.UpdateAssetStatusRequest
-	(*AssetLocation)(nil),            // 7: fleet.v1.AssetLocation
-	(*UpdateLocationRequest)(nil),    // 8: fleet.v1.UpdateLocationRequest
-	(*UpdateLocationResponse)(nil),   // 9: fleet.v1.UpdateLocationResponse
-	(*GetLocationRequest)(nil),       // 10: fleet.v1.GetLocationRequest
-	(*StreamLocationsRequest)(nil),   // 11: fleet.v1.StreamLocationsRequest
+	(*ListAssetsRequest)(nil),        // 2: fleet.v1.ListAssetsRequest
+	(*ListAssetsResponse)(nil),       // 3: fleet.v1.ListAssetsResponse
+	(*Asset)(nil),                    // 4: fleet.v1.Asset
+	(*Config)(nil),                   // 5: fleet.v1.Config
+	(*RegisterAssetRequest)(nil),     // 6: fleet.v1.RegisterAssetRequest
+	(*GetAssetRequest)(nil),          // 7: fleet.v1.GetAssetRequest
+	(*UpdateAssetStatusRequest)(nil), // 8: fleet.v1.UpdateAssetStatusRequest
+	(*AssetLocation)(nil),            // 9: fleet.v1.AssetLocation
+	(*UpdateLocationRequest)(nil),    // 10: fleet.v1.UpdateLocationRequest
+	(*UpdateLocationResponse)(nil),   // 11: fleet.v1.UpdateLocationResponse
+	(*GetLocationRequest)(nil),       // 12: fleet.v1.GetLocationRequest
+	(*StreamLocationsRequest)(nil),   // 13: fleet.v1.StreamLocationsRequest
 }
-var file_api_proto_fleet_v1_fleet_proto_depIdxs = []int32{
-	0,  // 0: fleet.v1.Asset.type:type_name -> fleet.v1.AssetType
-	1,  // 1: fleet.v1.Asset.status:type_name -> fleet.v1.AssetStatus
-	3,  // 2: fleet.v1.Asset.config:type_name -> fleet.v1.Config
-	0,  // 3: fleet.v1.RegisterAssetRequest.type:type_name -> fleet.v1.AssetType
-	1,  // 4: fleet.v1.RegisterAssetRequest.status:type_name -> fleet.v1.AssetStatus
-	3,  // 5: fleet.v1.RegisterAssetRequest.config:type_name -> fleet.v1.Config
-	1,  // 6: fleet.v1.UpdateAssetStatusRequest.status:type_name -> fleet.v1.AssetStatus
-	4,  // 7: fleet.v1.FleetService.RegisterAsset:input_type -> fleet.v1.RegisterAssetRequest
-	5,  // 8: fleet.v1.FleetService.GetAsset:input_type -> fleet.v1.GetAssetRequest
-	6,  // 9: fleet.v1.FleetService.UpdateAssetStatus:input_type -> fleet.v1.UpdateAssetStatusRequest
-	8,  // 10: fleet.v1.FleetService.UpdateLocation:input_type -> fleet.v1.UpdateLocationRequest
-	10, // 11: fleet.v1.FleetService.GetLocation:input_type -> fleet.v1.GetLocationRequest
-	11, // 12: fleet.v1.FleetService.StreamLocations:input_type -> fleet.v1.StreamLocationsRequest
-	2,  // 13: fleet.v1.FleetService.RegisterAsset:output_type -> fleet.v1.Asset
-	2,  // 14: fleet.v1.FleetService.GetAsset:output_type -> fleet.v1.Asset
-	2,  // 15: fleet.v1.FleetService.UpdateAssetStatus:output_type -> fleet.v1.Asset
-	9,  // 16: fleet.v1.FleetService.UpdateLocation:output_type -> fleet.v1.UpdateLocationResponse
-	7,  // 17: fleet.v1.FleetService.GetLocation:output_type -> fleet.v1.AssetLocation
-	7,  // 18: fleet.v1.FleetService.StreamLocations:output_type -> fleet.v1.AssetLocation
-	13, // [13:19] is the sub-list for method output_type
-	7,  // [7:13] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+var file_server_api_proto_fleet_v1_fleet_proto_depIdxs = []int32{
+	4,  // 0: fleet.v1.ListAssetsResponse.assets:type_name -> fleet.v1.Asset
+	0,  // 1: fleet.v1.Asset.type:type_name -> fleet.v1.AssetType
+	1,  // 2: fleet.v1.Asset.status:type_name -> fleet.v1.AssetStatus
+	5,  // 3: fleet.v1.Asset.config:type_name -> fleet.v1.Config
+	0,  // 4: fleet.v1.RegisterAssetRequest.type:type_name -> fleet.v1.AssetType
+	1,  // 5: fleet.v1.RegisterAssetRequest.status:type_name -> fleet.v1.AssetStatus
+	5,  // 6: fleet.v1.RegisterAssetRequest.config:type_name -> fleet.v1.Config
+	1,  // 7: fleet.v1.UpdateAssetStatusRequest.status:type_name -> fleet.v1.AssetStatus
+	6,  // 8: fleet.v1.FleetService.RegisterAsset:input_type -> fleet.v1.RegisterAssetRequest
+	7,  // 9: fleet.v1.FleetService.GetAsset:input_type -> fleet.v1.GetAssetRequest
+	8,  // 10: fleet.v1.FleetService.UpdateAssetStatus:input_type -> fleet.v1.UpdateAssetStatusRequest
+	2,  // 11: fleet.v1.FleetService.ListAssets:input_type -> fleet.v1.ListAssetsRequest
+	10, // 12: fleet.v1.FleetService.UpdateLocation:input_type -> fleet.v1.UpdateLocationRequest
+	12, // 13: fleet.v1.FleetService.GetLocation:input_type -> fleet.v1.GetLocationRequest
+	13, // 14: fleet.v1.FleetService.StreamLocations:input_type -> fleet.v1.StreamLocationsRequest
+	4,  // 15: fleet.v1.FleetService.RegisterAsset:output_type -> fleet.v1.Asset
+	4,  // 16: fleet.v1.FleetService.GetAsset:output_type -> fleet.v1.Asset
+	4,  // 17: fleet.v1.FleetService.UpdateAssetStatus:output_type -> fleet.v1.Asset
+	3,  // 18: fleet.v1.FleetService.ListAssets:output_type -> fleet.v1.ListAssetsResponse
+	11, // 19: fleet.v1.FleetService.UpdateLocation:output_type -> fleet.v1.UpdateLocationResponse
+	9,  // 20: fleet.v1.FleetService.GetLocation:output_type -> fleet.v1.AssetLocation
+	9,  // 21: fleet.v1.FleetService.StreamLocations:output_type -> fleet.v1.AssetLocation
+	15, // [15:22] is the sub-list for method output_type
+	8,  // [8:15] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_fleet_v1_fleet_proto_init() }
-func file_api_proto_fleet_v1_fleet_proto_init() {
-	if File_api_proto_fleet_v1_fleet_proto != nil {
+func init() { file_server_api_proto_fleet_v1_fleet_proto_init() }
+func file_server_api_proto_fleet_v1_fleet_proto_init() {
+	if File_server_api_proto_fleet_v1_fleet_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_api_proto_fleet_v1_fleet_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_api_proto_fleet_v1_fleet_proto_rawDesc), len(file_server_api_proto_fleet_v1_fleet_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_fleet_v1_fleet_proto_goTypes,
-		DependencyIndexes: file_api_proto_fleet_v1_fleet_proto_depIdxs,
-		EnumInfos:         file_api_proto_fleet_v1_fleet_proto_enumTypes,
-		MessageInfos:      file_api_proto_fleet_v1_fleet_proto_msgTypes,
+		GoTypes:           file_server_api_proto_fleet_v1_fleet_proto_goTypes,
+		DependencyIndexes: file_server_api_proto_fleet_v1_fleet_proto_depIdxs,
+		EnumInfos:         file_server_api_proto_fleet_v1_fleet_proto_enumTypes,
+		MessageInfos:      file_server_api_proto_fleet_v1_fleet_proto_msgTypes,
 	}.Build()
-	File_api_proto_fleet_v1_fleet_proto = out.File
-	file_api_proto_fleet_v1_fleet_proto_goTypes = nil
-	file_api_proto_fleet_v1_fleet_proto_depIdxs = nil
+	File_server_api_proto_fleet_v1_fleet_proto = out.File
+	file_server_api_proto_fleet_v1_fleet_proto_goTypes = nil
+	file_server_api_proto_fleet_v1_fleet_proto_depIdxs = nil
 }

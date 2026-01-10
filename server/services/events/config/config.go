@@ -5,13 +5,20 @@ import (
 	"strconv"
 	"time"
 
+	"strings"
+
 	"github.com/MuhibNayem/Travio/server/pkg/database/postgres"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 )
 
+type KafkaConfig struct {
+	Brokers []string
+}
+
 type Config struct {
 	Server   server.Config
 	Database postgres.Config
+	Kafka    KafkaConfig
 }
 
 func Load() Config {
@@ -30,6 +37,9 @@ func Load() Config {
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			DBName:   getEnv("DB_NAME", "travio_events"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		Kafka: KafkaConfig{
+			Brokers: strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
 		},
 	}
 }

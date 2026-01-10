@@ -60,6 +60,25 @@ func (h *EventsHandler) ListVenues(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *EventsHandler) UpdateVenue(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req eventsv1.UpdateVenueRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	req.Id = id
+
+	venue, err := h.client.UpdateVenue(r.Context(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(venue)
+}
+
 // --- Events ---
 
 func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +118,54 @@ func (h *EventsHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req eventsv1.UpdateEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	req.Id = id
+
+	e, err := h.client.UpdateEvent(r.Context(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(e)
+}
+
+func (h *EventsHandler) PublishEvent(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	e, err := h.client.PublishEvent(r.Context(), &eventsv1.PublishEventRequest{Id: id})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(e)
+}
+
+func (h *EventsHandler) SearchEvents(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	resp, err := h.client.SearchEvents(r.Context(), &eventsv1.SearchEventsRequest{
+		Query:     q.Get("q"),
+		City:      q.Get("city"),
+		Category:  q.Get("category"),
+		StartDate: q.Get("start_date"),
+		EndDate:   q.Get("end_date"),
+		PageToken: q.Get("page_token"),
+		PageSize:  10, // Default
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }

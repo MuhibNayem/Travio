@@ -59,3 +59,7 @@ func (c *FleetClient) UpdateLocation(ctx context.Context, req *fleetv1.UpdateLoc
 func (c *FleetClient) GetLocation(ctx context.Context, req *fleetv1.GetLocationRequest) (*fleetv1.AssetLocation, error) {
 	return c.client.GetLocation(ctx, req)
 }
+
+func (c *FleetClient) ListAssets(ctx context.Context, req *fleetv1.ListAssetsRequest) (*fleetv1.ListAssetsResponse, error) {
+	return c.client.ListAssets(ctx, req)
+}

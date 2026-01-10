@@ -256,6 +256,42 @@ func (h *CatalogHandler) GetTrip(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// ListTrips lists trips for an organization
+func (h *CatalogHandler) ListTrips(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	orgID := r.URL.Query().Get("organization_id")
+	if orgID == "" {
+		// Fallback to header if set by middleware for operators
+		orgID = r.Header.Get("X-Organization-ID")
+	}
+
+	if orgID == "" {
+		http.Error(w, "organization_id is required", http.StatusBadRequest)
+		return
+	}
+
+	routeID := r.URL.Query().Get("route_id")
+
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.ListTrips(ctx, &catalogpb.ListTripsRequest{
+			OrganizationId: orgID,
+			RouteId:        routeID,
+			PageSize:       100,
+		})
+	})
+	if err != nil {
+		logger.Error("Failed to list trips", "error", err)
+		http.Error(w, "Failed to list trips", http.StatusInternalServerError)
+		return
+	}
+	resp := result.(*catalogpb.ListTripsResponse)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 // GetStation retrieves a station by ID
 func (h *CatalogHandler) GetStation(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)

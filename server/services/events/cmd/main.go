@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/events/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/kafka"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/events/config"
@@ -30,9 +31,17 @@ func main() {
 		panic(err)
 	}
 
+	// Kafka Setup
+	logger.Info("Initializing Kafka Producer...", "brokers", cfg.Kafka.Brokers)
+	producer, err := kafka.NewProducer(cfg.Kafka.Brokers)
+	if err != nil {
+		logger.Error("Failed to create Kafka producer", "error", err)
+		panic(err)
+	}
+
 	// Dependency Injection
 	repo := repository.NewEventRepository(db)
-	svc := service.NewEventService(repo)
+	svc := service.NewEventService(repo, producer)
 	grpchandler := handler.NewGRPCHandler(svc)
 
 	// Setup Server

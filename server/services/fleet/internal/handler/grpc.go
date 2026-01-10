@@ -72,6 +72,23 @@ func (h *GRPCHandler) UpdateAssetStatus(ctx context.Context, req *fleetv1.Update
 	return mapAssetToProto(asset), nil
 }
 
+func (h *GRPCHandler) ListAssets(ctx context.Context, req *fleetv1.ListAssetsRequest) (*fleetv1.ListAssetsResponse, error) {
+	assets, err := h.service.ListAssets(ctx, req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to list assets")
+	}
+
+	var protoAssets []*fleetv1.Asset
+	for _, a := range assets {
+		protoAssets = append(protoAssets, mapAssetToProto(a))
+	}
+
+	return &fleetv1.ListAssetsResponse{
+		Assets:     protoAssets,
+		TotalCount: int32(len(protoAssets)),
+	}, nil
+}
+
 // --- Tracking ---
 
 func (h *GRPCHandler) UpdateLocation(ctx context.Context, req *fleetv1.UpdateLocationRequest) (*fleetv1.UpdateLocationResponse, error) {

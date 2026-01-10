@@ -12,12 +12,12 @@ import (
 
 // Event represents a domain event
 type Event struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`
-	AggregateID string                 `json:"aggregate_id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Version     int                    `json:"version"`
-	Payload     map[string]interface{} `json:"payload"`
+	ID          string      `json:"id"`
+	Type        string      `json:"type"`
+	AggregateID string      `json:"aggregate_id"`
+	Timestamp   time.Time   `json:"timestamp"`
+	Version     int         `json:"version"`
+	Payload     interface{} `json:"payload"`
 }
 
 // Producer publishes events to Kafka
@@ -89,6 +89,7 @@ const (
 	TopicFulfillment   = "travio.fulfillment"
 	TopicNotifications = "travio.notifications"
 	TopicCatalog       = "travio.catalog"
+	TopicEvents        = "travio.events"
 )
 
 // Event types
@@ -107,5 +108,9 @@ const (
 	EventTicketGenerated   = "fulfillment.ticket_generated"
 	EventNotificationSent  = "notification.sent"
 	EventTripCreated       = "trip.created"
-	EventStationCreated    = "station.created"
+
+	EventStationCreated = "station.created"
+	EventEventCreated   = "event.created"
+	EventEventUpdated   = "event.updated"
+	EventEventPublished = "event.published"
 )

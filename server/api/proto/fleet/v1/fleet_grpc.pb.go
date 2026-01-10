@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: api/proto/fleet/v1/fleet.proto
+// source: server/api/proto/fleet/v1/fleet.proto
 
 package fleetv1
 
@@ -22,6 +22,7 @@ const (
 	FleetService_RegisterAsset_FullMethodName     = "/fleet.v1.FleetService/RegisterAsset"
 	FleetService_GetAsset_FullMethodName          = "/fleet.v1.FleetService/GetAsset"
 	FleetService_UpdateAssetStatus_FullMethodName = "/fleet.v1.FleetService/UpdateAssetStatus"
+	FleetService_ListAssets_FullMethodName        = "/fleet.v1.FleetService/ListAssets"
 	FleetService_UpdateLocation_FullMethodName    = "/fleet.v1.FleetService/UpdateLocation"
 	FleetService_GetLocation_FullMethodName       = "/fleet.v1.FleetService/GetLocation"
 	FleetService_StreamLocations_FullMethodName   = "/fleet.v1.FleetService/StreamLocations"
@@ -35,6 +36,7 @@ type FleetServiceClient interface {
 	RegisterAsset(ctx context.Context, in *RegisterAssetRequest, opts ...grpc.CallOption) (*Asset, error)
 	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*Asset, error)
 	UpdateAssetStatus(ctx context.Context, in *UpdateAssetStatusRequest, opts ...grpc.CallOption) (*Asset, error)
+	ListAssets(ctx context.Context, in *ListAssetsRequest, opts ...grpc.CallOption) (*ListAssetsResponse, error)
 	// Tracking
 	UpdateLocation(ctx context.Context, in *UpdateLocationRequest, opts ...grpc.CallOption) (*UpdateLocationResponse, error)
 	GetLocation(ctx context.Context, in *GetLocationRequest, opts ...grpc.CallOption) (*AssetLocation, error)
@@ -73,6 +75,16 @@ func (c *fleetServiceClient) UpdateAssetStatus(ctx context.Context, in *UpdateAs
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Asset)
 	err := c.cc.Invoke(ctx, FleetService_UpdateAssetStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fleetServiceClient) ListAssets(ctx context.Context, in *ListAssetsRequest, opts ...grpc.CallOption) (*ListAssetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAssetsResponse)
+	err := c.cc.Invoke(ctx, FleetService_ListAssets_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +138,7 @@ type FleetServiceServer interface {
 	RegisterAsset(context.Context, *RegisterAssetRequest) (*Asset, error)
 	GetAsset(context.Context, *GetAssetRequest) (*Asset, error)
 	UpdateAssetStatus(context.Context, *UpdateAssetStatusRequest) (*Asset, error)
+	ListAssets(context.Context, *ListAssetsRequest) (*ListAssetsResponse, error)
 	// Tracking
 	UpdateLocation(context.Context, *UpdateLocationRequest) (*UpdateLocationResponse, error)
 	GetLocation(context.Context, *GetLocationRequest) (*AssetLocation, error)
@@ -148,6 +161,9 @@ func (UnimplementedFleetServiceServer) GetAsset(context.Context, *GetAssetReques
 }
 func (UnimplementedFleetServiceServer) UpdateAssetStatus(context.Context, *UpdateAssetStatusRequest) (*Asset, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateAssetStatus not implemented")
+}
+func (UnimplementedFleetServiceServer) ListAssets(context.Context, *ListAssetsRequest) (*ListAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAssets not implemented")
 }
 func (UnimplementedFleetServiceServer) UpdateLocation(context.Context, *UpdateLocationRequest) (*UpdateLocationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateLocation not implemented")
@@ -233,6 +249,24 @@ func _FleetService_UpdateAssetStatus_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FleetService_ListAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAssetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FleetServiceServer).ListAssets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FleetService_ListAssets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FleetServiceServer).ListAssets(ctx, req.(*ListAssetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FleetService_UpdateLocation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateLocationRequest)
 	if err := dec(in); err != nil {
@@ -300,6 +334,10 @@ var FleetService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FleetService_UpdateAssetStatus_Handler,
 		},
 		{
+			MethodName: "ListAssets",
+			Handler:    _FleetService_ListAssets_Handler,
+		},
+		{
 			MethodName: "UpdateLocation",
 			Handler:    _FleetService_UpdateLocation_Handler,
 		},
@@ -315,5 +353,5 @@ var FleetService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "api/proto/fleet/v1/fleet.proto",
+	Metadata: "server/api/proto/fleet/v1/fleet.proto",
 }

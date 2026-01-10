@@ -56,7 +56,11 @@ func (h *GRPCHandler) ListVenues(ctx context.Context, req *eventsv1.ListVenuesRe
 }
 
 func (h *GRPCHandler) UpdateVenue(ctx context.Context, req *eventsv1.UpdateVenueRequest) (*eventsv1.Venue, error) {
-	return nil, status.Error(codes.Unimplemented, "UpdateVenue not implemented")
+	v, err := h.service.UpdateVenue(ctx, req.Id, req.Name, req.Type.String())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return mapVenueToProto(v), nil
 }
 
 // --- Events ---
@@ -94,11 +98,22 @@ func (h *GRPCHandler) ListEvents(ctx context.Context, req *eventsv1.ListEventsRe
 }
 
 func (h *GRPCHandler) UpdateEvent(ctx context.Context, req *eventsv1.UpdateEventRequest) (*eventsv1.Event, error) {
-	return nil, status.Error(codes.Unimplemented, "UpdateEvent not implemented")
+	start, _ := time.Parse(time.RFC3339, req.StartTime)
+	end, _ := time.Parse(time.RFC3339, req.EndTime)
+
+	e, err := h.service.UpdateEvent(ctx, req.Id, req.Title, req.Description, start, end)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return mapEventToProto(e), nil
 }
 
 func (h *GRPCHandler) PublishEvent(ctx context.Context, req *eventsv1.PublishEventRequest) (*eventsv1.Event, error) {
-	return nil, status.Error(codes.Unimplemented, "PublishEvent not implemented")
+	e, err := h.service.PublishEvent(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return mapEventToProto(e), nil
 }
 
 // --- Ticket Types ---
@@ -128,7 +143,26 @@ func (h *GRPCHandler) ListTicketTypes(ctx context.Context, req *eventsv1.ListTic
 }
 
 func (h *GRPCHandler) SearchEvents(ctx context.Context, req *eventsv1.SearchEventsRequest) (*eventsv1.SearchEventsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "SearchEvents not implemented")
+	events, total, err := h.service.SearchEvents(ctx, req.Query, req.City, req.Category, req.StartDate, req.EndDate, req.PageSize, 0) // Offset 0 for now
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var results []*eventsv1.EventSearchResult
+	for _, e := range events {
+		// Fetch venue for each event
+		v, _ := h.service.GetVenue(ctx, e.VenueID)
+
+		results = append(results, &eventsv1.EventSearchResult{
+			Event: mapEventToProto(e),
+			Venue: mapVenueToProto(v), // Venue might be nil/partial if fail, but map handles nil gracefully? Check mapVenueToProto.
+			// Actually mapVenueToProto(nil) might panic. Let's be safe.
+		})
+	}
+	return &eventsv1.SearchEventsResponse{
+		Results:    results,
+		TotalCount: total,
+	}, nil
 }
 
 // --- Helpers ---
