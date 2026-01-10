@@ -15,9 +15,9 @@ type Transaction struct {
 	Amount         int64  `gorm:"not null"`
 	Currency       string `gorm:"size:3;not null"`
 	Gateway        string `gorm:"size:50;not null"`
-	GatewayTxID    string `gorm:"index"`                  // External Transaction ID from Gateway
-	Status         string `gorm:"size:20;index;not null"` // PENDING, SUCCESS, FAILED
-	IdempotencyKey string `gorm:"uniqueIndex;type:uuid"`  // Deterministic Key
+	GatewayTxID    string `gorm:"index"`                                     // External Transaction ID from Gateway
+	Status         string `gorm:"size:20;index;not null"`                    // PENDING, SUCCESS, FAILED
+	IdempotencyKey string `gorm:"uniqueIndex:idx_idempotency_key;type:uuid"` // Deterministic Key
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	DeletedAt      gorm.DeletedAt `gorm:"index"`
