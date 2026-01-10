@@ -74,7 +74,7 @@
                 // Let's store the Asset Name (License Plate / ID) for display.
                 // Actually, storing Asset ID allows lookup. Ideally Asset ID.
                 // Let's assume we store Name/Plate for now as per "vehicle_name" in Search results.
-                vehicle_id: selectedAsset.name,
+                // vehicle_id: selectedAsset.name, // Removed duplicate
                 vehicle_type: selectedAsset.type
                     .replace("ASSET_TYPE_", "")
                     .toLowerCase(),

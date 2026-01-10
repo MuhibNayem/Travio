@@ -36,20 +36,27 @@ func JWTAuth(config JWTConfig) func(http.Handler) http.Handler {
 				}
 			}
 
-			// Get Authorization header
+			// Get Token from Header or Cookie
+			var tokenString string
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, `{"error": "missing authorization header"}`, http.StatusUnauthorized)
-				return
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+					tokenString = parts[1]
+				}
 			}
 
-			// Extract Bearer token
-			parts := strings.Split(authHeader, " ")
-			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				http.Error(w, `{"error": "invalid authorization header format"}`, http.StatusUnauthorized)
+			if tokenString == "" {
+				cookie, err := r.Cookie("access_token")
+				if err == nil {
+					tokenString = cookie.Value
+				}
+			}
+
+			if tokenString == "" {
+				http.Error(w, `{"error": "missing or invalid authorization token"}`, http.StatusUnauthorized)
 				return
 			}
-			tokenString := parts[1]
 
 			// Parse and validate token
 			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

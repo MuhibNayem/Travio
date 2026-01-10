@@ -32,7 +32,7 @@
         loadAssets();
     });
 
-    const icons = {
+    const icons: Record<string, typeof Bus> = {
         [AssetType.BUS]: Bus,
         [AssetType.TRAIN]: Train,
         [AssetType.LAUNCH]: Ship,

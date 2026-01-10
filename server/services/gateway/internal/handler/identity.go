@@ -8,6 +8,7 @@ import (
 	subscriptionv1 "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/client"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -60,6 +61,9 @@ func (h *IdentityHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set Cookies
+	setAuthCookies(w, resp.AccessToken, resp.RefreshToken)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -67,8 +71,18 @@ func (h *IdentityHandler) Login(w http.ResponseWriter, r *http.Request) {
 // RefreshToken handles token refresh
 func (h *IdentityHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req identityv1.RefreshTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+	// Try to decode body, but ignore error if empty (might use cookie)
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	if req.RefreshToken == "" {
+		cookie, err := r.Cookie("refresh_token")
+		if err == nil {
+			req.RefreshToken = cookie.Value
+		}
+	}
+
+	if req.RefreshToken == "" {
+		http.Error(w, `{"error": "missing refresh token"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -79,6 +93,9 @@ func (h *IdentityHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update Cookies
+	setAuthCookies(w, resp.AccessToken, resp.RefreshToken)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -86,18 +103,26 @@ func (h *IdentityHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // Logout handles user logout
 func (h *IdentityHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var req identityv1.LogoutRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
-		return
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	if req.RefreshToken == "" {
+		cookie, err := r.Cookie("refresh_token")
+		if err == nil {
+			req.RefreshToken = cookie.Value
+		}
 	}
 
-	_, err := h.client.Logout(r.Context(), &req)
-	if err != nil {
-		logger.Error("Failed to logout", "error", err)
-		http.Error(w, `{"error": "logout failed"}`, http.StatusInternalServerError)
-		return
+	// Only call backend if we have a token
+	if req.RefreshToken != "" {
+		_, err := h.client.Logout(r.Context(), &req)
+		if err != nil {
+			logger.Error("Failed to logout", "error", err)
+			// Proceed to clear cookies anyway
+		}
 	}
 
+	// Clear Cookies
+	clearAuthCookies(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -270,4 +295,49 @@ func (h *IdentityHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+// GetMe returns current user info from context (cookie auth)
+func (h *IdentityHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	orgID := middleware.GetOrgID(r.Context())
+	role := middleware.GetUserRole(r.Context())
+
+	if userID == "" {
+		http.Error(w, `{"error": "unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"id":              userID,
+		"organization_id": orgID,
+		"role":            role,
+	})
+}
+
+func setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // Set to true in production
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   15 * 60,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // Set to true in production
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60,
+	})
+}
+
+func clearAuthCookies(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 }

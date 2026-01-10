@@ -3,13 +3,7 @@
     import * as Dialog from "$lib/components/ui/dialog";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
-    import {
-        Select,
-        SelectContent,
-        SelectItem,
-        SelectTrigger,
-        SelectValue,
-    } from "$lib/components/ui/select";
+
     import {
         fleetApi,
         AssetType,
@@ -107,20 +101,15 @@
             <div class="grid grid-cols-2 gap-4">
                 <div class="grid gap-2">
                     <Label>Type</Label>
-                    <Select type="single" bind:value={type}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={AssetType.BUS}>Bus</SelectItem>
-                            <SelectItem value={AssetType.TRAIN}
-                                >Train</SelectItem
-                            >
-                            <SelectItem value={AssetType.LAUNCH}
-                                >Launch/Ship</SelectItem
-                            >
-                        </SelectContent>
-                    </Select>
+
+                    <select
+                        class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        bind:value={type}
+                    >
+                        <option value={AssetType.BUS}>Bus</option>
+                        <option value={AssetType.TRAIN}>Train</option>
+                        <option value={AssetType.LAUNCH}>Launch/Ship</option>
+                    </select>
                 </div>
                 <div class="grid gap-2">
                     <Label for="license">License Plate</Label>

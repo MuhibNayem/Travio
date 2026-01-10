@@ -29,6 +29,12 @@ export interface Session {
     expires_at: string;
 }
 
+export interface UserContext {
+    id: string;
+    organization_id: string;
+    role: string;
+}
+
 /**
  * Login with email and password
  */
@@ -86,10 +92,10 @@ export async function createOrganization(
 }
 
 /**
- * Logout - invalidate the refresh token
+ * Logout - invalidate the refresh token (or cookie)
  */
-export async function logout(refreshToken: string): Promise<void> {
-    return api.post('/v1/auth/logout', { refresh_token: refreshToken });
+export async function logout(refreshToken?: string): Promise<void> {
+    return api.post('/v1/auth/logout', { refresh_token: refreshToken || "" });
 }
 
 /**
@@ -100,10 +106,17 @@ export async function logoutAll(accessToken: string): Promise<void> {
 }
 
 /**
- * Refresh access token using refresh token
+ * Refresh access token using refresh token check (or cookie)
  */
-export async function refreshTokens(refreshToken: string): Promise<TokenPair> {
-    return api.post<TokenPair>('/v1/auth/refresh', { refresh_token: refreshToken });
+export async function refreshTokens(refreshToken?: string): Promise<TokenPair> {
+    return api.post<TokenPair>('/v1/auth/refresh', { refresh_token: refreshToken || "" });
+}
+
+/**
+ * Get current user context from session
+ */
+export async function getMe(): Promise<UserContext> {
+    return api.get<UserContext>('/v1/auth/me');
 }
 
 /**

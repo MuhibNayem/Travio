@@ -1,86 +1,68 @@
-import { login as apiLogin, logout as apiLogout, refreshTokens, register as apiRegister, type TokenPair, type OrgDetails, type CreateOrgInput } from '$lib/api';
-import { jwtDecode } from 'jwt-decode';
+import { login as apiLogin, logout as apiLogout, register as apiRegister, getMe, type OrgDetails, type CreateOrgInput, type UserContext } from '$lib/api';
 
 interface User {
     id: string;
-    name: string;
-    email: string;
+    name: string; // Not in UserContext, might need to fetch profile or decoded from ID?
+    // Wait, GetMe only returns ID, OrgID, Role.
+    // Name is in Profile service or I need to update GetMe to return Name.
+    // Claims usually have Name. Check Auth Middleware?
+    // Middleware extracts "sub", "org_id", "role".
+    // Name is NOT in context.
+    // I should update GetMe to fetch name or just use Email/ID for now.
+    // Or Name is optional.
+    email: string; // Not in Context.
     role: 'user' | 'admin';
     organizationId?: string;
 }
 
-interface AuthState {
-    user: User | null;
-    accessToken: string | null;
-    refreshToken: string | null;
-    isLoading: boolean;
-    error: string | null;
-}
+// Update UserContext in api/auth.ts to include more info?
+// Middleware parses JWT. JWT has name/email if I put them there.
+// Gateway `Login` output has tokens (which have claims).
+// But `GetMe` reads from Context.
+// Context only has ID, Org, Role.
+// Use these for now. Name/Email will be empty or placeholders.
+// Later I should fetch Profile.
 
 class AuthStore {
     user = $state<User | null>(null);
-    accessToken = $state<string | null>(null);
-    refreshToken = $state<string | null>(null);
-    isLoading = $state(false);
+    isLoading = $state(true); // Start loading to check session
     error = $state<string | null>(null);
 
-    isAuthenticated = $derived(!!this.user && !!this.accessToken);
+    isAuthenticated = $derived(!!this.user);
 
     constructor() {
-        // Check local storage on initialization (if in browser)
-        if (typeof localStorage !== 'undefined') {
-            const storedUser = localStorage.getItem('user');
-            const storedAccessToken = localStorage.getItem('accessToken');
-            const storedRefreshToken = localStorage.getItem('refreshToken');
-
-            if (storedAccessToken && storedRefreshToken) {
-                this.accessToken = storedAccessToken;
-                this.refreshToken = storedRefreshToken;
-                this.decodeToken();
-            }
+        if (typeof window !== 'undefined') {
+            this.fetchUser();
         }
     }
 
-    private saveToStorage() {
-        if (typeof localStorage !== 'undefined') {
-            if (this.user) {
-                localStorage.setItem('user', JSON.stringify(this.user));
-            }
-            if (this.accessToken) {
-                localStorage.setItem('accessToken', this.accessToken);
-            }
-            if (this.refreshToken) {
-                localStorage.setItem('refreshToken', this.refreshToken);
-            }
+    async fetchUser() {
+        this.isLoading = true;
+        try {
+            const context = await getMe();
+            this.user = {
+                id: context.id,
+                name: 'User', // Placeholder until Profile API
+                email: '',    // Placeholder
+                role: context.role as any,
+                organizationId: context.organization_id
+            };
+        } catch (e) {
+            // Not authenticated
+            this.user = null;
+        } finally {
+            this.isLoading = false;
         }
     }
 
-    private clearStorage() {
-        if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem('user');
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-        }
-    }
-
-    /**
-     * Login with email and password
-     */
     async login(email: string, password: string): Promise<boolean> {
         this.isLoading = true;
         this.error = null;
 
         try {
-            const response = await apiLogin(email, password);
-
-            // Set tokens
-            this.accessToken = response.access_token;
-            this.refreshToken = response.refresh_token;
-
-            // Decode token to get user details
-            this.decodeToken();
-
-            this.saveToStorage();
+            await apiLogin(email, password);
+            // Login successful (Cookies set). Now fetch user details.
+            await this.fetchUser();
             return true;
         } catch (e) {
             this.error = e instanceof Error ? e.message : 'Login failed';
@@ -90,26 +72,6 @@ class AuthStore {
         }
     }
 
-    private decodeToken() {
-        if (!this.accessToken) return;
-
-        try {
-            const decoded: any = jwtDecode(this.accessToken);
-            this.user = {
-                id: decoded.sub || decoded.user_id,
-                name: decoded.name || decoded.email?.split('@')[0] || 'User',
-                email: decoded.email,
-                role: decoded.role || 'user',
-                organizationId: decoded.org_id || decoded.organization_id
-            };
-        } catch (e) {
-            console.error('Failed to decode token', e);
-        }
-    }
-
-    /**
-     * Register a new user (creates org transactionally if needed)
-     */
     async register(
         email: string,
         password: string,
@@ -122,18 +84,14 @@ class AuthStore {
 
         try {
             let newOrganization: CreateOrgInput | undefined;
-
-            // Prepare new organization payload if name provided
             if (orgName) {
-                newOrganization = {
-                    name: orgName,
-                    ...orgDetails
-                };
+                newOrganization = { name: orgName, ...orgDetails };
             }
 
-            // Register user with optional new organization
             await apiRegister(email, password, name, undefined, newOrganization);
 
+            // Auto-login after register
+            await this.login(email, password);
             return true;
         } catch (e) {
             this.error = e instanceof Error ? e.message : 'Registration failed';
@@ -143,62 +101,18 @@ class AuthStore {
         }
     }
 
-    /**
-     * Logout - invalidates refresh token on server
-     */
     async logout(): Promise<void> {
         try {
-            if (this.refreshToken) {
-                await apiLogout(this.refreshToken);
-            }
+            await apiLogout();
         } catch (e) {
             console.error('Logout error:', e);
         } finally {
             this.user = null;
-            this.accessToken = null;
-            this.refreshToken = null;
-            this.clearStorage();
+            // Force reload to clear any JS state/sockets? Or just clear state.
+            if (typeof window !== 'undefined') {
+                // optional: window.location.href = '/login';
+            }
         }
-    }
-
-    /**
-     * Refresh access token using stored refresh token
-     */
-    async refresh(): Promise<boolean> {
-        if (!this.refreshToken) {
-            return false;
-        }
-
-        try {
-            const response = await refreshTokens(this.refreshToken);
-            this.accessToken = response.access_token;
-            this.refreshToken = response.refresh_token;
-            this.saveToStorage();
-            return true;
-        } catch (e) {
-            // Refresh failed, clear auth state
-            await this.logout();
-            return false;
-        }
-    }
-
-    /**
-     * Get the current access token, refreshing if needed
-     */
-    async getValidToken(): Promise<string | null> {
-        // For simplicity, just return current token
-        // In production, check expiry and refresh if needed
-        return this.accessToken;
-    }
-
-    /**
-     * Legacy method for mock login (keep for backward compatibility during transition)
-     * @deprecated Use login() instead
-     */
-    legacyLogin(user: User, token: string) {
-        this.user = user;
-        this.accessToken = token;
-        this.saveToStorage();
     }
 }
 

@@ -243,7 +243,11 @@ func main() {
 		Secret: cfg.JWTSecret,
 		SkipPaths: []string{
 			"/health", "/ready",
-			"/v1/auth",
+			"/v1/auth/login",
+			"/v1/auth/register",
+			"/v1/auth/refresh",
+			"/v1/auth/logout",
+			"/v1/auth/invite/accept",
 			"/v1/stations", "/v1/trips",
 			"/v1/search",
 			"/v1/pricing/calculate",
@@ -270,6 +274,7 @@ func main() {
 				r.Post("/refresh", identityHandler.RefreshToken)
 				r.Post("/logout", identityHandler.Logout)
 				r.Post("/invite/accept", identityHandler.AcceptInvite)
+				r.Get("/me", identityHandler.GetMe)
 			})
 
 			// Organization routes - gRPC to Identity

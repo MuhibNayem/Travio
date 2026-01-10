@@ -38,11 +38,17 @@ export async function apiRequest<T>(
 
     if (token) {
         requestHeaders['Authorization'] = `Bearer ${token}`;
+    } else if (typeof localStorage !== 'undefined') {
+        const storedToken = localStorage.getItem('accessToken');
+        if (storedToken) {
+            requestHeaders['Authorization'] = `Bearer ${storedToken}`;
+        }
     }
 
     const config: RequestInit = {
         method,
         headers: requestHeaders,
+        credentials: 'include', // Enable Cookies
     };
 
     if (body && method !== 'GET') {

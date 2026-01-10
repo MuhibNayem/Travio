@@ -20,17 +20,28 @@
     import { Separator } from "$lib/components/ui/separator";
     import { eventsApi } from "$lib/api/events";
     import { catalogApi } from "$lib/api/catalog";
+    import * as Dialog from "$lib/components/ui/dialog";
+    import TicketPrint from "$lib/components/sales/TicketPrint.svelte";
+    import { ordersApi, type CreateOrderRequest } from "$lib/api/orders";
+    import { paymentApi, type PaymentMethod } from "$lib/api/payment";
+    import { auth } from "$lib/runes/auth.svelte";
+    import { toast } from "svelte-sonner";
 
     // State
     let items: any[] = [];
+    let paymentMethods: PaymentMethod[] = [];
     let loading = true;
+    let processing = false;
     let activeTab: "trips" | "events" = "trips";
+    let showTicket = false;
+    let createdOrder: any = null;
 
     // Selected State
     let selectedItem: any = null;
     let selectedSeats: string[] = [];
     let customerName = "";
     let customerPhone = "";
+    let selectedPaymentId = "cash";
 
     $: subtotal = selectedSeats.length * (selectedItem?.price || 0);
 
@@ -41,6 +52,9 @@
     async function loadData() {
         loading = true;
         try {
+            const orgId = auth.user?.organizationId;
+            if (!orgId) return;
+
             if (activeTab === "trips") {
                 const res = await catalogApi.getTrips();
                 items = res.map((t) => ({
@@ -59,8 +73,6 @@
                     raw: t,
                 }));
             } else {
-                // Hardcode org ID for demo or use current user's org
-                const orgId = "org_2rQd5zK8X7y3vM9pL4nJ1";
                 const res = await eventsApi.searchEvents("");
                 items = res.results.map((r) => ({
                     id: r.event.id,
@@ -77,8 +89,19 @@
                     raw: r,
                 }));
             }
+
+            // Load Payment Methods
+            if (paymentMethods.length === 0) {
+                try {
+                    const pRes = await paymentApi.getPaymentMethods();
+                    paymentMethods = pRes.methods || [];
+                } catch (e) {
+                    console.error("Failed to load payments", e);
+                }
+            }
         } catch (err) {
             console.error("Failed to load data", err);
+            toast.error("Failed to load data");
         } finally {
             loading = false;
         }
@@ -98,6 +121,60 @@
 
     function handleSeatSelection(e: CustomEvent) {
         selectedSeats = e.detail;
+    }
+
+    async function handleBooking() {
+        if (!selectedItem || selectedSeats.length === 0) return;
+        if (!customerName || !customerPhone) {
+            toast.error("Please enter customer name and phone");
+            return;
+        }
+
+        processing = true;
+        try {
+            const orgId = auth.user?.organizationId;
+            if (!orgId) throw new Error("Organization ID missing");
+
+            const payload: CreateOrderRequest = {
+                organization_id: orgId,
+                user_id: "counter_agent",
+                trip_id: activeTab === "trips" ? selectedItem.id : "",
+                from_station_id: "counter",
+                to_station_id: "counter",
+                passengers: selectedSeats.map((seat) => ({
+                    name: customerName,
+                    seat_id: seat,
+                })),
+                payment_method: {
+                    type: selectedPaymentId,
+                },
+                contact_email: "",
+                contact_phone: customerPhone,
+            };
+
+            const res = await ordersApi.createOrder(payload);
+
+            if (res.payment_redirect_url && selectedPaymentId !== "cash") {
+                toast.success("Order Created. Proceed to payment.");
+                createdOrder = res.order;
+                showTicket = true;
+            } else {
+                toast.success("Booking confirmed! Printing ticket...");
+                createdOrder = res.order;
+                showTicket = true;
+            }
+
+            // Reset
+            selectedSeats = [];
+            customerName = "";
+            customerPhone = "";
+            selectedPaymentId = "cash";
+        } catch (err) {
+            console.error(err);
+            toast.error("Booking failed");
+        } finally {
+            processing = false;
+        }
     }
 </script>
 
@@ -145,7 +222,7 @@
                         class:border-primary={selectedItem?.id === item.id}
                         class:ring-1={selectedItem?.id === item.id}
                         class:ring-primary={selectedItem?.id === item.id}
-                        on:click={() => selectItem(item)}
+                        onclick={() => selectItem(item)}
                     >
                         <div class="flex justify-between items-start">
                             <span
@@ -327,6 +404,39 @@
             </div>
         </div>
 
+        <div class="px-4 pb-4">
+            <Separator class="my-4" />
+            <div class="space-y-3">
+                <h4
+                    class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                    Payment Method
+                </h4>
+                <div class="grid grid-cols-2 gap-2">
+                    <button
+                        class="border rounded-md p-2 text-xs font-medium transition-colors {selectedPaymentId ===
+                        'cash'
+                            ? 'bg-primary text-white border-primary'
+                            : 'hover:border-primary'}"
+                        onclick={() => (selectedPaymentId = "cash")}
+                    >
+                        Cash
+                    </button>
+                    {#each paymentMethods as pm}
+                        <button
+                            class="border rounded-md p-2 text-xs font-medium transition-colors {selectedPaymentId ===
+                            pm.id
+                                ? 'bg-primary text-white border-primary'
+                                : 'hover:border-primary'}"
+                            onclick={() => (selectedPaymentId = pm.id)}
+                        >
+                            {pm.name}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+        </div>
+
         <!-- Footer / Checkout -->
         <div class="p-4 border-t bg-gray-50">
             <div class="space-y-1 mb-4">
@@ -349,10 +459,44 @@
             <Button
                 class="w-full gap-2 font-bold shadow-lg shadow-primary/20"
                 size="lg"
-                disabled={selectedSeats.length === 0}
+                disabled={selectedSeats.length === 0 || processing}
+                onclick={handleBooking}
             >
-                <CreditCard class="w-4 h-4" /> Book & Print
+                {#if processing}
+                    <Loader2 class="w-4 h-4 animate-spin" /> Processing...
+                {:else}
+                    <CreditCard class="w-4 h-4" /> Book & Print
+                {/if}
             </Button>
         </div>
     </div>
 </div>
+
+<Dialog.Root bind:open={showTicket}>
+    <Dialog.Content class="max-w-[400px]">
+        <Dialog.Header>
+            <Dialog.Title>Booking Confirmed</Dialog.Title>
+            <Dialog.Description>
+                Ticket generated successfully. Please print it for the customer.
+            </Dialog.Description>
+        </Dialog.Header>
+        {#if createdOrder}
+            <div
+                class="flex justify-center py-4 bg-gray-50 rounded-lg max-h-[60vh] overflow-y-auto print:hidden"
+            >
+                <TicketPrint order={createdOrder} />
+            </div>
+            <!-- Hidden Print Container -->
+            <div class="hidden print:block fixed inset-0 bg-white z-[9999]">
+                <TicketPrint order={createdOrder} />
+            </div>
+
+            <Dialog.Footer class="sm:justify-end gap-2 print:hidden">
+                <Button variant="outline" onclick={() => (showTicket = false)}>
+                    Close
+                </Button>
+                <Button onclick={() => window.print()}>Print Ticket</Button>
+            </Dialog.Footer>
+        {/if}
+    </Dialog.Content>
+</Dialog.Root>

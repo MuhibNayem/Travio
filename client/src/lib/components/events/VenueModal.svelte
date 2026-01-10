@@ -3,7 +3,7 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import * as Dialog from "$lib/components/ui/dialog";
-    import * as Select from "$lib/components/ui/select";
+
     import {
         eventsApi,
         VenueType,
@@ -50,11 +50,17 @@
                 country = venueToEdit.country;
                 type = venueToEdit.type;
                 sections =
-                    venueToEdit.sections?.map((s) => ({
-                        name: s.name,
-                        capacity: s.capacity,
-                        price_tier: s.type, // mapping type to tier for UI simplicity
-                    })) || [];
+                    venueToEdit.sections?.map(
+                        (s: {
+                            name: string;
+                            capacity: number;
+                            type: string;
+                        }) => ({
+                            name: s.name,
+                            capacity: s.capacity,
+                            price_tier: s.type, // mapping type to tier for UI simplicity
+                        }),
+                    ) || [];
             } else {
                 resetForm();
             }
@@ -168,20 +174,14 @@
                 </div>
                 <div class="space-y-2">
                     <Label>Type</Label>
-                    <Select.Root type="single" bind:value={type as any}>
-                        <!-- Casting for Select binding complexity -->
-                        <Select.Trigger
-                            >{venueTypes.find((t) => t.value === type)?.label ||
-                                "Select Type"}</Select.Trigger
-                        >
-                        <Select.Content>
-                            {#each venueTypes as vt}
-                                <Select.Item value={vt.value}
-                                    >{vt.label}</Select.Item
-                                >
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
+                    <select
+                        class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        bind:value={type}
+                    >
+                        {#each venueTypes as vt}
+                            <option value={vt.value}>{vt.label}</option>
+                        {/each}
+                    </select>
                 </div>
             </div>
 
