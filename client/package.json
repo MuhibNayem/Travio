@@ -36,6 +36,7 @@
 		]
 	},
 	"dependencies": {
+		"jwt-decode": "^4.0.0",
 		"svelte-sonner": "^1.0.7"
 	}
 }

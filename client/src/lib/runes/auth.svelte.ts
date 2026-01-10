@@ -1,10 +1,12 @@
 import { login as apiLogin, logout as apiLogout, refreshTokens, createOrganization, register as apiRegister, type TokenPair } from '$lib/api';
+import { jwtDecode } from 'jwt-decode';
 
 interface User {
     id: string;
     name: string;
     email: string;
     role: 'user' | 'admin';
+    organizationId?: string;
 }
 
 interface AuthState {
@@ -31,15 +33,10 @@ class AuthStore {
             const storedAccessToken = localStorage.getItem('accessToken');
             const storedRefreshToken = localStorage.getItem('refreshToken');
 
-            if (storedUser && storedAccessToken && storedRefreshToken) {
-                try {
-                    this.user = JSON.parse(storedUser);
-                    this.accessToken = storedAccessToken;
-                    this.refreshToken = storedRefreshToken;
-                } catch (e) {
-                    console.error('Failed to parse user from local storage', e);
-                    this.clearStorage();
-                }
+            if (storedAccessToken && storedRefreshToken) {
+                this.accessToken = storedAccessToken;
+                this.refreshToken = storedRefreshToken;
+                this.decodeToken();
             }
         }
     }
@@ -80,13 +77,8 @@ class AuthStore {
             this.accessToken = response.access_token;
             this.refreshToken = response.refresh_token;
 
-            // Create user from email (in a real app, you'd decode the JWT or fetch user profile)
-            this.user = {
-                id: 'user-id', // Would come from JWT claims
-                name: email.split('@')[0],
-                email: email,
-                role: 'user',
-            };
+            // Decode token to get user details
+            this.decodeToken();
 
             this.saveToStorage();
             return true;
@@ -95,6 +87,23 @@ class AuthStore {
             return false;
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    private decodeToken() {
+        if (!this.accessToken) return;
+
+        try {
+            const decoded: any = jwtDecode(this.accessToken);
+            this.user = {
+                id: decoded.sub || decoded.user_id,
+                name: decoded.name || decoded.email?.split('@')[0] || 'User',
+                email: decoded.email,
+                role: decoded.role || 'user',
+                organizationId: decoded.org_id || decoded.organization_id
+            };
+        } catch (e) {
+            console.error('Failed to decode token', e);
         }
     }
 

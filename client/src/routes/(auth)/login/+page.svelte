@@ -6,6 +6,8 @@
     import { Loader2 } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
 
+    import { subscriptionApi } from "$lib/api/subscription";
+
     let email = $state("");
     let password = $state("");
 
@@ -19,7 +21,35 @@
             toast.success("Welcome back!", {
                 description: "You have successfully signed in.",
             });
-            goto("/dashboard");
+
+            // Role-based redirect
+            if (auth.user?.role === "user") {
+                goto("/search");
+            } else if (
+                auth.user?.role === "admin" &&
+                auth.user?.organizationId
+            ) {
+                try {
+                    // Check subscription status
+                    const sub = await subscriptionApi.getSubscription(
+                        auth.user.organizationId,
+                    );
+                    // If on free plan, redirect to onboarding to upsell/setup
+                    // Assuming 'plan_free' is the ID for free tier
+                    if (sub.plan_id === "plan_free") {
+                        goto("/onboarding");
+                    } else {
+                        goto("/dashboard");
+                    }
+                } catch (e) {
+                    // Fallback if subscription fetch fails (e.g. fresh org? or error)
+                    // If 404, it might mean no subscription -> Onboarding
+                    goto("/onboarding");
+                }
+            } else {
+                // Default fallback
+                goto("/dashboard");
+            }
         } else {
             toast.error("Login failed", {
                 description: auth.error || "Please check your credentials.",

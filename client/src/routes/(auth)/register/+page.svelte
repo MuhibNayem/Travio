@@ -3,14 +3,16 @@
     import { Input } from "$lib/components/ui/input";
     import { auth } from "$lib/runes/auth.svelte";
     import { goto } from "$app/navigation";
-    import { Loader2 } from "@lucide/svelte";
+    import { Loader2, User, Bus } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
+    import { cn } from "$lib/utils";
 
     let name = $state("");
     let email = $state("");
     let password = $state("");
     let confirmPassword = $state("");
     let orgName = $state("");
+    let accountType = $state<"traveller" | "operator">("traveller");
 
     let passwordError = $derived(
         confirmPassword && password !== confirmPassword
@@ -19,14 +21,22 @@
     );
 
     let isFormValid = $derived(
-        name && email && password && confirmPassword && !passwordError,
+        name &&
+            email &&
+            password &&
+            confirmPassword &&
+            !passwordError &&
+            (accountType === "traveller" ||
+                (accountType === "operator" && orgName)),
     );
 
     async function handleRegister() {
         if (!isFormValid) return;
 
-        // Use name as org name if not provided
-        const organizationName = orgName || name;
+        // Use name as org name if not provided (fallback, though validation enforces it for operator)
+        // If traveller, orgName should be undefined/empty to avoid creating org.
+        const organizationName =
+            accountType === "operator" ? orgName : undefined;
 
         const success = await auth.register(email, password, organizationName);
         if (success) {
@@ -59,7 +69,11 @@
             <h1 class="text-3xl font-black tracking-tight mb-2">
                 Join TicketNation
             </h1>
-            <p class="text-muted-foreground">Create your account today</p>
+            <p class="text-muted-foreground">
+                {accountType === "traveller"
+                    ? "Create your traveller account"
+                    : "Register your bus company"}
+            </p>
         </div>
 
         {#if auth.error}
@@ -69,6 +83,34 @@
                 {auth.error}
             </div>
         {/if}
+
+        <!-- Account Type Selector -->
+        <div class="grid grid-cols-2 gap-2 p-1 bg-muted/50 rounded-lg">
+            <button
+                class={cn(
+                    "flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-md transition-all",
+                    accountType === "traveller"
+                        ? "bg-white text-primary shadow-sm dark:bg-gray-800 dark:text-white"
+                        : "text-muted-foreground hover:text-foreground",
+                )}
+                onclick={() => (accountType = "traveller")}
+            >
+                <User size={16} />
+                Traveller
+            </button>
+            <button
+                class={cn(
+                    "flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-md transition-all",
+                    accountType === "operator"
+                        ? "bg-white text-primary shadow-sm dark:bg-gray-800 dark:text-white"
+                        : "text-muted-foreground hover:text-foreground",
+                )}
+                onclick={() => (accountType = "operator")}
+            >
+                <Bus size={16} />
+                Operator
+            </button>
+        </div>
 
         <div class="flex flex-col gap-4 text-left">
             <div class="space-y-2">
@@ -86,6 +128,25 @@
                     onkeydown={handleKeyDown}
                 />
             </div>
+
+            {#if accountType === "operator"}
+                <div class="space-y-2">
+                    <label
+                        class="text-sm font-bold text-gray-700 dark:text-gray-300"
+                        for="orgName">Company Name</label
+                    >
+                    <Input
+                        id="orgName"
+                        type="text"
+                        bind:value={orgName}
+                        class="bg-white/50 backdrop-blur-sm"
+                        placeholder="Green Line Paribahan"
+                        disabled={auth.isLoading}
+                        onkeydown={handleKeyDown}
+                    />
+                </div>
+            {/if}
+
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
@@ -101,25 +162,7 @@
                     onkeydown={handleKeyDown}
                 />
             </div>
-            <div class="space-y-2">
-                <label
-                    class="text-sm font-bold text-gray-700 dark:text-gray-300"
-                    for="orgName"
-                    >Organization Name <span
-                        class="text-muted-foreground font-normal"
-                        >(optional)</span
-                    ></label
-                >
-                <Input
-                    id="orgName"
-                    type="text"
-                    bind:value={orgName}
-                    class="bg-white/50 backdrop-blur-sm"
-                    placeholder="Your Company"
-                    disabled={auth.isLoading}
-                    onkeydown={handleKeyDown}
-                />
-            </div>
+
             <div class="space-y-2">
                 <label
                     class="text-sm font-bold text-gray-700 dark:text-gray-300"
@@ -166,7 +209,9 @@
                 <Loader2 class="mr-2 h-5 w-5 animate-spin" />
                 Creating account...
             {:else}
-                Create Account
+                {accountType === "operator"
+                    ? "Register Company"
+                    : "Create Account"}
             {/if}
         </Button>
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/services/payment/internal/gateway"
@@ -95,6 +96,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 	}
 
 	// Instantiate Gateway client using sandbox flag from org config
+	// Instantiate Gateway client using sandbox flag from org config
 	gw, err := factory.Create(payConfig.Credentials, payConfig.IsSandbox)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway instance: %w", err)
@@ -113,10 +115,20 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *CreatePaymentRe
 		IPNURL:        req.IPNURL,
 	}
 
-	resp, err := gw.CreatePayment(ctx, gwReq)
-	if err != nil {
-		_ = s.repo.UpdateStatus(ctx, savedTx.ID, "FAILED", "")
-		return nil, fmt.Errorf("gateway error: %w", err)
+	var resp *gateway.CreatePaymentResponse
+	// DEV MODE BYPASS
+	if os.Getenv("APP_ENV") == "development" {
+		// Mock Success
+		resp = &gateway.CreatePaymentResponse{
+			SessionID:   "dev-" + uuid.NewString(),                                                                           // Fake Session
+			RedirectURL: req.ReturnURL + "&org=" + req.OrganizationID + "&status=success&val_id=dev_val_" + uuid.NewString(), // Immediate success redirect
+		}
+	} else {
+		resp, err = gw.CreatePayment(ctx, gwReq)
+		if err != nil {
+			_ = s.repo.UpdateStatus(ctx, savedTx.ID, "FAILED", "")
+			return nil, fmt.Errorf("gateway error: %w", err)
+		}
 	}
 
 	// 4. Update Status
@@ -147,6 +159,19 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, gatewayName, transac
 	}
 
 	// 3. Create Gateway
+	// 3. Create Gateway
+	// DEV MODE BYPASS
+	if os.Getenv("APP_ENV") == "development" {
+		return &gateway.PaymentStatus{
+			Status:        gateway.StatusCaptured,
+			TransactionID: transactionID,
+			AmountPaisa:   tx.Amount,
+			Currency:      tx.Currency,
+			GatewayRef:    "dev_val_" + uuid.NewString(),
+			ProcessedAt:   time.Now().Unix(),
+		}, nil
+	}
+
 	providerName := s.registry.ResolveProvider(gatewayName)
 	factory, err := s.registry.GetFactory(providerName)
 	if err != nil {
@@ -174,6 +199,19 @@ func (s *PaymentService) CapturePayment(ctx context.Context, gatewayName, transa
 	}
 
 	// 3. Create Gateway
+	// 3. Create Gateway
+	// DEV MODE BYPASS
+	if os.Getenv("APP_ENV") == "development" {
+		return &gateway.PaymentStatus{
+			Status:        gateway.StatusCaptured,
+			TransactionID: transactionID,
+			AmountPaisa:   tx.Amount,
+			Currency:      tx.Currency,
+			GatewayRef:    "dev_val_" + uuid.NewString(),
+			ProcessedAt:   time.Now().Unix(),
+		}, nil
+	}
+
 	providerName := s.registry.ResolveProvider(gatewayName)
 	factory, err := s.registry.GetFactory(providerName)
 	if err != nil {
