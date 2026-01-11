@@ -11,12 +11,12 @@
     } from "$lib/api/catalog";
     import { toast } from "svelte-sonner";
     import { onMount } from "svelte";
+    import { stationsStore } from "$lib/stores/stations.svelte";
 
     export let open = false;
     export let onSuccess: () => void;
 
     let loading = false;
-    let stations: Station[] = [];
 
     // Form State
     let name = "";
@@ -28,7 +28,7 @@
 
     onMount(async () => {
         try {
-            stations = await catalogApi.getStations();
+            await stationsStore.load();
         } catch (e) {
             console.error(e);
             toast.error("Failed to load stations");
@@ -114,23 +114,25 @@
                 <div class="grid gap-2">
                     <Label>Origin Station</Label>
                     <Combobox
-                        items={stations.map((s) => ({
+                        items={stationsStore.stations.map((s) => ({
                             value: s.id,
                             label: s.name,
                         }))}
                         bind:value={originId}
                         placeholder="Select Origin"
+                        loading={stationsStore.loading}
                     />
                 </div>
                 <div class="grid gap-2">
                     <Label>Destination Station</Label>
                     <Combobox
-                        items={stations.map((s) => ({
+                        items={stationsStore.stations.map((s) => ({
                             value: s.id,
                             label: s.name,
                         }))}
                         bind:value={destinationId}
                         placeholder="Select Destination"
+                        loading={stationsStore.loading}
                     />
                 </div>
             </div>

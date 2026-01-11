@@ -142,14 +142,67 @@ CREATE INDEX IF NOT EXISTS idx_trips_route_id ON trips(route_id);
 CREATE INDEX IF NOT EXISTS idx_trips_vehicle_type ON trips(vehicle_type);
 
 -- Seed data for stations
+-- Legacy stations for backward compatibility
 INSERT INTO stations (id, code, name, city, country) VALUES
     ('11111111-1111-1111-1111-111111111111', 'DHA', 'Dhaka (Kamalapur)', 'Dhaka', 'Bangladesh'),
     ('22222222-2222-2222-2222-222222222222', 'CTG', 'Chittagong', 'Chittagong', 'Bangladesh'),
-    ('33333333-3333-3333-3333-333333333333', 'SYL', 'Sylhet', 'Sylhet', 'Bangladesh'),
+    ('33333333-3333-3333-3333-333333333333', 'SLT', 'Sylhet', 'Sylhet', 'Bangladesh'),
     ('44444444-4444-4444-4444-444444444444', 'CXB', 'Cox''s Bazar', 'Cox''s Bazar', 'Bangladesh'),
     ('55555555-5555-5555-5555-555555555555', 'KHL', 'Khulna', 'Khulna', 'Bangladesh'),
-    ('66666666-6666-6666-6666-666666666666', 'RAJ', 'Rajshahi', 'Rajshahi', 'Bangladesh')
+    ('66666666-6666-6666-6666-666666666666', 'RAH', 'Rajshahi', 'Rajshahi', 'Bangladesh')
 ON CONFLICT DO NOTHING;
+
+-- Import comprehensive Bangladesh stations data
+\i /docker-entrypoint-initdb.d/seed-bd-stations.sql
+
+-- ============================================================================
+-- STATIONS PRODUCTION IMPROVEMENTS
+-- ============================================================================
+
+-- Add constraints for data integrity
+ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_code_unique UNIQUE (code);
+ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_latitude_check CHECK (latitude >= -90 AND latitude <= 90);
+ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_longitude_check CHECK (longitude >= -180 AND longitude <= 180);
+ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_code_format_check CHECK (code ~ '^[A-Z]{3}$');
+ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_status_check CHECK (status IN ('active', 'inactive', 'under_construction', 'maintenance'));
+
+-- Add performance indexes
+CREATE INDEX IF NOT EXISTS idx_stations_state ON stations(state) WHERE state IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_stations_city_country ON stations(city, country);
+CREATE INDEX IF NOT EXISTS idx_stations_active ON stations(status) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_stations_name_search ON stations USING gin(to_tsvector('english', name));
+CREATE INDEX IF NOT EXISTS idx_stations_coordinates ON stations(latitude, longitude);
+
+-- Add auto-update trigger for updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_stations_updated_at ON stations;
+CREATE TRIGGER update_stations_updated_at BEFORE UPDATE ON stations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Create utility views
+CREATE OR REPLACE VIEW active_stations AS
+SELECT id, code, name, city, state, country, latitude, longitude, amenities, timezone, address, created_at, updated_at
+FROM stations WHERE status = 'active';
+
+CREATE OR REPLACE VIEW stations_by_division AS
+SELECT state as division, COUNT(*) as station_count,
+       json_agg(json_build_object('code', code, 'name', name, 'city', city, 'latitude', latitude, 'longitude', longitude) ORDER BY name) as stations
+FROM stations WHERE state IS NOT NULL AND status = 'active'
+GROUP BY state ORDER BY state;
+
+-- Add table/column documentation
+COMMENT ON TABLE stations IS 'Transportation stations (bus terminals, railway stations, ferry ghats) across Bangladesh';
+COMMENT ON COLUMN stations.code IS 'IATA-style 3-letter station code (e.g., DHA, CTG, SYL)';
+COMMENT ON COLUMN stations.state IS 'Division name (e.g., Dhaka, Chattogram, Sylhet)';
+
+-- Optimize query planner
+ANALYZE stations;
 
 -- ==============================================================================
 -- 3. ORDER SERVICE (travio_order)

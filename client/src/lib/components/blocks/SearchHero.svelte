@@ -18,9 +18,10 @@
         MapPin,
     } from "@lucide/svelte";
     import { goto } from "$app/navigation";
-    import { STATIONS } from "$lib/mocks/data";
-    import { tick } from "svelte";
+    import { tick, onMount } from "svelte";
     import { Combobox } from "$lib/components/ui/combobox";
+    import { stationsStore } from "$lib/stores/stations.svelte";
+    import { toast } from "svelte-sonner";
 
     let tab = $state<"train" | "bus" | "launch" | "events">("train");
     let from = $state("");
@@ -36,6 +37,18 @@
 
     const heroBg =
         "https://lh3.googleusercontent.com/aida-public/AB6AXuDx0xRWj6lZ2pXRY_kVSNDWjvTO05IfP0WOg4aQulSWF6Q9jZn0OJ4JbT3ukEiAvY04yGZVb3oSQ-LK6U1zzZjjhifzxKZwVV2dsXoaXGAeNEqHIO4Y-PtQnsgAqnsKwWfdLr0c9RE0J4rOHxfMJG706YLzHOHYd6SbUnTsOg1X5xBNbsuRrtRCgGWWxp5i59FsYE7pegcXR_bdNU7X9UR1q01EvZ3p941bUdcAbEmIpjMRovkRmZceZk9zH-ULCv3dWJoa5TKcLbCO";
+
+    // Load stations on mount
+    onMount(async () => {
+        try {
+            await stationsStore.load();
+        } catch (error) {
+            console.error("Failed to load stations:", error);
+            toast.error(
+                "Failed to load station data. Please refresh the page.",
+            );
+        }
+    });
 
     function onSearch() {
         if (!from || !to) return;
@@ -162,7 +175,7 @@
                                     >From</label
                                 >
                                 <Combobox
-                                    items={STATIONS.map((s) => ({
+                                    items={stationsStore.stations.map((s) => ({
                                         value: s.id,
                                         label: s.name,
                                     }))}
@@ -172,6 +185,7 @@
                                     emptyText="No station found."
                                     width="w-full"
                                     class="text-base font-semibold"
+                                    loading={stationsStore.loading}
                                 >
                                     {#snippet icon()}
                                         <MapPin size={24} />
@@ -186,7 +200,7 @@
                                     >To</label
                                 >
                                 <Combobox
-                                    items={STATIONS.map((s) => ({
+                                    items={stationsStore.stations.map((s) => ({
                                         value: s.id,
                                         label: s.name,
                                     }))}
@@ -196,6 +210,7 @@
                                     emptyText="No station found."
                                     width="w-full"
                                     class="text-base font-semibold"
+                                    loading={stationsStore.loading}
                                 >
                                     {#snippet icon()}
                                         <MapPin size={24} />

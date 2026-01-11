@@ -21,6 +21,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./server/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
       - ./server/scripts/create-multiple-postgresql-databases.sh:/docker-entrypoint-initdb.d/create-multiple-postgresql-databases.sh:ro
+      - ./server/scripts/seed-bd-stations.sql:/docker-entrypoint-initdb.d/seed-bd-stations.sql:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
@@ -134,7 +135,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -151,7 +152,7 @@ services:
     volumes:
       - scylla_data:/var/lib/scylla
     healthcheck:
-      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE CLUSTER' || exit 1"]
+      test: [ "CMD-SHELL", "cqlsh -e 'DESCRIBE CLUSTER' || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -166,7 +167,7 @@ services:
       - ./server/scripts/init-scylla.sh:/init-scylla.sh
       - ./server/services/inventory/migrations/001_initial_schema.cql:/schemas/001_inventory.cql
       - ./server/services/fleet/migrations/001_initial_schema.cql:/schemas/002_fleet.cql
-    entrypoint: ["/bin/bash", "/init-scylla.sh", "scylla", "/schemas"]
+    entrypoint: [ "/bin/bash", "/init-scylla.sh", "scylla", "/schemas" ]
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.1
@@ -177,8 +178,8 @@ services:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
     ports:
-      - "8123:8123"   # HTTP interface
-      - "9002:9000"   # Native TCP (Changed to 9002 to avoid conflict with MinIO)
+      - "8123:8123" # HTTP interface
+      - "9002:9000" # Native TCP (Changed to 9002 to avoid conflict with MinIO)
     volumes:
       - clickhouse_data:/var/lib/clickhouse
     ulimits:
@@ -186,7 +187,7 @@ services:
         soft: 262144
         hard: 262144
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8123/ping"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8123/ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -744,8 +745,6 @@ services:
       timeout: 5s
       retries: 3
 
-
-
   crm:
     build:
       context: ./server
@@ -781,7 +780,6 @@ services:
       - ./docs/api/rest/openapi.yaml:/tmp/openapi.yaml
     environment:
       SWAGGER_JSON: /tmp/openapi.yaml
-
   # ===========================================
   # Frontend
   # ===========================================
