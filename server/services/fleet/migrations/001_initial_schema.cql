@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS location_history (
       'compaction_window_unit': 'DAYS',
       'compaction_window_size': 1
   }
-  AND default_time_to_live = 7776000; -- 90 Days Retention
+  AND default_time_to_live = 3888000; -- 45 Days Retention (stays within 50 window limit)
 
 -- Secondary index for finding assets by organization (for dashboard list)
 CREATE INDEX IF NOT EXISTS asset_latest_locations_org_idx ON asset_latest_locations (organization_id);

@@ -11,7 +11,6 @@ FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 1000 appuser
 WORKDIR /app
 COPY --from=builder /app/service /app/service
-COPY services/notification/internal/templates /app/templates
 USER appuser
 EXPOSE 8090 9090
 ENTRYPOINT ["/app/service"]
