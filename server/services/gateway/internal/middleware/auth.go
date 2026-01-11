@@ -28,6 +28,7 @@ type JWTConfig struct {
 func JWTAuth(config JWTConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Info("JWT Auth Middleware Hit", "path", r.URL.Path)
 			// Check if path should skip auth
 			for _, path := range config.SkipPaths {
 				if strings.HasPrefix(r.URL.Path, path) {
@@ -76,9 +77,12 @@ func JWTAuth(config JWTConfig) func(http.Handler) http.Handler {
 			// Extract claims
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
+				logger.Error("Invalid token claims structure")
 				http.Error(w, `{"error": "invalid token claims"}`, http.StatusUnauthorized)
 				return
 			}
+			// Debug Logging
+			logger.Info("JWT Claims Parsed", "sub", claims["sub"], "oid", claims["oid"], "role", claims["role"])
 
 			// Add claims to context
 			ctx := r.Context()

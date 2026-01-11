@@ -111,6 +111,7 @@ func (h *FleetHandler) UpdateAssetStatus(w http.ResponseWriter, r *http.Request)
 func (h *FleetHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 	// 1. Try to get Org ID from Context (JWT)
 	orgID := middleware.GetOrgID(r.Context())
+	logger.Info("ListAssets Debug", "context_org_id", orgID, "query_org_id", r.URL.Query().Get("organization_id"))
 
 	// 2. If not in context (e.g. admin overriding), check query param?
 	// For now, enforce context for security unless empty.
