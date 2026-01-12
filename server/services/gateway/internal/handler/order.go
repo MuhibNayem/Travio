@@ -77,8 +77,8 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Header.Get("X-User-ID")
-	orgID := r.Header.Get("X-Organization-ID")
+	userID := middleware.GetUserID(r.Context())
+	orgID := middleware.GetOrgID(r.Context())
 
 	passengers := make([]*orderpb.PassengerRequest, 0, len(req.Passengers))
 	for _, p := range req.Passengers {
@@ -127,7 +127,7 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	orderID := chi.URLParam(r, "orderId")
-	userID := r.Header.Get("X-User-ID")
+	userID := middleware.GetUserID(r.Context())
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.GetOrder(ctx, &orderpb.GetOrderRequest{
@@ -150,7 +150,7 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	userID := r.Header.Get("X-User-ID")
+	userID := middleware.GetUserID(r.Context())
 	pageToken := r.URL.Query().Get("page_token")
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
@@ -185,7 +185,7 @@ func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	orderID := chi.URLParam(r, "orderId")
-	userID := r.Header.Get("X-User-ID")
+	userID := middleware.GetUserID(r.Context())
 
 	var req struct {
 		Reason string `json:"reason"`

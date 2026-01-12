@@ -151,7 +151,7 @@ func (h *InventoryHandler) HoldSeats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user ID from auth header (simplified - in production use JWT claims)
-	userID := r.Header.Get("X-User-ID")
+	userID := middleware.GetUserID(r.Context())
 	if userID == "" {
 		userID = "anonymous"
 	}
@@ -196,7 +196,7 @@ func (h *InventoryHandler) ReleaseHold(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	holdID := chi.URLParam(r, "holdId")
-	userID := r.Header.Get("X-User-ID")
+	userID := middleware.GetUserID(r.Context())
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.ReleaseSeats(ctx, &inventorypb.ReleaseSeatsRequest{

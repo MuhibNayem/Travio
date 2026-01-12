@@ -244,6 +244,8 @@ services:
       - DB_NAME=travio_catalog
       - HTTP_PORT=${CATALOG_HTTP_PORT}
       - GRPC_PORT=${CATALOG_GRPC_PORT}
+      - REDIS_ADDR=redis:${REDIS_PORT}
+      - SUBSCRIPTION_SERVICE_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
     ports:
       - "${CATALOG_HTTP_PORT}:${CATALOG_HTTP_PORT}"
       - "${CATALOG_GRPC_PORT}:${CATALOG_GRPC_PORT}"

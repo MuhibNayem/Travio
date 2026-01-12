@@ -81,8 +81,6 @@ func JWTAuth(config JWTConfig) func(http.Handler) http.Handler {
 				http.Error(w, `{"error": "invalid token claims"}`, http.StatusUnauthorized)
 				return
 			}
-			// Debug Logging
-			logger.Info("JWT Claims Parsed", "sub", claims["sub"], "oid", claims["oid"], "role", claims["role"])
 
 			// Add claims to context
 			ctx := r.Context()

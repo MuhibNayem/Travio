@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	catalogpb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
@@ -56,24 +57,14 @@ func (h *CatalogHandler) ListStations(w http.ResponseWriter, r *http.Request) {
 	// Convert to JSON-friendly format
 	stations := make([]map[string]interface{}, 0, len(resp.Stations))
 	for _, s := range resp.Stations {
-		stations = append(stations, map[string]interface{}{
-			"id":        s.Id,
-			"code":      s.Code,
-			"name":      s.Name,
-			"city":      s.City,
-			"state":     s.State,
-			"country":   s.Country,
-			"latitude":  s.Latitude,
-			"longitude": s.Longitude,
-			"timezone":  s.Timezone,
-			"amenities": s.Amenities,
-		})
+		stations = append(stations, stationToJSON(s))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"stations": stations,
-		"total":    len(stations),
+		"stations":        stations,
+		"total":           resp.TotalCount,
+		"next_page_token": resp.NextPageToken,
 	})
 }
 
@@ -165,6 +156,24 @@ type CreateTripRequest struct {
 	BasePrice     float64 `json:"base_price"`
 }
 
+type CreateRouteStopRequest struct {
+	StationID              string `json:"station_id"`
+	Sequence               int32  `json:"sequence"`
+	ArrivalOffsetMinutes   int32  `json:"arrival_offset_minutes"`
+	DepartureOffsetMinutes int32  `json:"departure_offset_minutes"`
+	DistanceFromOriginKm   int32  `json:"distance_from_origin_km"`
+}
+
+type CreateRouteRequest struct {
+	Code                     string                   `json:"code"`
+	Name                     string                   `json:"name"`
+	OriginStationID          string                   `json:"origin_station_id"`
+	DestinationStationID     string                   `json:"destination_station_id"`
+	DistanceKm               int32                    `json:"distance_km"`
+	EstimatedDurationMinutes int32                    `json:"estimated_duration_minutes"`
+	IntermediateStops        []CreateRouteStopRequest `json:"intermediate_stops"`
+}
+
 // CreateTrip creates a new trip via gRPC
 func (h *CatalogHandler) CreateTrip(w http.ResponseWriter, r *http.Request) {
 	var req CreateTripRequest
@@ -180,7 +189,7 @@ func (h *CatalogHandler) CreateTrip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Org ID from context (set by middleware)
-	orgID := r.Header.Get("X-Organization-ID")
+	orgID := middleware.GetOrgID(r.Context())
 	if orgID == "" {
 		http.Error(w, `{"error": "missing organization context"}`, http.StatusUnauthorized)
 		return
@@ -220,7 +229,64 @@ func (h *CatalogHandler) CreateTrip(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(tripToJSON(resp))
+}
+
+// CreateRoute creates a new route via gRPC
+func (h *CatalogHandler) CreateRoute(w http.ResponseWriter, r *http.Request) {
+	var req CreateRouteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Code == "" || req.Name == "" || req.OriginStationID == "" || req.DestinationStationID == "" {
+		http.Error(w, `{"error": "missing required fields"}`, http.StatusBadRequest)
+		return
+	}
+
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		orgID = r.Header.Get("X-Organization-ID")
+	}
+
+	if orgID == "" {
+		http.Error(w, `{"error": "missing organization context"}`, http.StatusUnauthorized)
+		return
+	}
+
+	stops := make([]*catalogpb.RouteStop, 0, len(req.IntermediateStops))
+	for _, stop := range req.IntermediateStops {
+		stops = append(stops, &catalogpb.RouteStop{
+			StationId:              stop.StationID,
+			Sequence:               stop.Sequence,
+			ArrivalOffsetMinutes:   stop.ArrivalOffsetMinutes,
+			DepartureOffsetMinutes: stop.DepartureOffsetMinutes,
+			DistanceFromOriginKm:   stop.DistanceFromOriginKm,
+		})
+	}
+
+	grpcReq := &catalogpb.CreateRouteRequest{
+		OrganizationId:           orgID,
+		Code:                     req.Code,
+		Name:                     req.Name,
+		OriginStationId:          req.OriginStationID,
+		DestinationStationId:     req.DestinationStationID,
+		IntermediateStops:        stops,
+		DistanceKm:               req.DistanceKm,
+		EstimatedDurationMinutes: req.EstimatedDurationMinutes,
+	}
+
+	resp, err := h.client.CreateRoute(r.Context(), grpcReq)
+	if err != nil {
+		logger.Error("Failed to create route", "error", err)
+		http.Error(w, `{"error": "failed to create route"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(routeToJSON(resp))
 }
 
 // GetTrip retrieves a trip by ID
@@ -229,7 +295,7 @@ func (h *CatalogHandler) GetTrip(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	tripID := chi.URLParam(r, "tripId")
-	orgID := r.Header.Get("X-Organization-ID") // Optional, for admin/operator check?
+	orgID := middleware.GetOrgID(r.Context())
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.GetTrip(ctx, &catalogpb.GetTripRequest{
@@ -249,12 +315,8 @@ func (h *CatalogHandler) GetTrip(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := result.(*catalogpb.Trip)
 
-	// Enrich/Map response if needed?
-	// Provide standard JSON structure matching SearchTrips result item style?
-	// Or just return protobuf JSON. Protobuf JSON has standard casing usually.
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(tripToJSON(resp))
 }
 
 // ListRoutes returns all routes
@@ -263,6 +325,9 @@ func (h *CatalogHandler) ListRoutes(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	orgID := r.URL.Query().Get("organization_id")
+	if orgID == "" {
+		orgID = middleware.GetOrgID(r.Context())
+	}
 	originID := r.URL.Query().Get("origin_station_id")
 	destID := r.URL.Query().Get("destination_station_id")
 
@@ -281,8 +346,17 @@ func (h *CatalogHandler) ListRoutes(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := result.(*catalogpb.ListRoutesResponse)
 
+	routes := make([]map[string]interface{}, 0, len(resp.Routes))
+	for _, r := range resp.Routes {
+		routes = append(routes, routeToJSON(r))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"routes":          routes,
+		"next_page_token": resp.NextPageToken,
+		"total_count":     resp.TotalCount,
+	})
 }
 
 // GetRoute retrieves a route by ID
@@ -291,7 +365,7 @@ func (h *CatalogHandler) GetRoute(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	routeID := chi.URLParam(r, "routeId")
-	orgID := r.Header.Get("X-Organization-ID")
+	orgID := middleware.GetOrgID(r.Context())
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.GetRoute(ctx, &catalogpb.GetRouteRequest{
@@ -312,7 +386,7 @@ func (h *CatalogHandler) GetRoute(w http.ResponseWriter, r *http.Request) {
 	resp := result.(*catalogpb.Route)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(routeToJSON(resp))
 }
 
 // ListTrips lists trips for an organization
@@ -333,8 +407,9 @@ func (h *CatalogHandler) ListTrips(w http.ResponseWriter, r *http.Request) {
 		orgID = r.Header.Get("X-Organization-ID")
 	}
 
+	// Organization ID is required
 	if orgID == "" {
-		http.Error(w, "organization_id is required", http.StatusBadRequest)
+		http.Error(w, `{"error": "organization_id is required. Please ensure your user account has an organization assigned and your JWT token contains 'oid' claim."}`, http.StatusBadRequest)
 		return
 	}
 
@@ -354,8 +429,17 @@ func (h *CatalogHandler) ListTrips(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := result.(*catalogpb.ListTripsResponse)
 
+	trips := make([]map[string]interface{}, 0, len(resp.Trips))
+	for _, t := range resp.Trips {
+		trips = append(trips, tripToJSON(t))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"trips":           trips,
+		"next_page_token": resp.NextPageToken,
+		"total_count":     resp.TotalCount,
+	})
 }
 
 // GetStation retrieves a station by ID
@@ -364,7 +448,7 @@ func (h *CatalogHandler) GetStation(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	stationID := chi.URLParam(r, "stationId")
-	orgID := r.Header.Get("X-Organization-ID")
+	orgID := middleware.GetOrgID(r.Context())
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.GetStation(ctx, &catalogpb.GetStationRequest{
@@ -385,10 +469,82 @@ func (h *CatalogHandler) GetStation(w http.ResponseWriter, r *http.Request) {
 	resp := result.(*catalogpb.Station)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(stationToJSON(resp))
 }
 
 // Close closes the gRPC connection
 func (h *CatalogHandler) Close() error {
 	return h.catalogConn.Close()
+}
+
+// Helper functions for JSON mapping
+
+func formatEnum(s string, prefix string) string {
+	return strings.ToLower(strings.TrimPrefix(s, prefix))
+}
+
+func tripToJSON(t *catalogpb.Trip) map[string]interface{} {
+	if t == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"id":              t.Id,
+		"organization_id": t.OrganizationId,
+		"route_id":        t.RouteId,
+		"vehicle_id":      t.VehicleId,
+		"vehicle_type":    t.VehicleType,
+		"vehicle_class":   t.VehicleClass,
+		"departure_time":  t.DepartureTime,
+		"arrival_time":    t.ArrivalTime,
+		"total_seats":     t.TotalSeats,
+		"available_seats": t.AvailableSeats,
+		"pricing":         t.Pricing,
+		"status":          formatEnum(t.Status.String(), "TRIP_STATUS_"),
+		"segments":        t.Segments,
+		"created_at":      t.CreatedAt,
+		"updated_at":      t.UpdatedAt,
+	}
+}
+
+func routeToJSON(r *catalogpb.Route) map[string]interface{} {
+	if r == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"id":                         r.Id,
+		"organization_id":            r.OrganizationId,
+		"code":                       r.Code,
+		"name":                       r.Name,
+		"origin_station_id":          r.OriginStationId,
+		"destination_station_id":     r.DestinationStationId,
+		"intermediate_stops":         r.IntermediateStops,
+		"distance_km":                r.DistanceKm,
+		"estimated_duration_minutes": r.EstimatedDurationMinutes,
+		"status":                     formatEnum(r.Status.String(), "ROUTE_STATUS_"),
+		"created_at":                 r.CreatedAt,
+		"updated_at":                 r.UpdatedAt,
+	}
+}
+
+func stationToJSON(s *catalogpb.Station) map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"id":              s.Id,
+		"organization_id": s.OrganizationId,
+		"code":            s.Code,
+		"name":            s.Name,
+		"city":            s.City,
+		"state":           s.State,
+		"country":         s.Country,
+		"latitude":        s.Latitude,
+		"longitude":       s.Longitude,
+		"timezone":        s.Timezone,
+		"address":         s.Address,
+		"amenities":       s.Amenities,
+		"status":          formatEnum(s.Status.String(), "STATION_STATUS_"),
+		"created_at":      s.CreatedAt,
+		"updated_at":      s.UpdatedAt,
+	}
 }

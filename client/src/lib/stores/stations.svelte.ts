@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import { catalogApi, type Station } from '$lib/api/catalog';
 
 /**
@@ -6,8 +7,10 @@ import { catalogApi, type Station } from '$lib/api/catalog';
  */
 class StationsStore {
     stations = $state<Station[]>([]);
+    stationMap = $state<Record<string, Station>>({});
     loading = $state<boolean>(false);
     error = $state<string | null>(null);
+    private cacheKey = 'stations:byId';
 
     /**
      * Load stations from API (with in-memory caching)
@@ -27,6 +30,13 @@ class StationsStore {
 
             // Update state
             this.stations = stations;
+            this.stationMap = stations.reduce<Record<string, Station>>(
+                (acc, station) => {
+                    acc[station.id] = station;
+                    return acc;
+                },
+                {},
+            );
 
             this.loading = false;
             return stations;
@@ -35,6 +45,59 @@ class StationsStore {
             this.error = errorMessage;
             this.loading = false;
             throw err;
+        }
+    }
+
+    /**
+     * Resolve a station by ID with in-memory + localStorage caching.
+     */
+    async getStationById(id: string): Promise<Station | null> {
+        if (!id) return null;
+
+        const existing = this.stationMap[id];
+        if (existing) return existing;
+
+        if (browser) {
+            const cached = this.readFromCache(id);
+            if (cached) {
+                this.stationMap = { ...this.stationMap, [id]: cached };
+                return cached;
+            }
+        }
+
+        try {
+            const station = await catalogApi.getStation(id);
+            this.stationMap = { ...this.stationMap, [id]: station };
+            if (browser) {
+                this.writeToCache(id, station);
+            }
+            return station;
+        } catch {
+            return null;
+        }
+    }
+
+    private readFromCache(id: string): Station | null {
+        if (!browser) return null;
+        try {
+            const raw = window.localStorage.getItem(this.cacheKey);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw) as Record<string, Station>;
+            return parsed[id] || null;
+        } catch {
+            return null;
+        }
+    }
+
+    private writeToCache(id: string, station: Station): void {
+        if (!browser) return;
+        try {
+            const raw = window.localStorage.getItem(this.cacheKey);
+            const parsed = raw ? (JSON.parse(raw) as Record<string, Station>) : {};
+            parsed[id] = station;
+            window.localStorage.setItem(this.cacheKey, JSON.stringify(parsed));
+        } catch {
+            // Ignore cache write errors
         }
     }
 
@@ -82,6 +145,7 @@ class StationsStore {
      */
     clear(): void {
         this.stations = [];
+        this.stationMap = {};
         this.loading = false;
         this.error = null;
     }

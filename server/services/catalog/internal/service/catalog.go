@@ -178,6 +178,28 @@ func (s *CatalogService) GetTrip(ctx context.Context, id, orgID string) (*domain
 	return s.tripRepo.GetByID(ctx, id, orgID)
 }
 
+func (s *CatalogService) ListTrips(ctx context.Context, orgID, routeID string, pageSize int, pageToken string) ([]*domain.Trip, int, string, error) {
+	offset := parsePageToken(pageToken)
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	trips, total, err := s.tripRepo.List(ctx, orgID, routeID, pageSize, offset)
+	if err != nil {
+		return nil, 0, "", err
+	}
+
+	nextToken := ""
+	if offset+pageSize < total {
+		nextToken = generatePageToken(offset + pageSize)
+	}
+
+	return trips, total, nextToken, nil
+}
+
 func (s *CatalogService) SearchTrips(ctx context.Context, originCity, destCity string, travelDate time.Time, pageSize int, pageToken string) ([]*TripSearchResult, int, string, error) {
 	offset := parsePageToken(pageToken)
 	if pageSize <= 0 {

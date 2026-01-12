@@ -49,23 +49,64 @@ func (r *PostgresStationRepository) Create(ctx context.Context, station *domain.
 }
 
 func (r *PostgresStationRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Station, error) {
-	query := `SELECT id, organization_id, code, name, city, state, country, latitude, longitude, 
+	var (
+		query string
+		args  []interface{}
+	)
+
+	if orgID == "" {
+		query = `SELECT id, organization_id, code, name, city, state, country, latitude, longitude, 
 			  timezone, address, amenities, status, created_at, updated_at 
-			  FROM stations WHERE id = $1 AND organization_id = $2`
+			  FROM stations WHERE id = $1`
+		args = append(args, id)
+	} else {
+		// Allow finding the station if it belongs to the org OR if it is a public station
+		query = `SELECT id, organization_id, code, name, city, state, country, latitude, longitude, 
+			  timezone, address, amenities, status, created_at, updated_at 
+			  FROM stations WHERE id = $1 AND (organization_id = $2 OR organization_id IS NULL)`
+		args = append(args, id, orgID)
+	}
 
 	var station domain.Station
 	var amenitiesJSON []byte
+	var (
+		nullOrgID    sql.NullString
+		nullState    sql.NullString
+		nullAddress  sql.NullString
+		nullTimezone sql.NullString
+		nullLat      sql.NullFloat64
+		nullLong     sql.NullFloat64
+	)
 
-	err := r.DB.QueryRowContext(ctx, query, id, orgID).Scan(
-		&station.ID, &station.OrganizationID, &station.Code, &station.Name, &station.City,
-		&station.State, &station.Country, &station.Latitude, &station.Longitude, &station.Timezone,
-		&station.Address, &amenitiesJSON, &station.Status, &station.CreatedAt, &station.UpdatedAt,
+	err := r.DB.QueryRowContext(ctx, query, args...).Scan(
+		&station.ID, &nullOrgID, &station.Code, &station.Name, &station.City,
+		&nullState, &station.Country, &nullLat, &nullLong, &nullTimezone,
+		&nullAddress, &amenitiesJSON, &station.Status, &station.CreatedAt, &station.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrStationNotFound
 		}
 		return nil, err
+	}
+
+	if nullOrgID.Valid {
+		station.OrganizationID = nullOrgID.String
+	}
+	if nullState.Valid {
+		station.State = nullState.String
+	}
+	if nullAddress.Valid {
+		station.Address = nullAddress.String
+	}
+	if nullTimezone.Valid {
+		station.Timezone = nullTimezone.String
+	}
+	if nullLat.Valid {
+		station.Latitude = nullLat.Float64
+	}
+	if nullLong.Valid {
+		station.Longitude = nullLong.Float64
 	}
 
 	json.Unmarshal(amenitiesJSON, &station.Amenities)
@@ -318,34 +359,33 @@ func (r *PostgresTripRepository) Create(ctx context.Context, trip *domain.Trip) 
 	trip.AvailableSeats = trip.TotalSeats
 
 	pricingJSON, _ := json.Marshal(trip.Pricing)
-	segmentsJSON, _ := json.Marshal(trip.Segments)
 
 	query := `INSERT INTO trips (id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
-			  departure_time, arrival_time, total_seats, available_seats, pricing, status, segments,
+			  departure_time, arrival_time, total_seats, available_seats, pricing, status,
 			  created_at, updated_at)
-			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	_, err := r.DB.ExecContext(ctx, query,
 		trip.ID, trip.OrganizationID, trip.RouteID, trip.VehicleID, trip.VehicleType, trip.VehicleClass,
 		trip.DepartureTime, trip.ArrivalTime, trip.TotalSeats, trip.AvailableSeats, pricingJSON,
-		trip.Status, segmentsJSON, trip.CreatedAt, trip.UpdatedAt,
+		trip.Status, trip.CreatedAt, trip.UpdatedAt,
 	)
 	return err
 }
 
 func (r *PostgresTripRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Trip, error) {
 	query := `SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
-			  departure_time, arrival_time, total_seats, available_seats, pricing, status, segments,
+			  departure_time, arrival_time, total_seats, available_seats, pricing, status,
 			  created_at, updated_at
 			  FROM trips WHERE id = $1 AND organization_id = $2`
 
 	var trip domain.Trip
-	var pricingJSON, segmentsJSON []byte
+	var pricingJSON []byte
 
 	err := r.DB.QueryRowContext(ctx, query, id, orgID).Scan(
 		&trip.ID, &trip.OrganizationID, &trip.RouteID, &trip.VehicleID, &trip.VehicleType,
 		&trip.VehicleClass, &trip.DepartureTime, &trip.ArrivalTime, &trip.TotalSeats,
-		&trip.AvailableSeats, &pricingJSON, &trip.Status, &segmentsJSON,
+		&trip.AvailableSeats, &pricingJSON, &trip.Status,
 		&trip.CreatedAt, &trip.UpdatedAt,
 	)
 	if err != nil {
@@ -356,8 +396,70 @@ func (r *PostgresTripRepository) GetByID(ctx context.Context, id, orgID string) 
 	}
 
 	json.Unmarshal(pricingJSON, &trip.Pricing)
-	json.Unmarshal(segmentsJSON, &trip.Segments)
+	// Segments not in DB yet
 	return &trip, nil
+}
+
+func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID string, limit, offset int) ([]*domain.Trip, int, error) {
+	var args []interface{}
+	var whereClause string
+	argIdx := 1
+
+	// Build WHERE clause dynamically
+	if orgID != "" {
+		whereClause = fmt.Sprintf("WHERE organization_id = $%d", argIdx)
+		args = append(args, orgID)
+		argIdx++
+	} else {
+		whereClause = "WHERE 1=1"
+	}
+
+	if routeID != "" {
+		whereClause += fmt.Sprintf(" AND route_id = $%d", argIdx)
+		args = append(args, routeID)
+		argIdx++
+	}
+
+	// Count total
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM trips %s", whereClause)
+	var total int
+	r.DB.QueryRowContext(ctx, countQuery, args...).Scan(&total)
+
+	// Fetch data
+	query := fmt.Sprintf(`SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
+		  departure_time, arrival_time, total_seats, available_seats, pricing, status,
+		  created_at, updated_at
+		  FROM trips %s ORDER BY departure_time DESC LIMIT $%d OFFSET $%d`,
+		whereClause, argIdx, argIdx+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var trips []*domain.Trip
+	for rows.Next() {
+		var t domain.Trip
+		var pricingJSON []byte
+		var orgID sql.NullString
+		if err := rows.Scan(
+			&t.ID, &orgID, &t.RouteID, &t.VehicleID, &t.VehicleType, &t.VehicleClass,
+			&t.DepartureTime, &t.ArrivalTime, &t.TotalSeats, &t.AvailableSeats, &pricingJSON,
+			&t.Status, &t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		if orgID.Valid {
+			t.OrganizationID = orgID.String
+		}
+		json.Unmarshal(pricingJSON, &t.Pricing)
+		// Segments not in DB
+		trips = append(trips, &t)
+	}
+
+	return trips, total, nil
 }
 
 func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, destCity string, travelDate time.Time, limit, offset int) ([]*domain.Trip, int, error) {
@@ -365,12 +467,13 @@ func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, 
 	query := `
 		SELECT t.id, t.organization_id, t.route_id, t.vehicle_id, t.vehicle_type, t.vehicle_class,
 			   t.departure_time, t.arrival_time, t.total_seats, t.available_seats, t.pricing, 
-			   t.status, t.segments, t.created_at, t.updated_at
+			   t.status, t.created_at, t.updated_at
 		FROM trips t
 		JOIN routes r ON t.route_id = r.id
 		JOIN stations origin ON r.origin_station_id = origin.id
 		JOIN stations dest ON r.destination_station_id = dest.id
-		WHERE origin.city = $1 AND dest.city = $2 
+		WHERE (origin.city = $1 OR origin.id::text = $1) 
+		  AND (dest.city = $2 OR dest.id::text = $2) 
 		  AND DATE(t.departure_time) = DATE($3)
 		  AND t.status = $4
 		  AND t.available_seats > 0
@@ -388,16 +491,20 @@ func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, 
 	var trips []*domain.Trip
 	for rows.Next() {
 		var t domain.Trip
-		var pricingJSON, segmentsJSON []byte
+		var pricingJSON []byte
+		var orgID sql.NullString
 		if err := rows.Scan(
-			&t.ID, &t.OrganizationID, &t.RouteID, &t.VehicleID, &t.VehicleType, &t.VehicleClass,
+			&t.ID, &orgID, &t.RouteID, &t.VehicleID, &t.VehicleType, &t.VehicleClass,
 			&t.DepartureTime, &t.ArrivalTime, &t.TotalSeats, &t.AvailableSeats, &pricingJSON,
-			&t.Status, &segmentsJSON, &t.CreatedAt, &t.UpdatedAt,
+			&t.Status, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
+		if orgID.Valid {
+			t.OrganizationID = orgID.String
+		}
 		json.Unmarshal(pricingJSON, &t.Pricing)
-		json.Unmarshal(segmentsJSON, &t.Segments)
+		// Segments not yet implemented in DB
 		trips = append(trips, &t)
 	}
 

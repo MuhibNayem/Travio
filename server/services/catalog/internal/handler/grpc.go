@@ -126,6 +126,7 @@ func (h *GrpcHandler) CreateRoute(ctx context.Context, req *pb.CreateRouteReques
 
 	created, err := h.catalogService.CreateRoute(ctx, route)
 	if err != nil {
+		fmt.Printf("CreateRoute error: %v\n", err)
 		return nil, status.Error(codes.Internal, "failed to create route")
 	}
 	return routeToProto(created), nil
@@ -187,6 +188,25 @@ func (h *GrpcHandler) GetTrip(ctx context.Context, req *pb.GetTripRequest) (*pb.
 		return nil, status.Error(codes.NotFound, "trip not found")
 	}
 	return tripToProto(trip), nil
+}
+
+func (h *GrpcHandler) ListTrips(ctx context.Context, req *pb.ListTripsRequest) (*pb.ListTripsResponse, error) {
+	trips, total, nextToken, err := h.catalogService.ListTrips(ctx, req.OrganizationId, req.RouteId, int(req.PageSize), req.PageToken)
+	if err != nil {
+		fmt.Printf("ListTrips error: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to list trips: %v", err)
+	}
+
+	var protoTrips []*pb.Trip
+	for _, t := range trips {
+		protoTrips = append(protoTrips, tripToProto(t))
+	}
+
+	return &pb.ListTripsResponse{
+		Trips:         protoTrips,
+		NextPageToken: nextToken,
+		TotalCount:    int32(total),
+	}, nil
 }
 
 func (h *GrpcHandler) SearchTrips(ctx context.Context, req *pb.SearchTripsRequest) (*pb.SearchTripsResponse, error) {

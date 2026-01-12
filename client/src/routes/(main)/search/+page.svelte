@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { page } from "$app/stores";
     import TripCard from "$lib/components/search/TripCard.svelte";
     import SearchHero from "$lib/components/blocks/SearchHero.svelte";
     import { Button } from "$lib/components/ui/button";
     import { Filter } from "@lucide/svelte";
+    import { browser } from "$app/environment";
+    import { stationsStore } from "$lib/stores/stations.svelte";
     import type { PageData } from "./$types";
 
     export let data: PageData;
@@ -11,6 +12,43 @@
     $: results = data.results;
     $: total = data.total;
     $: params = data.searchParams;
+    let fromName = "";
+    let toName = "";
+    let lastFrom = "";
+    let lastTo = "";
+
+    $: fromLabel =
+        stationsStore.stations.find((station) => station.id === params.from)
+            ?.name ||
+        fromName ||
+        params.from;
+    $: toLabel =
+        stationsStore.stations.find((station) => station.id === params.to)?.name ||
+        toName ||
+        params.to;
+
+    async function loadStationNames(fromId: string, toId: string) {
+        if (!fromId && !toId) return;
+        const [fromResult, toResult] = await Promise.allSettled([
+            fromId ? stationsStore.getStationById(fromId) : Promise.resolve(null),
+            toId ? stationsStore.getStationById(toId) : Promise.resolve(null),
+        ]);
+
+        if (fromResult.status === "fulfilled" && fromResult.value) {
+            fromName = fromResult.value.name || "";
+        }
+        if (toResult.status === "fulfilled" && toResult.value) {
+            toName = toResult.value.name || "";
+        }
+    }
+
+    $: if (browser && (params.from !== lastFrom || params.to !== lastTo)) {
+        lastFrom = params.from;
+        lastTo = params.to;
+        fromName = "";
+        toName = "";
+        void loadStationNames(params.from, params.to);
+    }
 </script>
 
 <div class="min-h-screen bg-muted/30 pb-20">
@@ -48,7 +86,7 @@
                         <span
                             class="ml-2 text-base font-medium text-muted-foreground"
                         >
-                            for {params.from} to {params.to}
+                            for {fromLabel} to {toLabel}
                         </span>
                     </h2>
                     <Button variant="outline" size="sm" class="lg:hidden">

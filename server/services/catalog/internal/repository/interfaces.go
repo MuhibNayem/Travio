@@ -24,6 +24,7 @@ type RouteRepository interface {
 type TripRepository interface {
 	Create(ctx context.Context, trip *domain.Trip) error
 	GetByID(ctx context.Context, id, orgID string) (*domain.Trip, error)
+	List(ctx context.Context, orgID, routeID string, limit, offset int) ([]*domain.Trip, int, error)
 	Search(ctx context.Context, orgID, originCity, destCity string, travelDate time.Time, limit, offset int) ([]*domain.Trip, int, error)
 	UpdateStatus(ctx context.Context, id, orgID, status string) error
 	DecrementSeats(ctx context.Context, id string, count int) error

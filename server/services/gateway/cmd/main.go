@@ -248,8 +248,7 @@ func main() {
 			"/v1/auth/refresh",
 			"/v1/auth/logout",
 			"/v1/auth/invite/accept",
-			"/v1/stations", "/v1/trips",
-			"/v1/routes",
+			"/v1/stations",
 			"/v1/search",
 			"/v1/pricing/calculate",
 			"/v1/queue",
@@ -365,6 +364,7 @@ func main() {
 
 		// Catalog Routes (Protected - Operator Actions)
 		if catalogHandler != nil {
+			r.Post("/routes", catalogHandler.CreateRoute)
 			r.Post("/trips", catalogHandler.CreateTrip)
 			r.Get("/trips", catalogHandler.ListTrips)
 		}
