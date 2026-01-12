@@ -74,12 +74,23 @@ func (r *PostgresStationRepository) GetByID(ctx context.Context, id, orgID strin
 
 func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error) {
 	var args []interface{}
-	whereClause := "WHERE organization_id = $1"
-	args = append(args, orgID)
+	var whereClause string
+	argIdx := 1
+
+	// Build WHERE clause dynamically
+	if orgID != "" {
+		whereClause = fmt.Sprintf("WHERE organization_id = $%d", argIdx)
+		args = append(args, orgID)
+		argIdx++
+	} else {
+		// If no orgID specified, list all stations
+		whereClause = "WHERE 1=1"
+	}
 
 	if city != "" {
-		whereClause += " AND city = $2"
+		whereClause += fmt.Sprintf(" AND city = $%d", argIdx)
 		args = append(args, city)
+		argIdx++
 	}
 
 	// Count total
@@ -89,9 +100,9 @@ func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string
 
 	// Fetch data
 	query := fmt.Sprintf(`SELECT id, organization_id, code, name, city, state, country, 
-			  latitude, longitude, timezone, address, amenities, status, created_at, updated_at 
-			  FROM stations %s ORDER BY name ASC LIMIT $%d OFFSET $%d`,
-		whereClause, len(args)+1, len(args)+2)
+		  latitude, longitude, timezone, address, amenities, status, created_at, updated_at 
+		  FROM stations %s ORDER BY name ASC LIMIT $%d OFFSET $%d`,
+		whereClause, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.DB.QueryContext(ctx, query, args...)
@@ -104,12 +115,32 @@ func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string
 	for rows.Next() {
 		var s domain.Station
 		var amenitiesJSON []byte
+		var orgID, state, address, timezone sql.NullString
+		var latitude, longitude sql.NullFloat64
 		if err := rows.Scan(
-			&s.ID, &s.OrganizationID, &s.Code, &s.Name, &s.City, &s.State, &s.Country,
-			&s.Latitude, &s.Longitude, &s.Timezone, &s.Address, &amenitiesJSON, &s.Status,
+			&s.ID, &orgID, &s.Code, &s.Name, &s.City, &state, &s.Country,
+			&latitude, &longitude, &timezone, &address, &amenitiesJSON, &s.Status,
 			&s.CreatedAt, &s.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if orgID.Valid {
+			s.OrganizationID = orgID.String
+		}
+		if state.Valid {
+			s.State = state.String
+		}
+		if address.Valid {
+			s.Address = address.String
+		}
+		if timezone.Valid {
+			s.Timezone = timezone.String
+		}
+		if latitude.Valid {
+			s.Latitude = latitude.Float64
+		}
+		if longitude.Valid {
+			s.Longitude = longitude.Float64
 		}
 		json.Unmarshal(amenitiesJSON, &s.Amenities)
 		stations = append(stations, &s)
@@ -208,9 +239,17 @@ func (r *PostgresRouteRepository) GetByID(ctx context.Context, id, orgID string)
 
 func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, destID string, limit, offset int) ([]*domain.Route, int, error) {
 	var args []interface{}
-	whereClause := "WHERE organization_id = $1"
-	args = append(args, orgID)
-	argIdx := 2
+	var whereClause string
+	argIdx := 1
+
+	// Build WHERE clause dynamically
+	if orgID != "" {
+		whereClause = fmt.Sprintf("WHERE organization_id = $%d", argIdx)
+		args = append(args, orgID)
+		argIdx++
+	} else {
+		whereClause = "WHERE 1=1"
+	}
 
 	if originID != "" {
 		whereClause += fmt.Sprintf(" AND origin_station_id = $%d", argIdx)
@@ -244,12 +283,16 @@ func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, des
 	for rows.Next() {
 		var rt domain.Route
 		var stopsJSON []byte
+		var orgID sql.NullString
 		if err := rows.Scan(
-			&rt.ID, &rt.OrganizationID, &rt.Code, &rt.Name, &rt.OriginStationID,
+			&rt.ID, &orgID, &rt.Code, &rt.Name, &rt.OriginStationID,
 			&rt.DestinationStationID, &stopsJSON, &rt.DistanceKm, &rt.EstimatedDurationMin,
 			&rt.Status, &rt.CreatedAt, &rt.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if orgID.Valid {
+			rt.OrganizationID = orgID.String
 		}
 		json.Unmarshal(stopsJSON, &rt.IntermediateStops)
 		routes = append(routes, &rt)

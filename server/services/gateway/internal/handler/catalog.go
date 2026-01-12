@@ -47,6 +47,7 @@ func (h *CatalogHandler) ListStations(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 	if err != nil {
+		logger.Error("Failed to list stations", "error", err)
 		http.Error(w, "Failed to fetch stations", http.StatusInternalServerError)
 		return
 	}
@@ -256,14 +257,79 @@ func (h *CatalogHandler) GetTrip(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// ListRoutes returns all routes
+func (h *CatalogHandler) ListRoutes(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	orgID := r.URL.Query().Get("organization_id")
+	originID := r.URL.Query().Get("origin_station_id")
+	destID := r.URL.Query().Get("destination_station_id")
+
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.ListRoutes(ctx, &catalogpb.ListRoutesRequest{
+			OrganizationId:       orgID,
+			OriginStationId:      originID,
+			DestinationStationId: destID,
+			PageSize:             100,
+		})
+	})
+	if err != nil {
+		logger.Error("Failed to list routes", "error", err)
+		http.Error(w, "Failed to list routes", http.StatusInternalServerError)
+		return
+	}
+	resp := result.(*catalogpb.ListRoutesResponse)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetRoute retrieves a route by ID
+func (h *CatalogHandler) GetRoute(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	routeID := chi.URLParam(r, "routeId")
+	orgID := r.Header.Get("X-Organization-ID")
+
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.GetRoute(ctx, &catalogpb.GetRouteRequest{
+			Id:             routeID,
+			OrganizationId: orgID,
+		})
+	})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
+			http.Error(w, "Route not found", http.StatusNotFound)
+			return
+		}
+		logger.Error("Failed to get route", "error", err)
+		http.Error(w, "Failed to get route", http.StatusInternalServerError)
+		return
+	}
+	resp := result.(*catalogpb.Route)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 // ListTrips lists trips for an organization
 func (h *CatalogHandler) ListTrips(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	orgID := r.URL.Query().Get("organization_id")
+	// Get organization ID from JWT token context (set by auth middleware)
+	orgID := middleware.GetOrgID(r.Context())
+
+	// Allow override from query parameter for admin/cross-org queries
+	if queryOrgID := r.URL.Query().Get("organization_id"); queryOrgID != "" {
+		orgID = queryOrgID
+	}
+
+	// If still empty, try header (legacy support)
 	if orgID == "" {
-		// Fallback to header if set by middleware for operators
 		orgID = r.Header.Get("X-Organization-ID")
 	}
 

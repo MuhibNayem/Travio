@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
@@ -56,7 +57,9 @@ func (h *GrpcHandler) GetStation(ctx context.Context, req *pb.GetStationRequest)
 func (h *GrpcHandler) ListStations(ctx context.Context, req *pb.ListStationsRequest) (*pb.ListStationsResponse, error) {
 	stations, total, nextToken, err := h.catalogService.ListStations(ctx, req.OrganizationId, req.City, int(req.PageSize), req.PageToken)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to list stations")
+		// Log the actual error for debugging
+		fmt.Printf("ListStations error: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to list stations: %v", err)
 	}
 
 	var protoStations []*pb.Station

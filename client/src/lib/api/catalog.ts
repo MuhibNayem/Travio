@@ -21,7 +21,7 @@ export interface ListStationsResponse {
 export const catalogApi = {
     getStations: async (): Promise<Station[]> => {
         const response = await api.get<ListStationsResponse>('/v1/stations');
-        return response.stations;
+        return response?.stations ?? [];
     },
 
     getStation: async (id: string): Promise<Station> => {
@@ -32,7 +32,7 @@ export const catalogApi = {
     // Routes
     getRoutes: async (): Promise<Route[]> => {
         const response = await api.get<ListRoutesResponse>('/v1/routes');
-        return response.routes;
+        return response?.routes ?? [];
     },
 
     createRoute: async (route: CreateRouteRequest): Promise<Route> => {
@@ -56,7 +56,7 @@ export const catalogApi = {
         // I will add ListTrips to Gateway first.
         // For now, I'll add the method here and fix Gateway next.
         const response = await api.get<ListTripsResponse>('/v1/trips');
-        return response.trips;
+        return response?.trips ?? [];
     },
 
     createTrip: async (trip: CreateTripRequest): Promise<Trip> => {

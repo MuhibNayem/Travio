@@ -157,24 +157,89 @@ export interface UpdateAssetRequest {
 
 // ========== API METHODS ==========
 
+const normalizeBusConfig = (raw: Partial<BusConfig> | undefined): BusConfig | undefined => {
+    if (!raw) return undefined;
+    return {
+        rows: raw.rows ?? 0,
+        seats_per_row:
+            (raw as { seats_per_row?: number }).seats_per_row ??
+            (raw as { seatsPerRow?: number }).seatsPerRow ??
+            0,
+        aisle_after_seat:
+            (raw as { aisle_after_seat?: number }).aisle_after_seat ??
+            (raw as { aisleAfterSeat?: number }).aisleAfterSeat ??
+            0,
+        has_toilet:
+            (raw as { has_toilet?: boolean }).has_toilet ??
+            (raw as { hasToilet?: boolean }).hasToilet ??
+            false,
+        has_sleeper:
+            (raw as { has_sleeper?: boolean }).has_sleeper ??
+            (raw as { hasSleeper?: boolean }).hasSleeper ??
+            false,
+        categories: raw.categories,
+    };
+};
+
+const normalizeAssetConfig = (raw: AssetConfig | undefined): AssetConfig => {
+    if (!raw) return {};
+    return {
+        bus: normalizeBusConfig(raw.bus),
+        train: raw.train,
+        launch: raw.launch,
+        features: raw.features,
+    };
+};
+
+const normalizeAsset = (raw: Partial<Asset> & Record<string, unknown>): Asset => {
+    return {
+        id: (raw.id as string) || '',
+        organization_id:
+            (raw.organization_id as string) ||
+            (raw.organizationId as string) ||
+            '',
+        type: (raw.type as AssetType | string) || AssetType.BUS,
+        name: (raw.name as string) || '',
+        license_plate:
+            (raw.license_plate as string) ||
+            (raw.licensePlate as string) ||
+            '',
+        vin: (raw.vin as string) || '',
+        make: (raw.make as string) || '',
+        model: (raw.model as string) || '',
+        year: (raw.year as number) || 0,
+        status: (raw.status as AssetStatus | string) || '',
+        config: normalizeAssetConfig(raw.config as AssetConfig | undefined),
+        created_at:
+            (raw.created_at as string) ||
+            (raw.createdAt as string) ||
+            '',
+        updated_at:
+            (raw.updated_at as string) ||
+            (raw.updatedAt as string) ||
+            '',
+    };
+};
+
 export const fleetApi = {
     getAssets: async (): Promise<Asset[]> => {
         const response = await api.get<ListAssetsResponse>('/v1/fleet/assets');
-        return response.assets || [];
+        const assets = response?.assets ?? [];
+        return assets.map((asset) => normalizeAsset(asset));
     },
 
     registerAsset: async (req: RegisterAssetRequest): Promise<Asset> => {
         const response = await api.post<Asset>('/v1/fleet/assets', req);
-        return response;
+        return normalizeAsset(response as unknown as Asset);
     },
 
     getAsset: async (id: string): Promise<Asset> => {
         const response = await api.get<Asset>(`/v1/fleet/assets/${id}`);
-        return response;
+        return normalizeAsset(response as unknown as Asset);
     },
 
     updateAsset: async (req: UpdateAssetRequest): Promise<Asset> => {
         const response = await api.put<Asset>(`/v1/fleet/assets/${req.id}`, req);
-        return response;
+        return normalizeAsset(response as unknown as Asset);
     },
 };

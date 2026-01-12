@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS stations (
     longitude DOUBLE PRECISION,
     timezone VARCHAR(50) DEFAULT 'Asia/Dhaka',
     address TEXT,
-    amenities TEXT[], -- PostgreSQL array
+    amenities JSONB DEFAULT '[]', -- JSON array of strings
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -406,23 +406,23 @@ CREATE INDEX IF NOT EXISTS idx_vendors_status ON vendors(status);
 \c travio_subscription
 
 CREATE TABLE IF NOT EXISTS plans (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY, -- Changed from UUID to support 'plan_free', 'plan_pro'
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price_paisa BIGINT NOT NULL,
     interval VARCHAR(50) NOT NULL, -- 'month', 'year'
     features JSONB DEFAULT '{}',
     is_active BOOLEAN DEFAULT true,
-	-- Billing & Usage
-	usage_price_paisa BIGINT DEFAULT 0, -- Per-unit usage fee
+    -- Billing & Usage
+    usage_price_paisa BIGINT DEFAULT 0, -- Per-unit usage fee
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL,
-    plan_id UUID NOT NULL REFERENCES plans(id),
+    id VARCHAR(100) PRIMARY KEY,
+    organization_id VARCHAR(100) NOT NULL,
+    plan_id VARCHAR(100) NOT NULL REFERENCES plans(id),
     status VARCHAR(50) DEFAULT 'active', -- active, canceled, past_due, trialing
     current_period_start TIMESTAMP WITH TIME ZONE,
     current_period_end TIMESTAMP WITH TIME ZONE,
@@ -432,27 +432,38 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 
 CREATE TABLE IF NOT EXISTS invoices (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	subscription_id UUID NOT NULL REFERENCES subscriptions(id),
-	amount_paisa BIGINT NOT NULL,
-	status VARCHAR(50) DEFAULT 'open', -- paid, open, void, uncollectible
-	issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-	due_date TIMESTAMP WITH TIME ZONE,
-	paid_at TIMESTAMP WITH TIME ZONE,
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    id VARCHAR(100) PRIMARY KEY,
+    subscription_id VARCHAR(100) NOT NULL REFERENCES subscriptions(id),
+    amount_paisa BIGINT NOT NULL,
+    status VARCHAR(50) DEFAULT 'open', -- paid, open, void, uncollectible
+    issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    due_date TIMESTAMP WITH TIME ZONE,
+    paid_at TIMESTAMP WITH TIME ZONE,
+    line_items JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS usage_events (
+    id VARCHAR(100) PRIMARY KEY,
+    subscription_id VARCHAR(100) NOT NULL, 
+    event_type VARCHAR(255),
+    units BIGINT,
+    idempotency_key VARCHAR(255) UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_plans_active ON plans(is_active);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_org_id ON subscriptions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_subscription_id ON invoices(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_usage_events_sub_id ON usage_events(subscription_id);
 
 -- Seed default plans
 INSERT INTO plans (id, name, description, price_paisa, interval, features, is_active) VALUES
-    ('11111111-1111-1111-1111-111111111111', 'Basic', 'Essential features for small operators', 20000, 'month', '{"vehicles": "10", "users": "5", "support": "email"}', true),
-    ('22222222-2222-2222-2222-222222222222', 'Pro', 'Advanced analytics and larger fleet', 50000, 'month', '{"vehicles": "50", "users": "20", "support": "priority"}', true),
-    ('33333333-3333-3333-3333-333333333333', 'Enterprise', 'Unlimited scale and dedicated support', 250000, 'month', '{"vehicles": "unlimited", "users": "unlimited", "support": "dedicated"}', true)
+    ('plan_starter', 'Basic', 'Essential features for small operators', 20000, 'month', '{"vehicles": "10", "users": "5", "support": "email"}', true),
+    ('plan_growth', 'Pro', 'Advanced analytics and larger fleet', 50000, 'month', '{"vehicles": "50", "users": "20", "support": "priority"}', true),
+    ('plan_enterprise', 'Enterprise', 'Unlimited scale and dedicated support', 250000, 'month', '{"vehicles": "unlimited", "users": "unlimited", "support": "dedicated"}', true)
 ON CONFLICT DO NOTHING;
 
 -- ==============================================================================

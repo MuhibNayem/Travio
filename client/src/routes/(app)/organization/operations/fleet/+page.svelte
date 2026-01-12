@@ -74,7 +74,7 @@
                             >Loading assets...</Table.Cell
                         >
                     </Table.Row>
-                {:else if assets.length === 0}
+                {:else if (assets || []).length === 0}
                     <Table.Row>
                         <Table.Cell colspan={6} class="h-64 text-center">
                             <div
@@ -93,7 +93,7 @@
                         </Table.Cell>
                     </Table.Row>
                 {:else}
-                    {#each assets as asset}
+                    {#each assets || [] as asset}
                         <Table.Row>
                             <Table.Cell>
                                 <div
@@ -126,7 +126,10 @@
                                               : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
                                     }`}
                                 >
-                                    {asset.status.replace("ASSET_STATUS_", "")}
+                                    {(asset.status || "ASSET_STATUS_UNKNOWN").replace(
+                                        "ASSET_STATUS_",
+                                        ""
+                                    )}
                                 </span>
                             </Table.Cell>
                         </Table.Row>

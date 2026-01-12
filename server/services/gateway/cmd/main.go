@@ -249,6 +249,7 @@ func main() {
 			"/v1/auth/logout",
 			"/v1/auth/invite/accept",
 			"/v1/stations", "/v1/trips",
+			"/v1/routes",
 			"/v1/search",
 			"/v1/pricing/calculate",
 			"/v1/queue",
@@ -292,6 +293,8 @@ func main() {
 		if catalogHandler != nil {
 			r.Get("/stations", catalogHandler.ListStations)
 			r.Get("/stations/{stationId}", catalogHandler.GetStation)
+			r.Get("/routes", catalogHandler.ListRoutes)
+			r.Get("/routes/{routeId}", catalogHandler.GetRoute)
 			r.Get("/trips/search", catalogHandler.SearchTrips)
 			r.Get("/trips/{tripId}", catalogHandler.GetTrip)
 		}
