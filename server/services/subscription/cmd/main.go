@@ -59,6 +59,12 @@ func main() {
 
 	// 3. Init Layers
 	repo := repository.NewPostgresRepository(db)
+
+	// Initialize Schema
+	if err := repo.InitSchema(context.Background()); err != nil {
+		logger.Fatal("Failed to initialize DB schema", "error", err)
+	}
+
 	svc := service.NewSubscriptionService(repo)
 
 	// Seed Market-Fit Plans (Bangladesh Context)

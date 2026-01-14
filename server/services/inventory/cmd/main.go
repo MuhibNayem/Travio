@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
@@ -74,6 +75,14 @@ func main() {
 
 	// Dependency Injection
 	scyllaRepo := repository.NewScyllaRepository(scyllaSession)
+
+	// Initialize Schema (Migrations)
+	if err := scyllaRepo.InitSchema(context.Background(), scyllaCfg.Keyspace); err != nil {
+		logger.Error("Failed to initialize ScyllaDB schema", "error", err)
+		// Depending on policy, we might want to panic here or continue
+		// For now, log error but continue (as it might be intermittent connection or existing schema)
+	}
+
 	redisRepo := repository.NewRedisRepository(redisClient)
 	holdRepo := repository.NewHoldRepository(redisClient)
 	inventoryService := service.NewInventoryService(scyllaRepo, holdRepo, redisRepo)

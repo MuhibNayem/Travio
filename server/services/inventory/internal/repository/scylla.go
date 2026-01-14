@@ -19,6 +19,72 @@ func NewScyllaRepository(session *gocql.Session) *ScyllaRepository {
 	return &ScyllaRepository{session: session}
 }
 
+// InitSchema ensures all tables and views exist
+func (r *ScyllaRepository) InitSchema(ctx context.Context, keyspace string) error {
+	queries := []string{
+		// 001_initial_schema.cql
+		fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}", keyspace),
+
+		`CREATE TABLE IF NOT EXISTS segments (
+			organization_id text,
+			trip_id text,
+			segment_index int,
+			from_station_id text,
+			to_station_id text,
+			departure_time timestamp,
+			arrival_time timestamp,
+			PRIMARY KEY ((organization_id, trip_id), segment_index)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS seat_inventory (
+			organization_id text,
+			trip_id text,
+			segment_index int,
+			seat_id text,
+			seat_number text,
+			seat_class text,
+			seat_type text,
+			status text,
+			hold_id text,
+			hold_user_id text,
+			hold_expiry timestamp,
+			booking_id text,
+			price_paisa bigint,
+			updated_at timestamp,
+			PRIMARY KEY ((organization_id, trip_id, segment_index), seat_id)
+		)`,
+
+		// 002_add_waitlist.cql
+		`CREATE TABLE IF NOT EXISTS waitlist (
+			organization_id text,
+			trip_id text,
+			user_id text,
+			seat_class text,
+			requested_seats int,
+			created_at timestamp,
+			status text,
+			PRIMARY KEY ((organization_id, trip_id), created_at, user_id)
+		) WITH CLUSTERING ORDER BY (created_at ASC)
+		  AND compaction = {'class': 'TimeWindowCompactionStrategy', 'compaction_window_unit': 'DAYS', 'compaction_window_size': 1}`,
+
+		`CREATE MATERIALIZED VIEW IF NOT EXISTS waitlist_by_user AS
+			SELECT organization_id, trip_id, user_id, seat_class, requested_seats, created_at, status
+			FROM waitlist
+			WHERE organization_id IS NOT NULL 
+			  AND trip_id IS NOT NULL 
+			  AND created_at IS NOT NULL 
+			  AND user_id IS NOT NULL
+			PRIMARY KEY ((user_id), organization_id, trip_id, created_at)`,
+	}
+
+	for _, query := range queries {
+		if err := r.session.Query(query).WithContext(ctx).Exec(); err != nil {
+			return fmt.Errorf("schema init failed: %w query: %s", err, query)
+		}
+	}
+	return nil
+}
+
 // InitializeTrip creates all segment-seat records for a new trip
 func (r *ScyllaRepository) InitializeTrip(ctx context.Context, orgID, tripID string, segments []domain.Segment, seats []domain.SeatInventory) error {
 	batch := r.session.NewBatch(gocql.LoggedBatch)

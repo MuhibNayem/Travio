@@ -44,6 +44,12 @@ func main() {
 
 	// Dependency Injection (With Caching Decorators)
 	stationRepo := repository.NewStationRepository(db)
+
+	// Initialize Schema
+	if err := stationRepo.InitSchema(context.Background()); err != nil {
+		logger.Error("Failed to initialize database schema", "error", err)
+	}
+
 	cachedStationRepo := repository.NewCachedStationRepository(stationRepo, rdb)
 
 	routeRepo := repository.NewRouteRepository(db)

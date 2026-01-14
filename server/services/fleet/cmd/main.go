@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
@@ -41,10 +42,21 @@ func main() {
 		// Let's panic to ensure visibility during startup.
 		panic(err)
 	}
+	// Initialize Scylla Schema
+	if err := scyllaRepo.InitSchema(context.Background(), "travio_fleet"); err != nil {
+		logger.Error("Failed to initialize ScyllaDB schema", "error", err)
+	}
+
 	defer scyllaRepo.Close()
 
 	// Dependency Injection
 	assetRepo := repository.NewAssetRepository(db)
+
+	// Initialize Postgres Schema
+	if err := assetRepo.InitSchema(context.Background()); err != nil {
+		logger.Error("Failed to initialize Postgres schema", "error", err)
+	}
+
 	svc := service.NewFleetService(assetRepo, scyllaRepo)
 	grpchandler := handler.NewGRPCHandler(svc)
 

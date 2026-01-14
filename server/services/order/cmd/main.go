@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
@@ -96,6 +97,12 @@ func main() {
 
 	// Repository and service
 	orderRepo := repository.NewOrderRepository(db)
+
+	// Initialize Schema
+	if err := orderRepo.InitSchema(context.Background()); err != nil {
+		logger.Error("Failed to initialize database schema", "error", err)
+	}
+
 	var dlqProducer messaging.DLQProducer // interface
 	if dlq != nil {
 		dlqProducer = dlq
