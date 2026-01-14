@@ -40,6 +40,7 @@ message CheckAvailabilityRequest {
   string to_station_id = 3;    // Alighting station
   int32 passengers = 4;
   string seat_class = 5;       // Optional: filter by class
+  string organization_id = 6;
 }
 
 message CheckAvailabilityResponse {
@@ -85,6 +86,7 @@ message HoldSeatsRequest {
   string user_id = 5;
   string session_id = 6;
   int32 hold_duration_seconds = 7;  // Default: 600 (10 min)
+  string organization_id = 8;
 }
 
 message HoldSeatsResponse {
@@ -101,6 +103,7 @@ message HoldSeatsResponse {
 message ReleaseSeatsRequest {
   string hold_id = 1;
   string user_id = 2;
+  string organization_id = 3;
 }
 
 message ReleaseSeatsResponse {
@@ -115,6 +118,7 @@ message ConfirmBookingRequest {
   string order_id = 2;
   string user_id = 3;
   repeated PassengerSeat passengers = 4;
+  string organization_id = 5;
 }
 
 message PassengerSeat {
@@ -142,6 +146,7 @@ message GetSeatMapRequest {
   string trip_id = 1;
   string from_station_id = 2;
   string to_station_id = 3;
+  string organization_id = 4;
 }
 
 message GetSeatMapResponse {

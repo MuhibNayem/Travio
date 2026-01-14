@@ -12,7 +12,6 @@
     import { CreditCard, ShieldCheck, Loader } from "@lucide/svelte";
     import { searchApi } from "$lib/api/search";
     import { inventoryApi } from "$lib/api/inventory";
-    import { catalogApi } from "$lib/api/catalog";
     import { toast } from "svelte-sonner";
 
     let tripId = $derived($page.params.tripId);
@@ -27,48 +26,44 @@
     let isHolding = $state(false);
 
     let selectedSeats = $state<Seat[]>([]);
-
-    async function getStationName(id: string): Promise<string> {
-        if (!id) return "";
-        try {
-            const s = await catalogApi.getStation(id);
-            return s.name; // assuming optional chaining if needed, but s defined
-        } catch {
-            return id;
-        }
-    }
+    let taxPerSeat = $state(0);
+    let bookingFeePerSeat = $state(0);
 
     async function fetchData() {
         if (!tripId) return;
         isLoading = true;
         try {
-            // Parallel fetch for details
-            const [tripData, originName, destName] = await Promise.all([
-                searchApi.getTrip(tripId),
-                getStationName(fromId),
-                getStationName(toId),
-            ]);
+            const tripData = await searchApi.getTripInstance(tripId);
+            const t = tripData?.trip || {};
+            const origin = tripData?.origin_station;
+            const dest = tripData?.destination_station;
 
-            fromStationName = originName || "Unknown";
-            toStationName = destName || "Unknown";
+            fromStationName = origin?.name || "Unknown";
+            toStationName = dest?.name || "Unknown";
 
-            // Map tripData (snake_case) to Trip (camelCase)
-            const t = tripData as any;
             trip = {
                 id: t.id,
                 routeId: t.route_id,
                 type: (t.vehicle_type || "bus") as any,
-                operator: t.operator_name || "Travio Partner",
-                vehicleName: t.vehicle_class || "Standard",
-                departureTime: t.departure_time,
-                arrivalTime: t.arrival_time || t.departure_time,
+                operator: tripData?.operator_name || "Travio Partner",
+                vehicleName: t.vehicle_id || "Standard",
+                departureTime: t.departure_time
+                    ? new Date(t.departure_time * 1000).toISOString()
+                    : "",
+                arrivalTime: t.arrival_time
+                    ? new Date(t.arrival_time * 1000).toISOString()
+                    : "",
                 price: t.pricing?.base_price_paisa
                     ? t.pricing.base_price_paisa / 100
                     : 0,
                 class: t.vehicle_class,
-                availableSeats: t.total_seats,
+                availableSeats: t.available_seats,
                 totalSeats: t.total_seats,
             };
+            taxPerSeat = t.pricing?.tax_paisa ? t.pricing.tax_paisa / 100 : 0;
+            bookingFeePerSeat = t.pricing?.booking_fee_paisa
+                ? t.pricing.booking_fee_paisa / 100
+                : 0;
 
             // Fetch SeatMap
             if (fromId && toId) {
@@ -99,8 +94,9 @@
     });
 
     let total = $derived(selectedSeats.reduce((acc, s) => acc + s.price, 0));
-    let tax = $derived(total * 0.05); // 5% tax
-    let grandTotal = $derived(total + tax);
+    let tax = $derived(taxPerSeat * selectedSeats.length);
+    let bookingFee = $derived(bookingFeePerSeat * selectedSeats.length);
+    let grandTotal = $derived(total + tax + bookingFee);
 
     async function handleCheckout() {
         if (selectedSeats.length === 0 || !tripId) return;
@@ -216,8 +212,14 @@
                                 <div
                                     class="flex justify-between items-center text-sm text-muted-foreground"
                                 >
-                                    <span>Service Charge & Tax (5%)</span>
+                                    <span>Tax</span>
                                     <span>৳{tax}</span>
+                                </div>
+                                <div
+                                    class="flex justify-between items-center text-sm text-muted-foreground"
+                                >
+                                    <span>Booking Fee</span>
+                                    <span>৳{bookingFee}</span>
                                 </div>
                                 <Separator />
                                 <div

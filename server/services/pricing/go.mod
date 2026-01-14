@@ -3,6 +3,7 @@ module github.com/MuhibNayem/Travio/server/services/pricing
 go 1.25.3
 
 require (
+	github.com/MuhibNayem/Travio/server/api v0.0.0-00010101000000-000000000000
 	github.com/MuhibNayem/Travio/server/pkg v0.0.0-00010101000000-000000000000
 	github.com/expr-lang/expr v1.17.7
 	github.com/google/uuid v1.6.0

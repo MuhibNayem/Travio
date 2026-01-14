@@ -280,19 +280,31 @@ func (s *AuthService) RevokeSession(sessionID string) error {
 	return s.RefreshTokenRepo.Revoke(sessionID)
 }
 
-func (s *AuthService) CreateOrganization(name, planID, address, phone, email, website string) (*domain.Organization, error) {
+func (s *AuthService) CreateOrganization(name, planID, address, phone, email, website, currency string) (*domain.Organization, error) {
 	org := &domain.Organization{
-		Name:    name,
-		PlanID:  planID,
-		Address: address,
-		Phone:   phone,
-		Email:   email,
-		Website: website,
+		Name:     name,
+		PlanID:   planID,
+		Address:  address,
+		Phone:    phone,
+		Email:    email,
+		Website:  website,
+		Currency: currency,
 	}
 	if err := s.OrgRepo.Create(org); err != nil {
 		return nil, err
 	}
 	return org, nil
+}
+
+func (s *AuthService) GetOrganization(orgID string) (*domain.Organization, error) {
+	return s.OrgRepo.FindByID(orgID)
+}
+
+func (s *AuthService) UpdateOrganization(org *domain.Organization) (*domain.Organization, error) {
+	if err := s.OrgRepo.Update(org); err != nil {
+		return nil, err
+	}
+	return s.OrgRepo.FindByID(org.ID)
 }
 
 // ValidateToken parses and validates the token, checking the blacklist cache

@@ -29,6 +29,15 @@ message CalculatePriceRequest {
   int64 base_price_paisa = 5;
   double occupancy_rate = 6;
   string organization_id = 7; // For operator-specific overrides
+  int64 departure_time = 8;   // Unix timestamp (seconds)
+  string route_id = 9;
+  string schedule_id = 10;
+  string from_station_id = 11;
+  string to_station_id = 12;
+  string seat_category = 13;
+  string vehicle_type = 14;
+  string vehicle_class = 15;
+  string promo_code = 16;
 }
 
 message CalculatePriceResponse {
@@ -50,10 +59,12 @@ message PricingRule {
   string description = 4;
   string condition = 5;
   double multiplier = 6;
-  int32 priority = 7;
-  bool is_active = 8;
-  string created_at = 9;
-  string updated_at = 10;
+  string adjustment_type = 7;  // multiplier, additive, override
+  double adjustment_value = 8; // When adjustment_type != multiplier
+  int32 priority = 9;
+  bool is_active = 10;
+  string created_at = 11;
+  string updated_at = 12;
 }
 
 message GetRulesRequest {
@@ -71,7 +82,9 @@ message CreateRuleRequest {
   string description = 3;
   string condition = 4;
   double multiplier = 5;
-  int32 priority = 6;
+  string adjustment_type = 6;
+  double adjustment_value = 7;
+  int32 priority = 8;
 }
 
 message CreateRuleResponse {
@@ -84,8 +97,10 @@ message UpdateRuleRequest {
   string description = 3;
   string condition = 4;
   double multiplier = 5;
-  int32 priority = 6;
-  bool is_active = 7;
+  string adjustment_type = 6;
+  double adjustment_value = 7;
+  int32 priority = 8;
+  bool is_active = 9;
 }
 
 message UpdateRuleResponse {

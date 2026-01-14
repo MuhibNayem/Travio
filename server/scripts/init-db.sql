@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     phone VARCHAR(50),
     email VARCHAR(255),
     website VARCHAR(255),
+    currency VARCHAR(3) DEFAULT 'BDT',
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -103,7 +104,7 @@ CREATE TABLE IF NOT EXISTS stations (
 
 CREATE TABLE IF NOT EXISTS routes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID,
+    organization_id UUID NOT NULL,
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     origin_station_id UUID REFERENCES stations(id),
@@ -118,7 +119,9 @@ CREATE TABLE IF NOT EXISTS routes (
 
 CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID,
+    organization_id UUID NOT NULL,
+    schedule_id UUID,
+    service_date DATE,
     route_id UUID REFERENCES routes(id),
     vehicle_id VARCHAR(100),
     vehicle_type VARCHAR(50) NOT NULL, -- 'bus', 'train', 'launch'
@@ -133,13 +136,72 @@ CREATE TABLE IF NOT EXISTS trips (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS schedule_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    route_id UUID NOT NULL REFERENCES routes(id),
+    vehicle_id VARCHAR(100),
+    vehicle_type VARCHAR(50) NOT NULL,
+    vehicle_class VARCHAR(50),
+    total_seats INTEGER NOT NULL DEFAULT 0,
+    pricing JSONB DEFAULT '{}',
+    departure_time TIME NOT NULL,
+    arrival_offset_minutes INTEGER,
+    timezone VARCHAR(50) DEFAULT 'Asia/Dhaka',
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    days_of_week SMALLINT NOT NULL, -- bitmask: 0b0000001 = Mon ... 0b1000000 = Sun
+    status VARCHAR(50) DEFAULT 'active',
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS schedule_exceptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    schedule_id UUID NOT NULL REFERENCES schedule_templates(id) ON DELETE CASCADE,
+    service_date DATE NOT NULL,
+    is_added BOOLEAN NOT NULL DEFAULT true,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS schedule_versions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    schedule_id UUID NOT NULL REFERENCES schedule_templates(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL,
+    snapshot JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE trips
+    ADD CONSTRAINT IF NOT EXISTS trips_schedule_fk
+    FOREIGN KEY (schedule_id) REFERENCES schedule_templates(id);
+
+CREATE TABLE IF NOT EXISTS trip_segments (
+    trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    segment_index INTEGER NOT NULL,
+    from_station_id UUID REFERENCES stations(id),
+    to_station_id UUID REFERENCES stations(id),
+    departure_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    arrival_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    available_seats INTEGER NOT NULL,
+    PRIMARY KEY (trip_id, segment_index)
+);
+
 CREATE INDEX IF NOT EXISTS idx_stations_city ON stations(city);
 CREATE INDEX IF NOT EXISTS idx_stations_org_id ON stations(organization_id);
 CREATE INDEX IF NOT EXISTS idx_routes_origin ON routes(origin_station_id);
 CREATE INDEX IF NOT EXISTS idx_routes_destination ON routes(destination_station_id);
+CREATE INDEX IF NOT EXISTS idx_routes_org_id ON routes(organization_id);
 CREATE INDEX IF NOT EXISTS idx_trips_departure ON trips(departure_time);
 CREATE INDEX IF NOT EXISTS idx_trips_route_id ON trips(route_id);
 CREATE INDEX IF NOT EXISTS idx_trips_vehicle_type ON trips(vehicle_type);
+CREATE INDEX IF NOT EXISTS idx_trips_schedule_id ON trips(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_trips_service_date ON trips(service_date);
+CREATE INDEX IF NOT EXISTS idx_schedule_org_id ON schedule_templates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_route_id ON schedule_templates(route_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_active ON schedule_templates(status) WHERE status = 'active';
 
 -- Seed data for stations
 -- Legacy stations for backward compatibility
@@ -161,6 +223,8 @@ ON CONFLICT DO NOTHING;
 
 -- Add constraints for data integrity
 ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_code_unique UNIQUE (code);
+ALTER TABLE routes ADD CONSTRAINT IF NOT EXISTS routes_code_unique_per_org UNIQUE (organization_id, code);
+ALTER TABLE trips ADD CONSTRAINT IF NOT EXISTS trips_unique_per_org_departure UNIQUE (organization_id, route_id, departure_time);
 ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_latitude_check CHECK (latitude >= -90 AND latitude <= 90);
 ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_longitude_check CHECK (longitude >= -180 AND longitude <= 180);
 ALTER TABLE stations ADD CONSTRAINT IF NOT EXISTS stations_code_format_check CHECK (code ~ '^[A-Z]{3}$');
@@ -362,6 +426,8 @@ CREATE TABLE IF NOT EXISTS pricing_rules (
     description TEXT,
     condition TEXT NOT NULL,
     multiplier DECIMAL(5,4) NOT NULL,
+    adjustment_type VARCHAR(20) DEFAULT 'multiplier',
+    adjustment_value DECIMAL(10,2) DEFAULT 0,
     priority INT DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -372,11 +438,11 @@ CREATE INDEX IF NOT EXISTS idx_pricing_rules_active ON pricing_rules(is_active, 
 CREATE INDEX IF NOT EXISTS idx_pricing_rules_org ON pricing_rules(organization_id);
 
 -- Seed default pricing rules
-INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, priority, is_active) VALUES
-    (gen_random_uuid()::text, NULL, 'Weekend Surge', '20% increase on weekends', 'day_of_week == "Saturday" || day_of_week == "Friday"', 1.20, 10, true),
-    (gen_random_uuid()::text, NULL, 'Early Bird', '15% off for 30+ days advance', 'days_until_departure > 30', 0.85, 20, true),
-    (gen_random_uuid()::text, NULL, 'Last Minute', '10% increase for same-day booking', 'days_until_departure < 1', 1.10, 5, true),
-    (gen_random_uuid()::text, NULL, 'Business Class', '40% premium', 'seat_class == "business"', 1.40, 1, true)
+INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active) VALUES
+    (gen_random_uuid()::text, NULL, 'Weekend Surge', '20% increase on weekends', 'day_of_week == "Saturday" || day_of_week == "Friday"', 1.20, 'multiplier', 0, 10, true),
+    (gen_random_uuid()::text, NULL, 'Early Bird', '15% off for 30+ days advance', 'days_until_departure > 30', 0.85, 'multiplier', 0, 20, true),
+    (gen_random_uuid()::text, NULL, 'Last Minute', '10% increase for same-day booking', 'days_until_departure < 1', 1.10, 'multiplier', 0, 5, true),
+    (gen_random_uuid()::text, NULL, 'Business Class', '40% premium', 'seat_class == "business"', 1.40, 'multiplier', 0, 1, true)
 ON CONFLICT DO NOTHING;
 
 -- ==============================================================================

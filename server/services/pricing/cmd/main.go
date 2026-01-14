@@ -67,6 +67,12 @@ func main() {
 		}
 	}()
 
+	go func() {
+		if err := handler.StartGRPCServer(fmt.Sprintf(":%d", cfg.GRPCPort), svc); err != nil {
+			logger.Error("gRPC server error", "error", err)
+		}
+	}()
+
 	logger.Info("Pricing service started", "port", cfg.GRPCPort)
 
 	// Graceful shutdown

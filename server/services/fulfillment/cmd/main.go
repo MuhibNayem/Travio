@@ -66,7 +66,21 @@ func main() {
 	// Kafka consumer for order events
 	kafkaBrokers := getKafkaBrokers()
 	if len(kafkaBrokers) > 0 {
-		orderConsumer, err := consumer.NewOrderEventConsumer(kafkaBrokers, fulfillmentService)
+		catalogClient, err := consumer.NewCatalogClient(cfg.CatalogAddr)
+		if err != nil {
+			logger.Error("Failed to create catalog client", "error", err)
+			return
+		}
+		defer catalogClient.Close()
+
+		orderClient, err := consumer.NewOrderClient(cfg.OrderAddr)
+		if err != nil {
+			logger.Error("Failed to create order client", "error", err)
+			return
+		}
+		defer orderClient.Close()
+
+		orderConsumer, err := consumer.NewOrderEventConsumer(kafkaBrokers, fulfillmentService, catalogClient, orderClient)
 		if err != nil {
 			logger.Error("Failed to create order event consumer", "error", err)
 		} else {

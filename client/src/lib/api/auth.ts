@@ -19,6 +19,7 @@ export interface RegisterResponse {
 export interface CreateOrgResponse {
     organization_id: string;
     status: string;
+    currency?: string;
 }
 
 export interface Session {
@@ -47,6 +48,7 @@ export interface OrgDetails {
     phone?: string;
     email?: string;
     website?: string;
+    currency?: string;
 }
 
 export interface CreateOrgInput {
@@ -55,6 +57,7 @@ export interface CreateOrgInput {
     phone?: string;
     email?: string;
     website?: string;
+    currency?: string;
 }
 
 /**
@@ -89,6 +92,27 @@ export async function createOrganization(
         plan_id: planId,
         ...details
     });
+}
+
+export interface OrganizationProfile {
+    id: string;
+    name: string;
+    plan_id: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    status: string;
+    currency: string;
+    created_at: string;
+}
+
+export async function getOrganization(): Promise<OrganizationProfile> {
+    return api.get<OrganizationProfile>('/v1/orgs/me');
+}
+
+export async function updateOrganization(payload: Partial<OrganizationProfile>): Promise<OrganizationProfile> {
+    return api.put<OrganizationProfile>('/v1/orgs/me', payload);
 }
 
 /**

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v3.21.12
-// source: api/proto/catalog/v1/catalog.proto
+// source: catalog/v1/catalog.proto
 
 package v1
 
@@ -19,22 +19,33 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CatalogService_CreateStation_FullMethodName = "/catalog.v1.CatalogService/CreateStation"
-	CatalogService_GetStation_FullMethodName    = "/catalog.v1.CatalogService/GetStation"
-	CatalogService_ListStations_FullMethodName  = "/catalog.v1.CatalogService/ListStations"
-	CatalogService_UpdateStation_FullMethodName = "/catalog.v1.CatalogService/UpdateStation"
-	CatalogService_DeleteStation_FullMethodName = "/catalog.v1.CatalogService/DeleteStation"
-	CatalogService_CreateRoute_FullMethodName   = "/catalog.v1.CatalogService/CreateRoute"
-	CatalogService_GetRoute_FullMethodName      = "/catalog.v1.CatalogService/GetRoute"
-	CatalogService_ListRoutes_FullMethodName    = "/catalog.v1.CatalogService/ListRoutes"
-	CatalogService_UpdateRoute_FullMethodName   = "/catalog.v1.CatalogService/UpdateRoute"
-	CatalogService_DeleteRoute_FullMethodName   = "/catalog.v1.CatalogService/DeleteRoute"
-	CatalogService_CreateTrip_FullMethodName    = "/catalog.v1.CatalogService/CreateTrip"
-	CatalogService_GetTrip_FullMethodName       = "/catalog.v1.CatalogService/GetTrip"
-	CatalogService_ListTrips_FullMethodName     = "/catalog.v1.CatalogService/ListTrips"
-	CatalogService_UpdateTrip_FullMethodName    = "/catalog.v1.CatalogService/UpdateTrip"
-	CatalogService_CancelTrip_FullMethodName    = "/catalog.v1.CatalogService/CancelTrip"
-	CatalogService_SearchTrips_FullMethodName   = "/catalog.v1.CatalogService/SearchTrips"
+	CatalogService_CreateStation_FullMethodName          = "/catalog.v1.CatalogService/CreateStation"
+	CatalogService_GetStation_FullMethodName             = "/catalog.v1.CatalogService/GetStation"
+	CatalogService_ListStations_FullMethodName           = "/catalog.v1.CatalogService/ListStations"
+	CatalogService_UpdateStation_FullMethodName          = "/catalog.v1.CatalogService/UpdateStation"
+	CatalogService_DeleteStation_FullMethodName          = "/catalog.v1.CatalogService/DeleteStation"
+	CatalogService_CreateRoute_FullMethodName            = "/catalog.v1.CatalogService/CreateRoute"
+	CatalogService_GetRoute_FullMethodName               = "/catalog.v1.CatalogService/GetRoute"
+	CatalogService_ListRoutes_FullMethodName             = "/catalog.v1.CatalogService/ListRoutes"
+	CatalogService_UpdateRoute_FullMethodName            = "/catalog.v1.CatalogService/UpdateRoute"
+	CatalogService_DeleteRoute_FullMethodName            = "/catalog.v1.CatalogService/DeleteRoute"
+	CatalogService_CreateTrip_FullMethodName             = "/catalog.v1.CatalogService/CreateTrip"
+	CatalogService_GetTrip_FullMethodName                = "/catalog.v1.CatalogService/GetTrip"
+	CatalogService_ListTrips_FullMethodName              = "/catalog.v1.CatalogService/ListTrips"
+	CatalogService_UpdateTrip_FullMethodName             = "/catalog.v1.CatalogService/UpdateTrip"
+	CatalogService_CancelTrip_FullMethodName             = "/catalog.v1.CatalogService/CancelTrip"
+	CatalogService_SearchTrips_FullMethodName            = "/catalog.v1.CatalogService/SearchTrips"
+	CatalogService_CreateSchedule_FullMethodName         = "/catalog.v1.CatalogService/CreateSchedule"
+	CatalogService_GetSchedule_FullMethodName            = "/catalog.v1.CatalogService/GetSchedule"
+	CatalogService_ListSchedules_FullMethodName          = "/catalog.v1.CatalogService/ListSchedules"
+	CatalogService_UpdateSchedule_FullMethodName         = "/catalog.v1.CatalogService/UpdateSchedule"
+	CatalogService_DeleteSchedule_FullMethodName         = "/catalog.v1.CatalogService/DeleteSchedule"
+	CatalogService_AddScheduleException_FullMethodName   = "/catalog.v1.CatalogService/AddScheduleException"
+	CatalogService_ListScheduleExceptions_FullMethodName = "/catalog.v1.CatalogService/ListScheduleExceptions"
+	CatalogService_GenerateTripInstances_FullMethodName  = "/catalog.v1.CatalogService/GenerateTripInstances"
+	CatalogService_ListTripInstances_FullMethodName      = "/catalog.v1.CatalogService/ListTripInstances"
+	CatalogService_CreateSchedules_FullMethodName        = "/catalog.v1.CatalogService/CreateSchedules"
+	CatalogService_GetScheduleHistory_FullMethodName     = "/catalog.v1.CatalogService/GetScheduleHistory"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -63,6 +74,18 @@ type CatalogServiceClient interface {
 	CancelTrip(ctx context.Context, in *CancelTripRequest, opts ...grpc.CallOption) (*Trip, error)
 	// Search (for frontend)
 	SearchTrips(ctx context.Context, in *SearchTripsRequest, opts ...grpc.CallOption) (*SearchTripsResponse, error)
+	// Recurring Schedules
+	CreateSchedule(ctx context.Context, in *CreateScheduleRequest, opts ...grpc.CallOption) (*Schedule, error)
+	GetSchedule(ctx context.Context, in *GetScheduleRequest, opts ...grpc.CallOption) (*Schedule, error)
+	ListSchedules(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ListSchedulesResponse, error)
+	UpdateSchedule(ctx context.Context, in *UpdateScheduleRequest, opts ...grpc.CallOption) (*Schedule, error)
+	DeleteSchedule(ctx context.Context, in *DeleteScheduleRequest, opts ...grpc.CallOption) (*DeleteScheduleResponse, error)
+	AddScheduleException(ctx context.Context, in *AddScheduleExceptionRequest, opts ...grpc.CallOption) (*ScheduleException, error)
+	ListScheduleExceptions(ctx context.Context, in *ListScheduleExceptionsRequest, opts ...grpc.CallOption) (*ListScheduleExceptionsResponse, error)
+	GenerateTripInstances(ctx context.Context, in *GenerateTripInstancesRequest, opts ...grpc.CallOption) (*GenerateTripInstancesResponse, error)
+	ListTripInstances(ctx context.Context, in *ListTripInstancesRequest, opts ...grpc.CallOption) (*ListTripInstancesResponse, error)
+	CreateSchedules(ctx context.Context, in *BulkCreateSchedulesRequest, opts ...grpc.CallOption) (*BulkCreateSchedulesResponse, error)
+	GetScheduleHistory(ctx context.Context, in *GetScheduleHistoryRequest, opts ...grpc.CallOption) (*GetScheduleHistoryResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -233,6 +256,116 @@ func (c *catalogServiceClient) SearchTrips(ctx context.Context, in *SearchTripsR
 	return out, nil
 }
 
+func (c *catalogServiceClient) CreateSchedule(ctx context.Context, in *CreateScheduleRequest, opts ...grpc.CallOption) (*Schedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Schedule)
+	err := c.cc.Invoke(ctx, CatalogService_CreateSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetSchedule(ctx context.Context, in *GetScheduleRequest, opts ...grpc.CallOption) (*Schedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Schedule)
+	err := c.cc.Invoke(ctx, CatalogService_GetSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListSchedules(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ListSchedulesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSchedulesResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListSchedules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateSchedule(ctx context.Context, in *UpdateScheduleRequest, opts ...grpc.CallOption) (*Schedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Schedule)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteSchedule(ctx context.Context, in *DeleteScheduleRequest, opts ...grpc.CallOption) (*DeleteScheduleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteScheduleResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) AddScheduleException(ctx context.Context, in *AddScheduleExceptionRequest, opts ...grpc.CallOption) (*ScheduleException, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScheduleException)
+	err := c.cc.Invoke(ctx, CatalogService_AddScheduleException_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListScheduleExceptions(ctx context.Context, in *ListScheduleExceptionsRequest, opts ...grpc.CallOption) (*ListScheduleExceptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListScheduleExceptionsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListScheduleExceptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GenerateTripInstances(ctx context.Context, in *GenerateTripInstancesRequest, opts ...grpc.CallOption) (*GenerateTripInstancesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateTripInstancesResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GenerateTripInstances_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListTripInstances(ctx context.Context, in *ListTripInstancesRequest, opts ...grpc.CallOption) (*ListTripInstancesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTripInstancesResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListTripInstances_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateSchedules(ctx context.Context, in *BulkCreateSchedulesRequest, opts ...grpc.CallOption) (*BulkCreateSchedulesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BulkCreateSchedulesResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateSchedules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetScheduleHistory(ctx context.Context, in *GetScheduleHistoryRequest, opts ...grpc.CallOption) (*GetScheduleHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetScheduleHistoryResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetScheduleHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -259,6 +392,18 @@ type CatalogServiceServer interface {
 	CancelTrip(context.Context, *CancelTripRequest) (*Trip, error)
 	// Search (for frontend)
 	SearchTrips(context.Context, *SearchTripsRequest) (*SearchTripsResponse, error)
+	// Recurring Schedules
+	CreateSchedule(context.Context, *CreateScheduleRequest) (*Schedule, error)
+	GetSchedule(context.Context, *GetScheduleRequest) (*Schedule, error)
+	ListSchedules(context.Context, *ListSchedulesRequest) (*ListSchedulesResponse, error)
+	UpdateSchedule(context.Context, *UpdateScheduleRequest) (*Schedule, error)
+	DeleteSchedule(context.Context, *DeleteScheduleRequest) (*DeleteScheduleResponse, error)
+	AddScheduleException(context.Context, *AddScheduleExceptionRequest) (*ScheduleException, error)
+	ListScheduleExceptions(context.Context, *ListScheduleExceptionsRequest) (*ListScheduleExceptionsResponse, error)
+	GenerateTripInstances(context.Context, *GenerateTripInstancesRequest) (*GenerateTripInstancesResponse, error)
+	ListTripInstances(context.Context, *ListTripInstancesRequest) (*ListTripInstancesResponse, error)
+	CreateSchedules(context.Context, *BulkCreateSchedulesRequest) (*BulkCreateSchedulesResponse, error)
+	GetScheduleHistory(context.Context, *GetScheduleHistoryRequest) (*GetScheduleHistoryResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -316,6 +461,39 @@ func (UnimplementedCatalogServiceServer) CancelTrip(context.Context, *CancelTrip
 }
 func (UnimplementedCatalogServiceServer) SearchTrips(context.Context, *SearchTripsRequest) (*SearchTripsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SearchTrips not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateSchedule(context.Context, *CreateScheduleRequest) (*Schedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSchedule not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetSchedule(context.Context, *GetScheduleRequest) (*Schedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSchedule not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListSchedules(context.Context, *ListSchedulesRequest) (*ListSchedulesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSchedules not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateSchedule(context.Context, *UpdateScheduleRequest) (*Schedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateSchedule not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteSchedule(context.Context, *DeleteScheduleRequest) (*DeleteScheduleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteSchedule not implemented")
+}
+func (UnimplementedCatalogServiceServer) AddScheduleException(context.Context, *AddScheduleExceptionRequest) (*ScheduleException, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddScheduleException not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListScheduleExceptions(context.Context, *ListScheduleExceptionsRequest) (*ListScheduleExceptionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListScheduleExceptions not implemented")
+}
+func (UnimplementedCatalogServiceServer) GenerateTripInstances(context.Context, *GenerateTripInstancesRequest) (*GenerateTripInstancesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GenerateTripInstances not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListTripInstances(context.Context, *ListTripInstancesRequest) (*ListTripInstancesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTripInstances not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateSchedules(context.Context, *BulkCreateSchedulesRequest) (*BulkCreateSchedulesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSchedules not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetScheduleHistory(context.Context, *GetScheduleHistoryRequest) (*GetScheduleHistoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetScheduleHistory not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -626,6 +804,204 @@ func _CatalogService_SearchTrips_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_CreateSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateSchedule(ctx, req.(*CreateScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetSchedule(ctx, req.(*GetScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListSchedules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSchedulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListSchedules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListSchedules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListSchedules(ctx, req.(*ListSchedulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateSchedule(ctx, req.(*UpdateScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteSchedule(ctx, req.(*DeleteScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_AddScheduleException_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddScheduleExceptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).AddScheduleException(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_AddScheduleException_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).AddScheduleException(ctx, req.(*AddScheduleExceptionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListScheduleExceptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListScheduleExceptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListScheduleExceptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListScheduleExceptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListScheduleExceptions(ctx, req.(*ListScheduleExceptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GenerateTripInstances_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateTripInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GenerateTripInstances(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GenerateTripInstances_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GenerateTripInstances(ctx, req.(*GenerateTripInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListTripInstances_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTripInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListTripInstances(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListTripInstances_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListTripInstances(ctx, req.(*ListTripInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateSchedules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BulkCreateSchedulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateSchedules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateSchedules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateSchedules(ctx, req.(*BulkCreateSchedulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetScheduleHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetScheduleHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetScheduleHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetScheduleHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetScheduleHistory(ctx, req.(*GetScheduleHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -697,7 +1073,51 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "SearchTrips",
 			Handler:    _CatalogService_SearchTrips_Handler,
 		},
+		{
+			MethodName: "CreateSchedule",
+			Handler:    _CatalogService_CreateSchedule_Handler,
+		},
+		{
+			MethodName: "GetSchedule",
+			Handler:    _CatalogService_GetSchedule_Handler,
+		},
+		{
+			MethodName: "ListSchedules",
+			Handler:    _CatalogService_ListSchedules_Handler,
+		},
+		{
+			MethodName: "UpdateSchedule",
+			Handler:    _CatalogService_UpdateSchedule_Handler,
+		},
+		{
+			MethodName: "DeleteSchedule",
+			Handler:    _CatalogService_DeleteSchedule_Handler,
+		},
+		{
+			MethodName: "AddScheduleException",
+			Handler:    _CatalogService_AddScheduleException_Handler,
+		},
+		{
+			MethodName: "ListScheduleExceptions",
+			Handler:    _CatalogService_ListScheduleExceptions_Handler,
+		},
+		{
+			MethodName: "GenerateTripInstances",
+			Handler:    _CatalogService_GenerateTripInstances_Handler,
+		},
+		{
+			MethodName: "ListTripInstances",
+			Handler:    _CatalogService_ListTripInstances_Handler,
+		},
+		{
+			MethodName: "CreateSchedules",
+			Handler:    _CatalogService_CreateSchedules_Handler,
+		},
+		{
+			MethodName: "GetScheduleHistory",
+			Handler:    _CatalogService_GetScheduleHistory_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/catalog/v1/catalog.proto",
+	Metadata: "catalog/v1/catalog.proto",
 }

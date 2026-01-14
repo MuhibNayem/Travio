@@ -61,22 +61,25 @@
             if (!orgId) return;
 
             if (activeTab === "trips") {
-                const res = await catalogApi.getTrips();
-                items = res.map((t) => ({
-                    id: t.id,
-                    title: `${t.vehicle_class} Trip`, // Enhance with full name in future
-                    time: new Date(t.departure_time * 1000).toLocaleTimeString(
-                        [],
-                        { hour: "2-digit", minute: "2-digit" },
-                    ),
-                    type: "bus",
-                    price: t.pricing?.base_price_paisa
-                        ? t.pricing.base_price_paisa / 100
-                        : 0,
-                    operator: t.organization_id.substring(0, 8),
-                    seatsAvailable: t.available_seats,
-                    raw: t,
-                }));
+                const res = await catalogApi.listTripInstances();
+                items = res.map((r) => {
+                    const t = r.trip;
+                    return {
+                        id: t.id,
+                        title: r.route?.name || `${t.vehicle_class} Trip`,
+                        time: new Date(t.departure_time * 1000).toLocaleTimeString(
+                            [],
+                            { hour: "2-digit", minute: "2-digit" },
+                        ),
+                        type: "bus",
+                        price: t.pricing?.base_price_paisa
+                            ? t.pricing.base_price_paisa / 100
+                            : 0,
+                        operator: r.operator_name || t.organization_id.substring(0, 8),
+                        seatsAvailable: t.available_seats,
+                        raw: t,
+                    };
+                });
             } else {
                 const res = await eventsApi.searchEvents("");
                 items = res.results.map((r) => ({
@@ -144,9 +147,9 @@
         if (activeTab === "events") return "event";
 
         // Map vehicle_type to SeatMap type
-        const vehicleType = item.raw?.vehicle_type || "ASSET_TYPE_BUS";
-        if (vehicleType.includes("TRAIN")) return "train";
-        if (vehicleType.includes("LAUNCH")) return "launch";
+        const vehicleType = item.raw?.vehicle_type || "bus";
+        if (vehicleType.includes("train") || vehicleType.includes("TRAIN")) return "train";
+        if (vehicleType.includes("launch") || vehicleType.includes("LAUNCH") || vehicleType.includes("ferry")) return "launch";
         return "bus";
     }
 

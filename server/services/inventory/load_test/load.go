@@ -52,6 +52,7 @@ func main() {
 
 				// Simulate Hold Request for the SAME seat
 				_, err := client.HoldSeats(ctx, &pb.HoldSeatsRequest{
+					OrganizationId: "org-test",
 					TripId:        TripID,
 					FromStationId: "Dhaka",
 					ToStationId:   "Chittagong",

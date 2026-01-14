@@ -30,9 +30,9 @@ func NewInventoryService(scyllaRepo *repository.ScyllaRepository, holdRepo *repo
 }
 
 // CheckAvailability returns seat availability for a journey
-func (s *InventoryService) CheckAvailability(ctx context.Context, tripID, fromStation, toStation string, passengers int, seatClass string) (*AvailabilityResult, error) {
+func (s *InventoryService) CheckAvailability(ctx context.Context, orgID, tripID, fromStation, toStation string, passengers int, seatClass string) (*AvailabilityResult, error) {
 	// Get segments for this trip
-	segments, err := s.scyllaRepo.GetSegments(ctx, tripID)
+	segments, err := s.scyllaRepo.GetSegments(ctx, orgID, tripID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (s *InventoryService) CheckAvailability(ctx context.Context, tripID, fromSt
 	}
 
 	// Get seat availability for these segments
-	seats, err := s.scyllaRepo.GetSeatAvailability(ctx, tripID, segmentRange)
+	seats, err := s.scyllaRepo.GetSeatAvailability(ctx, orgID, tripID, segmentRange)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *InventoryService) CheckAvailability(ctx context.Context, tripID, fromSt
 // HoldSeats creates a temporary hold on seats
 func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*HoldResult, error) {
 	// Check user's current hold count (anti-scalping)
-	holdCount, err := s.holdRepo.CountUserActiveHolds(ctx, req.UserID)
+	holdCount, err := s.holdRepo.CountUserActiveHolds(ctx, req.OrganizationID, req.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 	}
 
 	// Get segments
-	segments, err := s.scyllaRepo.GetSegments(ctx, req.TripID)
+	segments, err := s.scyllaRepo.GetSegments(ctx, req.OrganizationID, req.TripID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 			defer cancel()
 			for _, seatID := range lockedSeats {
 				for _, segIdx := range segmentRange {
-					s.redisRepo.ReleaseSeatLock(bgCtx, req.TripID, seatID, segIdx, req.UserID)
+					s.redisRepo.ReleaseSeatLock(bgCtx, req.OrganizationID, req.TripID, seatID, segIdx, req.UserID)
 				}
 			}
 		}()
@@ -116,7 +116,7 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 	for _, seatID := range req.SeatIDs {
 		// Acquire lock for ALL segments involved
 		for _, segIdx := range segmentRange {
-			acquired, err := s.redisRepo.AcquireSeatLock(ctx, req.TripID, seatID, segIdx, req.UserID, 10*time.Second)
+			acquired, err := s.redisRepo.AcquireSeatLock(ctx, req.OrganizationID, req.TripID, seatID, segIdx, req.UserID, 10*time.Second)
 			if err != nil {
 				return nil, err
 			}
@@ -131,8 +131,12 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 		lockedSeats = append(lockedSeats, seatID)
 	}
 
+	if err := s.scyllaRepo.ReleaseExpiredHolds(ctx, req.OrganizationID, req.TripID, req.SeatIDs, segmentRange); err != nil {
+		return nil, err
+	}
+
 	// Check availability (Scylla)
-	available, unavailableReasons, err := s.scyllaRepo.CheckSeatsAvailableForSegments(ctx, req.TripID, req.SeatIDs, segmentRange)
+	available, unavailableReasons, err := s.scyllaRepo.CheckSeatsAvailableForSegments(ctx, req.OrganizationID, req.TripID, req.SeatIDs, segmentRange)
 	if err != nil {
 		return nil, err
 	}
@@ -158,29 +162,30 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 	expiresAt := time.Now().Add(holdDuration)
 
 	// Update ScyllaDB (mark as held)
-	if err := s.scyllaRepo.HoldSeats(ctx, holdID, req.TripID, req.UserID, req.SeatIDs, segmentRange, expiresAt); err != nil {
+	if err := s.scyllaRepo.HoldSeats(ctx, req.OrganizationID, holdID, req.TripID, req.UserID, req.SeatIDs, segmentRange, expiresAt); err != nil {
 		return nil, err
 	}
 
 	// Store hold metadata in Redis
 	hold := &domain.SeatHold{
-		HoldID:        holdID,
-		TripID:        req.TripID,
-		UserID:        req.UserID,
-		SessionID:     req.SessionID,
-		FromStationID: req.FromStation,
-		ToStationID:   req.ToStation,
-		SeatIDs:       req.SeatIDs,
-		SegmentRange:  segmentRange,
-		Status:        domain.HoldStatusActive,
-		ExpiresAt:     expiresAt,
-		CreatedAt:     time.Now(),
-		IPAddress:     req.IPAddress,
+		HoldID:         holdID,
+		OrganizationID: req.OrganizationID,
+		TripID:         req.TripID,
+		UserID:         req.UserID,
+		SessionID:      req.SessionID,
+		FromStationID:  req.FromStation,
+		ToStationID:    req.ToStation,
+		SeatIDs:        req.SeatIDs,
+		SegmentRange:   segmentRange,
+		Status:         domain.HoldStatusActive,
+		ExpiresAt:      expiresAt,
+		CreatedAt:      time.Now(),
+		IPAddress:      req.IPAddress,
 	}
 
-	if err := s.holdRepo.CreateHold(ctx, hold); err != nil {
+	if err := s.holdRepo.CreateHold(ctx, req.OrganizationID, hold); err != nil {
 		// Rollback ScyllaDB hold
-		_ = s.scyllaRepo.ReleaseHold(ctx, req.TripID, holdID, segmentRange, req.SeatIDs)
+		_ = s.scyllaRepo.ReleaseHold(ctx, req.OrganizationID, req.TripID, holdID, segmentRange, req.SeatIDs)
 		return nil, err
 	}
 
@@ -189,7 +194,7 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 	go func() {
 		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		s.redisRepo.InvalidateSeatMap(bgCtx, req.TripID)
+		s.redisRepo.InvalidateSeatMap(bgCtx, req.OrganizationID, req.TripID)
 	}()
 
 	return &HoldResult{
@@ -201,8 +206,8 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 }
 
 // ReleaseSeats releases a hold
-func (s *InventoryService) ReleaseSeats(ctx context.Context, holdID, userID string) error {
-	hold, err := s.holdRepo.GetHold(ctx, holdID)
+func (s *InventoryService) ReleaseSeats(ctx context.Context, orgID, holdID, userID string) error {
+	hold, err := s.holdRepo.GetHold(ctx, orgID, holdID)
 	if err != nil {
 		return err
 	}
@@ -213,12 +218,12 @@ func (s *InventoryService) ReleaseSeats(ctx context.Context, holdID, userID stri
 	}
 
 	// Release in ScyllaDB
-	if err := s.scyllaRepo.ReleaseHold(ctx, hold.TripID, holdID, hold.SegmentRange, hold.SeatIDs); err != nil {
+	if err := s.scyllaRepo.ReleaseHold(ctx, orgID, hold.TripID, holdID, hold.SegmentRange, hold.SeatIDs); err != nil {
 		return err
 	}
 
 	// Mark hold as released
-	if err := s.holdRepo.UpdateHoldStatus(ctx, holdID, domain.HoldStatusReleased); err != nil {
+	if err := s.holdRepo.UpdateHoldStatus(ctx, orgID, holdID, domain.HoldStatusReleased); err != nil {
 		return err
 	}
 
@@ -226,8 +231,8 @@ func (s *InventoryService) ReleaseSeats(ctx context.Context, holdID, userID stri
 }
 
 // ConfirmBooking converts a hold to a confirmed booking
-func (s *InventoryService) ConfirmBooking(ctx context.Context, holdID, orderID, userID string, passengers []PassengerInfo) (*BookingResult, error) {
-	hold, err := s.holdRepo.GetHold(ctx, holdID)
+func (s *InventoryService) ConfirmBooking(ctx context.Context, orgID, holdID, orderID, userID string, passengers []PassengerInfo) (*BookingResult, error) {
+	hold, err := s.holdRepo.GetHold(ctx, orgID, holdID)
 	if err != nil {
 		return nil, err
 	}
@@ -257,12 +262,12 @@ func (s *InventoryService) ConfirmBooking(ctx context.Context, holdID, orderID, 
 	bookingID := uuid.New().String()
 
 	// Confirm in ScyllaDB
-	if err := s.scyllaRepo.ConfirmBooking(ctx, hold.TripID, holdID, bookingID, hold.SegmentRange, hold.SeatIDs); err != nil {
+	if err := s.scyllaRepo.ConfirmBooking(ctx, orgID, hold.TripID, holdID, bookingID, hold.SegmentRange, hold.SeatIDs); err != nil {
 		return nil, err
 	}
 
 	// Update hold status
-	if err := s.holdRepo.UpdateHoldStatus(ctx, holdID, domain.HoldStatusConverted); err != nil {
+	if err := s.holdRepo.UpdateHoldStatus(ctx, orgID, holdID, domain.HoldStatusConverted); err != nil {
 		// Non-fatal, booking is already confirmed
 	}
 
@@ -287,8 +292,8 @@ func (s *InventoryService) ConfirmBooking(ctx context.Context, holdID, orderID, 
 }
 
 // GetSeatMap returns the seat layout with availability status
-func (s *InventoryService) GetSeatMap(ctx context.Context, tripID, fromStation, toStation string) (*SeatMapResult, error) {
-	segments, err := s.scyllaRepo.GetSegments(ctx, tripID)
+func (s *InventoryService) GetSeatMap(ctx context.Context, orgID, tripID, fromStation, toStation string) (*SeatMapResult, error) {
+	segments, err := s.scyllaRepo.GetSegments(ctx, orgID, tripID)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +306,7 @@ func (s *InventoryService) GetSeatMap(ctx context.Context, tripID, fromStation, 
 
 	// Try Cache First (Read-Through)
 	// We cache the ENTIRE trip inventory to allow in-memory filtering for any segment range
-	seats, err := s.redisRepo.GetCachedSeatMap(ctx, tripID)
+	seats, err := s.redisRepo.GetCachedSeatMap(ctx, orgID, tripID)
 	if err != nil || len(seats) == 0 {
 		// Cache Miss: Fetch ALL segments to warm cache for everyone
 		allSegmentIndices := make([]int, len(segments))
@@ -309,7 +314,7 @@ func (s *InventoryService) GetSeatMap(ctx context.Context, tripID, fromStation, 
 			allSegmentIndices[i] = segments[i].SegmentIndex
 		}
 
-		seats, err = s.scyllaRepo.GetSeatAvailability(ctx, tripID, allSegmentIndices)
+		seats, err = s.scyllaRepo.GetSeatAvailability(ctx, orgID, tripID, allSegmentIndices)
 		if err != nil {
 			return nil, err
 		}
@@ -318,7 +323,7 @@ func (s *InventoryService) GetSeatMap(ctx context.Context, tripID, fromStation, 
 		go func() {
 			bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			s.redisRepo.CacheSeatMap(bgCtx, tripID, seats, 5*time.Second) // Short TTL for near-realtime
+			s.redisRepo.CacheSeatMap(bgCtx, orgID, tripID, seats, 5*time.Second) // Short TTL for near-realtime
 		}()
 	}
 
@@ -326,6 +331,45 @@ func (s *InventoryService) GetSeatMap(ctx context.Context, tripID, fromStation, 
 	seatMap := aggregateSeatMap(seats, segmentRange)
 
 	return seatMap, nil
+}
+
+// InitializeTripInventory initializes inventory for a new trip
+func (s *InventoryService) InitializeTripInventory(ctx context.Context, req *InitializeTripRequest) (*InitializeTripResult, error) {
+	// 1. Convert Service Request to Domain Models
+	var segments []domain.Segment
+	for _, seg := range req.Segments {
+		segments = append(segments, domain.Segment{
+			TripID:         req.TripID,
+			OrganizationID: req.OrganizationID,
+			SegmentIndex:   seg.SegmentIndex,
+			FromStationID:  seg.FromStationID,
+			ToStationID:    seg.ToStationID,
+			DepartureTime:  time.Unix(seg.DepartureTime, 0),
+			ArrivalTime:    time.Unix(seg.ArrivalTime, 0),
+		})
+	}
+
+	var seats []domain.SeatInventory
+	for _, seatDef := range req.SeatConfig.Seats {
+		seats = append(seats, domain.SeatInventory{
+			SeatID:     seatDef.SeatID,
+			SeatNumber: seatDef.SeatNumber,
+			SeatClass:  seatDef.SeatClass,
+			SeatType:   seatDef.SeatType,
+			PricePaisa: seatDef.PricePaisa,
+		})
+	}
+
+	// 2. Call Repository to Initialize
+	if err := s.scyllaRepo.InitializeTrip(ctx, req.OrganizationID, req.TripID, segments, seats); err != nil {
+		return nil, err
+	}
+
+	return &InitializeTripResult{
+		Success:         true,
+		SegmentsCreated: len(segments),
+		SeatsCreated:    len(seats) * len(segments),
+	}, nil
 }
 
 // --- Helper Types ---
@@ -350,14 +394,15 @@ type SeatInfo struct {
 }
 
 type HoldRequest struct {
-	TripID       string
-	FromStation  string
-	ToStation    string
-	SeatIDs      []string
-	UserID       string
-	SessionID    string
-	IPAddress    string
-	HoldDuration time.Duration
+	OrganizationID string
+	TripID         string
+	FromStation    string
+	ToStation      string
+	SeatIDs        []string
+	UserID         string
+	SessionID      string
+	IPAddress      string
+	HoldDuration   time.Duration
 }
 
 type HoldResult struct {
@@ -407,6 +452,43 @@ type SeatCell struct {
 	SeatClass  string
 	Status     string
 	PricePaisa int64
+}
+
+type InitializeTripRequest struct {
+	TripID         string
+	OrganizationID string
+	VehicleID      string
+	Segments       []SegmentDef
+	SeatConfig     SeatConfig
+}
+
+type SegmentDef struct {
+	SegmentIndex  int
+	FromStationID string
+	ToStationID   string
+	DepartureTime int64
+	ArrivalTime   int64
+}
+
+type SeatConfig struct {
+	TotalSeats int
+	Seats      []SeatDef
+}
+
+type SeatDef struct {
+	SeatID     string
+	SeatNumber string
+	Row        int
+	Column     int
+	SeatType   string
+	SeatClass  string
+	PricePaisa int64
+}
+
+type InitializeTripResult struct {
+	Success         bool
+	SegmentsCreated int
+	SeatsCreated    int
 }
 
 // --- Helper Functions ---

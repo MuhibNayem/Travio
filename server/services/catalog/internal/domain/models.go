@@ -52,6 +52,8 @@ type RouteStop struct {
 type Trip struct {
 	ID             string        `json:"id"`
 	OrganizationID string        `json:"organization_id"`
+	ScheduleID     string        `json:"schedule_id"`
+	ServiceDate    string        `json:"service_date"` // YYYY-MM-DD
 	RouteID        string        `json:"route_id"`
 	VehicleID      string        `json:"vehicle_id"`    // Bus/Train number
 	VehicleType    string        `json:"vehicle_type"`  // bus, train, ferry
@@ -69,11 +71,21 @@ type Trip struct {
 
 // TripPricing contains pricing information for a trip
 type TripPricing struct {
-	BasePricePaisa  int64            `json:"base_price_paisa"`
-	TaxPaisa        int64            `json:"tax_paisa"`
-	BookingFeePaisa int64            `json:"booking_fee_paisa"`
-	Currency        string           `json:"currency"`
-	ClassPrices     map[string]int64 `json:"class_prices"`
+	BasePricePaisa     int64            `json:"base_price_paisa"`
+	TaxPaisa           int64            `json:"tax_paisa"`
+	BookingFeePaisa    int64            `json:"booking_fee_paisa"`
+	Currency           string           `json:"currency"`
+	ClassPrices        map[string]int64 `json:"class_prices"`
+	SeatCategoryPrices map[string]int64 `json:"seat_category_prices"`
+	SegmentPrices      []SegmentPricing `json:"segment_prices"`
+}
+
+type SegmentPricing struct {
+	FromStationID      string           `json:"from_station_id"`
+	ToStationID        string           `json:"to_station_id"`
+	BasePricePaisa     int64            `json:"base_price_paisa"`
+	ClassPrices        map[string]int64 `json:"class_prices"`
+	SeatCategoryPrices map[string]int64 `json:"seat_category_prices"`
 }
 
 // TripSegment represents a segment of a trip for intermediate boarding
@@ -84,6 +96,38 @@ type TripSegment struct {
 	DepartureTime  time.Time `json:"departure_time"`
 	ArrivalTime    time.Time `json:"arrival_time"`
 	AvailableSeats int       `json:"available_seats"`
+}
+
+// ScheduleTemplate defines a recurring service pattern
+type ScheduleTemplate struct {
+	ID                   string      `json:"id"`
+	OrganizationID       string      `json:"organization_id"`
+	RouteID              string      `json:"route_id"`
+	VehicleID            string      `json:"vehicle_id"`
+	VehicleType          string      `json:"vehicle_type"`
+	VehicleClass         string      `json:"vehicle_class"`
+	TotalSeats           int         `json:"total_seats"`
+	Pricing              TripPricing `json:"pricing"`
+	DepartureMinutes     int         `json:"departure_minutes"`      // Minutes since midnight
+	ArrivalOffsetMinutes int         `json:"arrival_offset_minutes"` // Optional override
+	Timezone             string      `json:"timezone"`
+	StartDate            string      `json:"start_date"` // YYYY-MM-DD
+	EndDate              string      `json:"end_date"`   // YYYY-MM-DD
+	DaysOfWeek           int         `json:"days_of_week"`
+	Status               string      `json:"status"`
+	Version              int         `json:"version"`
+	CreatedAt            time.Time   `json:"created_at"`
+	UpdatedAt            time.Time   `json:"updated_at"`
+}
+
+// ScheduleException overrides a schedule for a specific date
+type ScheduleException struct {
+	ID          string    `json:"id"`
+	ScheduleID  string    `json:"schedule_id"`
+	ServiceDate string    `json:"service_date"` // YYYY-MM-DD
+	IsAdded     bool      `json:"is_added"`
+	Reason      string    `json:"reason"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // Vehicle represents a transport vehicle
@@ -135,4 +179,16 @@ const (
 	TripStatusArrived   = "arrived"
 	TripStatusCancelled = "cancelled"
 	TripStatusDelayed   = "delayed"
+
+	ScheduleStatusActive   = "active"
+	ScheduleStatusInactive = "inactive"
 )
+
+// ScheduleVersion represents a historical snapshot of a schedule
+type ScheduleVersion struct {
+	ID         string           `json:"id"`
+	ScheduleID string           `json:"schedule_id"`
+	Version    int              `json:"version"`
+	Snapshot   ScheduleTemplate `json:"snapshot"`
+	CreatedAt  time.Time        `json:"created_at"`
+}

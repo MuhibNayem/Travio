@@ -40,34 +40,57 @@ export const catalogApi = {
         return response;
     },
 
-    // Trips
-    getTrips: async (): Promise<Trip[]> => {
-        // Operator view of trips (management)
-        // Gateway endpoint: /trips?organization_id=... (handled by backend or context)
-        // Check proto: ListTripsRequest
-        // We might need a specific management endpoint or use the general list with filters.
-        // Assuming /trips is available for operators via Gateway Catalog Handler override or same endpoint?
-        // Gateway: r.Post("/trips", catalogHandler.CreateTrip) protected.
-        // Gateway: r.Get("/trips/search", ...).
-        // Gateway: r.Get("/trips/{tripId}", ...).
-        // MISSING: r.Get("/trips") for listing!
-        // I need to add that to Gateway first? Or does it exist?
-        // Checking Main.go: No "ListTrips" exposed except Search.
-        // I will add ListTrips to Gateway first.
-        // For now, I'll add the method here and fix Gateway next.
-        const response = await api.get<ListTripsResponse>('/v1/trips');
-        return response?.trips ?? [];
+    // Trip Instances
+    listTripInstances: async (params: ListTripInstancesParams = {}): Promise<TripInstanceResult[]> => {
+        const query = new URLSearchParams();
+        if (params.schedule_id) query.append('schedule_id', params.schedule_id);
+        if (params.route_id) query.append('route_id', params.route_id);
+        if (params.start_date) query.append('start_date', params.start_date);
+        if (params.end_date) query.append('end_date', params.end_date);
+        if (params.status) query.append('status', params.status);
+
+        const response = await api.get<ListTripInstancesResponse>(`/v1/trip-instances?${query.toString()}`);
+        return response?.results ?? [];
     },
 
-    createTrip: async (trip: CreateTripRequest): Promise<Trip> => {
-        const response = await api.post<Trip>('/v1/trips', trip);
+    getTripInstance: async (id: string): Promise<TripInstanceResult> => {
+        const response = await api.get<TripInstanceResult>(`/v1/trip-instances/${id}`);
         return response;
-    }
+    },
+
+    // Schedules
+    createSchedule: async (schedule: CreateScheduleRequest): Promise<Schedule> => {
+        const response = await api.post<Schedule>('/v1/schedules', schedule);
+        return response;
+    },
+
+    bulkCreateSchedules: async (schedules: CreateScheduleRequest[]): Promise<Schedule[]> => {
+        const response = await api.post<BulkCreateSchedulesResponse>('/v1/schedules/bulk', { schedules });
+        return response?.schedules ?? [];
+    },
+
+    listSchedules: async (params: ListSchedulesParams = {}): Promise<Schedule[]> => {
+        const query = new URLSearchParams();
+        if (params.route_id) query.append('route_id', params.route_id);
+        if (params.status) query.append('status', params.status);
+        const response = await api.get<ListSchedulesResponse>(`/v1/schedules?${query.toString()}`);
+        return response?.schedules ?? [];
+    },
+
+    generateTripInstances: async (scheduleId: string, startDate: string, endDate: string): Promise<GenerateTripInstancesResponse> => {
+        const query = new URLSearchParams();
+        if (startDate) query.append('start_date', startDate);
+        if (endDate) query.append('end_date', endDate);
+        const response = await api.post<GenerateTripInstancesResponse>(`/v1/schedules/${scheduleId}/generate?${query.toString()}`);
+        return response;
+    },
 };
 
 export interface Trip {
     id: string;
     organization_id: string;
+    schedule_id?: string;
+    service_date?: string;
     route_id: string;
     vehicle_id: string;
     vehicle_type: string;
@@ -82,23 +105,20 @@ export interface Trip {
 
 export interface TripPricing {
     base_price_paisa: number;
+    tax_paisa: number;
+    booking_fee_paisa: number;
     currency: string;
     class_prices: Record<string, number>;
+    seat_category_prices: Record<string, number>;
+    segment_prices: SegmentPricing[];
 }
 
-export interface CreateTripRequest {
-    route_id: string;
-    vehicle_id: string;
-    vehicle_type: string;
-    vehicle_class: string;
-    departure_time: number;
-    total_seats: number;
-    pricing: TripPricing;
-}
-
-export interface ListTripsResponse {
-    trips: Trip[];
-    total: number;
+export interface SegmentPricing {
+    from_station_id: string;
+    to_station_id: string;
+    base_price_paisa: number;
+    class_prices: Record<string, number>;
+    seat_category_prices: Record<string, number>;
 }
 
 export interface Route {
@@ -135,4 +155,84 @@ export interface CreateRouteRequest {
     distance_km: number;
     estimated_duration_minutes: number;
     intermediate_stops?: RouteStop[];
+}
+
+export interface TripInstanceResult {
+    trip: Trip;
+    route: Route;
+    origin_station: Station;
+    destination_station: Station;
+    operator_name?: string;
+}
+
+export interface ListTripInstancesResponse {
+    results: TripInstanceResult[];
+    next_page_token: string;
+    total_count: number;
+}
+
+export interface ListTripInstancesParams {
+    schedule_id?: string;
+    route_id?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+}
+
+export interface Schedule {
+    id: string;
+    organization_id: string;
+    route_id: string;
+    vehicle_id: string;
+    vehicle_type: string;
+    vehicle_class: string;
+    total_seats: number;
+    pricing: TripPricing;
+    departure_minutes: number;
+    arrival_offset_minutes: number;
+    timezone: string;
+    start_date: string;
+    end_date: string;
+    days_of_week: number;
+    status: string;
+    created_at: number;
+    updated_at: number;
+    version: number;
+}
+
+export interface CreateScheduleRequest {
+    route_id: string;
+    vehicle_id: string;
+    vehicle_type: string;
+    vehicle_class: string;
+    total_seats: number;
+    pricing: TripPricing;
+    departure_minutes: number;
+    arrival_offset_minutes: number;
+    timezone: string;
+    start_date: string;
+    end_date: string;
+    days_of_week: number;
+    status?: string;
+}
+
+export interface ListSchedulesParams {
+    route_id?: string;
+    status?: string;
+}
+
+export interface ListSchedulesResponse {
+    schedules: Schedule[];
+    next_page_token: string;
+    total_count: number;
+}
+
+export interface GenerateTripInstancesResponse {
+    trips: Trip[];
+    created_count: number;
+}
+
+export interface BulkCreateSchedulesResponse {
+    schedules: Schedule[];
+    created_count: number;
 }

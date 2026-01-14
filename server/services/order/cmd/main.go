@@ -75,6 +75,16 @@ func main() {
 		logger.Error("Failed to connect to subscription service", "error", err)
 	}
 
+	catalogClient, err := clients.NewCatalogClient(cfg.Services.CatalogAddr)
+	if err != nil {
+		logger.Error("Failed to connect to catalog service", "error", err)
+	}
+
+	pricingClient, err := clients.NewPricingClient(cfg.Services.PricingAddr)
+	if err != nil {
+		logger.Error("Failed to connect to pricing service", "error", err)
+	}
+
 	// Saga dependencies
 	sagaDeps := &saga.BookingDependencies{
 		NIDService:          nidClient,
@@ -90,7 +100,7 @@ func main() {
 	if dlq != nil {
 		dlqProducer = dlq
 	}
-	orderService := service.NewOrderService(db, gormDB, dlqProducer, orderRepo, sagaDeps)
+	orderService := service.NewOrderService(db, gormDB, dlqProducer, orderRepo, sagaDeps, catalogClient, pricingClient, inventoryClient)
 	grpcHandler := handler.NewGrpcHandler(orderService)
 
 	// Idempotency Middleware

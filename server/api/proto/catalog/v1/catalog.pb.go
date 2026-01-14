@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: api/proto/catalog/v1/catalog.proto
+// source: catalog/v1/catalog.proto
 
 package v1
 
@@ -57,11 +57,11 @@ func (x StationStatus) String() string {
 }
 
 func (StationStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_catalog_v1_catalog_proto_enumTypes[0].Descriptor()
+	return file_catalog_v1_catalog_proto_enumTypes[0].Descriptor()
 }
 
 func (StationStatus) Type() protoreflect.EnumType {
-	return &file_api_proto_catalog_v1_catalog_proto_enumTypes[0]
+	return &file_catalog_v1_catalog_proto_enumTypes[0]
 }
 
 func (x StationStatus) Number() protoreflect.EnumNumber {
@@ -70,7 +70,7 @@ func (x StationStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use StationStatus.Descriptor instead.
 func (StationStatus) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{0}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{0}
 }
 
 type RouteStatus int32
@@ -109,11 +109,11 @@ func (x RouteStatus) String() string {
 }
 
 func (RouteStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_catalog_v1_catalog_proto_enumTypes[1].Descriptor()
+	return file_catalog_v1_catalog_proto_enumTypes[1].Descriptor()
 }
 
 func (RouteStatus) Type() protoreflect.EnumType {
-	return &file_api_proto_catalog_v1_catalog_proto_enumTypes[1]
+	return &file_catalog_v1_catalog_proto_enumTypes[1]
 }
 
 func (x RouteStatus) Number() protoreflect.EnumNumber {
@@ -122,7 +122,7 @@ func (x RouteStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RouteStatus.Descriptor instead.
 func (RouteStatus) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{1}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{1}
 }
 
 type TripStatus int32
@@ -173,11 +173,11 @@ func (x TripStatus) String() string {
 }
 
 func (TripStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_catalog_v1_catalog_proto_enumTypes[2].Descriptor()
+	return file_catalog_v1_catalog_proto_enumTypes[2].Descriptor()
 }
 
 func (TripStatus) Type() protoreflect.EnumType {
-	return &file_api_proto_catalog_v1_catalog_proto_enumTypes[2]
+	return &file_catalog_v1_catalog_proto_enumTypes[2]
 }
 
 func (x TripStatus) Number() protoreflect.EnumNumber {
@@ -186,7 +186,7 @@ func (x TripStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TripStatus.Descriptor instead.
 func (TripStatus) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{2}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{2}
 }
 
 type SortOrder int32
@@ -231,11 +231,11 @@ func (x SortOrder) String() string {
 }
 
 func (SortOrder) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_catalog_v1_catalog_proto_enumTypes[3].Descriptor()
+	return file_catalog_v1_catalog_proto_enumTypes[3].Descriptor()
 }
 
 func (SortOrder) Type() protoreflect.EnumType {
-	return &file_api_proto_catalog_v1_catalog_proto_enumTypes[3]
+	return &file_catalog_v1_catalog_proto_enumTypes[3]
 }
 
 func (x SortOrder) Number() protoreflect.EnumNumber {
@@ -244,7 +244,56 @@ func (x SortOrder) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SortOrder.Descriptor instead.
 func (SortOrder) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{3}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{3}
+}
+
+type ScheduleStatus int32
+
+const (
+	ScheduleStatus_SCHEDULE_STATUS_UNSPECIFIED ScheduleStatus = 0
+	ScheduleStatus_SCHEDULE_STATUS_ACTIVE      ScheduleStatus = 1
+	ScheduleStatus_SCHEDULE_STATUS_INACTIVE    ScheduleStatus = 2
+)
+
+// Enum value maps for ScheduleStatus.
+var (
+	ScheduleStatus_name = map[int32]string{
+		0: "SCHEDULE_STATUS_UNSPECIFIED",
+		1: "SCHEDULE_STATUS_ACTIVE",
+		2: "SCHEDULE_STATUS_INACTIVE",
+	}
+	ScheduleStatus_value = map[string]int32{
+		"SCHEDULE_STATUS_UNSPECIFIED": 0,
+		"SCHEDULE_STATUS_ACTIVE":      1,
+		"SCHEDULE_STATUS_INACTIVE":    2,
+	}
+)
+
+func (x ScheduleStatus) Enum() *ScheduleStatus {
+	p := new(ScheduleStatus)
+	*p = x
+	return p
+}
+
+func (x ScheduleStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ScheduleStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_catalog_v1_catalog_proto_enumTypes[4].Descriptor()
+}
+
+func (ScheduleStatus) Type() protoreflect.EnumType {
+	return &file_catalog_v1_catalog_proto_enumTypes[4]
+}
+
+func (x ScheduleStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ScheduleStatus.Descriptor instead.
+func (ScheduleStatus) EnumDescriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{4}
 }
 
 type Station struct {
@@ -270,7 +319,7 @@ type Station struct {
 
 func (x *Station) Reset() {
 	*x = Station{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[0]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -282,7 +331,7 @@ func (x *Station) String() string {
 func (*Station) ProtoMessage() {}
 
 func (x *Station) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[0]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -295,7 +344,7 @@ func (x *Station) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Station.ProtoReflect.Descriptor instead.
 func (*Station) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{0}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Station) GetId() string {
@@ -422,7 +471,7 @@ type CreateStationRequest struct {
 
 func (x *CreateStationRequest) Reset() {
 	*x = CreateStationRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[1]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +483,7 @@ func (x *CreateStationRequest) String() string {
 func (*CreateStationRequest) ProtoMessage() {}
 
 func (x *CreateStationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[1]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +496,7 @@ func (x *CreateStationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateStationRequest.ProtoReflect.Descriptor instead.
 func (*CreateStationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{1}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateStationRequest) GetOrganizationId() string {
@@ -537,7 +586,7 @@ type GetStationRequest struct {
 
 func (x *GetStationRequest) Reset() {
 	*x = GetStationRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[2]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +598,7 @@ func (x *GetStationRequest) String() string {
 func (*GetStationRequest) ProtoMessage() {}
 
 func (x *GetStationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[2]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +611,7 @@ func (x *GetStationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStationRequest.ProtoReflect.Descriptor instead.
 func (*GetStationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{2}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetStationRequest) GetId() string {
@@ -591,7 +640,7 @@ type ListStationsRequest struct {
 
 func (x *ListStationsRequest) Reset() {
 	*x = ListStationsRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[3]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -603,7 +652,7 @@ func (x *ListStationsRequest) String() string {
 func (*ListStationsRequest) ProtoMessage() {}
 
 func (x *ListStationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[3]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -616,7 +665,7 @@ func (x *ListStationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListStationsRequest.ProtoReflect.Descriptor instead.
 func (*ListStationsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{3}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListStationsRequest) GetOrganizationId() string {
@@ -658,7 +707,7 @@ type ListStationsResponse struct {
 
 func (x *ListStationsResponse) Reset() {
 	*x = ListStationsResponse{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[4]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +719,7 @@ func (x *ListStationsResponse) String() string {
 func (*ListStationsResponse) ProtoMessage() {}
 
 func (x *ListStationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[4]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +732,7 @@ func (x *ListStationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListStationsResponse.ProtoReflect.Descriptor instead.
 func (*ListStationsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{4}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListStationsResponse) GetStations() []*Station {
@@ -721,7 +770,7 @@ type UpdateStationRequest struct {
 
 func (x *UpdateStationRequest) Reset() {
 	*x = UpdateStationRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[5]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -733,7 +782,7 @@ func (x *UpdateStationRequest) String() string {
 func (*UpdateStationRequest) ProtoMessage() {}
 
 func (x *UpdateStationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[5]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -746,7 +795,7 @@ func (x *UpdateStationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateStationRequest.ProtoReflect.Descriptor instead.
 func (*UpdateStationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{5}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UpdateStationRequest) GetId() string {
@@ -801,7 +850,7 @@ type DeleteStationRequest struct {
 
 func (x *DeleteStationRequest) Reset() {
 	*x = DeleteStationRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[6]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -813,7 +862,7 @@ func (x *DeleteStationRequest) String() string {
 func (*DeleteStationRequest) ProtoMessage() {}
 
 func (x *DeleteStationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[6]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,7 +875,7 @@ func (x *DeleteStationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteStationRequest.ProtoReflect.Descriptor instead.
 func (*DeleteStationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{6}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteStationRequest) GetId() string {
@@ -852,7 +901,7 @@ type DeleteStationResponse struct {
 
 func (x *DeleteStationResponse) Reset() {
 	*x = DeleteStationResponse{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[7]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -864,7 +913,7 @@ func (x *DeleteStationResponse) String() string {
 func (*DeleteStationResponse) ProtoMessage() {}
 
 func (x *DeleteStationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[7]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -877,7 +926,7 @@ func (x *DeleteStationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteStationResponse.ProtoReflect.Descriptor instead.
 func (*DeleteStationResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{7}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteStationResponse) GetSuccess() bool {
@@ -907,7 +956,7 @@ type Route struct {
 
 func (x *Route) Reset() {
 	*x = Route{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[8]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -919,7 +968,7 @@ func (x *Route) String() string {
 func (*Route) ProtoMessage() {}
 
 func (x *Route) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[8]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -932,7 +981,7 @@ func (x *Route) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Route.ProtoReflect.Descriptor instead.
 func (*Route) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{8}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Route) GetId() string {
@@ -1032,7 +1081,7 @@ type RouteStop struct {
 
 func (x *RouteStop) Reset() {
 	*x = RouteStop{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[9]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1044,7 +1093,7 @@ func (x *RouteStop) String() string {
 func (*RouteStop) ProtoMessage() {}
 
 func (x *RouteStop) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[9]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1057,7 +1106,7 @@ func (x *RouteStop) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RouteStop.ProtoReflect.Descriptor instead.
 func (*RouteStop) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{9}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RouteStop) GetStationId() string {
@@ -1111,7 +1160,7 @@ type CreateRouteRequest struct {
 
 func (x *CreateRouteRequest) Reset() {
 	*x = CreateRouteRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[10]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1123,7 +1172,7 @@ func (x *CreateRouteRequest) String() string {
 func (*CreateRouteRequest) ProtoMessage() {}
 
 func (x *CreateRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[10]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1136,7 +1185,7 @@ func (x *CreateRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRouteRequest.ProtoReflect.Descriptor instead.
 func (*CreateRouteRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{10}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateRouteRequest) GetOrganizationId() string {
@@ -1205,7 +1254,7 @@ type GetRouteRequest struct {
 
 func (x *GetRouteRequest) Reset() {
 	*x = GetRouteRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[11]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1217,7 +1266,7 @@ func (x *GetRouteRequest) String() string {
 func (*GetRouteRequest) ProtoMessage() {}
 
 func (x *GetRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[11]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1230,7 +1279,7 @@ func (x *GetRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRouteRequest.ProtoReflect.Descriptor instead.
 func (*GetRouteRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{11}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetRouteRequest) GetId() string {
@@ -1260,7 +1309,7 @@ type ListRoutesRequest struct {
 
 func (x *ListRoutesRequest) Reset() {
 	*x = ListRoutesRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[12]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1321,7 @@ func (x *ListRoutesRequest) String() string {
 func (*ListRoutesRequest) ProtoMessage() {}
 
 func (x *ListRoutesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[12]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1334,7 @@ func (x *ListRoutesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutesRequest.ProtoReflect.Descriptor instead.
 func (*ListRoutesRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{12}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListRoutesRequest) GetOrganizationId() string {
@@ -1334,7 +1383,7 @@ type ListRoutesResponse struct {
 
 func (x *ListRoutesResponse) Reset() {
 	*x = ListRoutesResponse{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[13]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1395,7 @@ func (x *ListRoutesResponse) String() string {
 func (*ListRoutesResponse) ProtoMessage() {}
 
 func (x *ListRoutesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[13]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1408,7 @@ func (x *ListRoutesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutesResponse.ProtoReflect.Descriptor instead.
 func (*ListRoutesResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{13}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListRoutesResponse) GetRoutes() []*Route {
@@ -1397,7 +1446,7 @@ type UpdateRouteRequest struct {
 
 func (x *UpdateRouteRequest) Reset() {
 	*x = UpdateRouteRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[14]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1409,7 +1458,7 @@ func (x *UpdateRouteRequest) String() string {
 func (*UpdateRouteRequest) ProtoMessage() {}
 
 func (x *UpdateRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[14]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1422,7 +1471,7 @@ func (x *UpdateRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRouteRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRouteRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{14}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateRouteRequest) GetId() string {
@@ -1477,7 +1526,7 @@ type DeleteRouteRequest struct {
 
 func (x *DeleteRouteRequest) Reset() {
 	*x = DeleteRouteRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[15]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1489,7 +1538,7 @@ func (x *DeleteRouteRequest) String() string {
 func (*DeleteRouteRequest) ProtoMessage() {}
 
 func (x *DeleteRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[15]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1502,7 +1551,7 @@ func (x *DeleteRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRouteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRouteRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{15}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteRouteRequest) GetId() string {
@@ -1528,7 +1577,7 @@ type DeleteRouteResponse struct {
 
 func (x *DeleteRouteResponse) Reset() {
 	*x = DeleteRouteResponse{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[16]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1540,7 +1589,7 @@ func (x *DeleteRouteResponse) String() string {
 func (*DeleteRouteResponse) ProtoMessage() {}
 
 func (x *DeleteRouteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[16]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1553,7 +1602,7 @@ func (x *DeleteRouteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRouteResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRouteResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{16}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteRouteResponse) GetSuccess() bool {
@@ -1580,13 +1629,15 @@ type Trip struct {
 	Segments       []*TripSegment         `protobuf:"bytes,13,rep,name=segments,proto3" json:"segments,omitempty"` // For segment-based inventory
 	CreatedAt      int64                  `protobuf:"varint,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt      int64                  `protobuf:"varint,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ScheduleId     string                 `protobuf:"bytes,16,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	ServiceDate    string                 `protobuf:"bytes,17,opt,name=service_date,json=serviceDate,proto3" json:"service_date,omitempty"` // YYYY-MM-DD (local to schedule timezone)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Trip) Reset() {
 	*x = Trip{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[17]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1598,7 +1649,7 @@ func (x *Trip) String() string {
 func (*Trip) ProtoMessage() {}
 
 func (x *Trip) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[17]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1611,7 +1662,7 @@ func (x *Trip) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Trip.ProtoReflect.Descriptor instead.
 func (*Trip) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{17}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Trip) GetId() string {
@@ -1719,20 +1770,36 @@ func (x *Trip) GetUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Trip) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *Trip) GetServiceDate() string {
+	if x != nil {
+		return x.ServiceDate
+	}
+	return ""
+}
+
 type TripPricing struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	BasePricePaisa  int64                  `protobuf:"varint,1,opt,name=base_price_paisa,json=basePricePaisa,proto3" json:"base_price_paisa,omitempty"` // Price in smallest unit (paisa)
-	TaxPaisa        int64                  `protobuf:"varint,2,opt,name=tax_paisa,json=taxPaisa,proto3" json:"tax_paisa,omitempty"`
-	BookingFeePaisa int64                  `protobuf:"varint,3,opt,name=booking_fee_paisa,json=bookingFeePaisa,proto3" json:"booking_fee_paisa,omitempty"`
-	Currency        string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`                                                                                                     // "BDT", "INR"
-	ClassPrices     map[string]int64       `protobuf:"bytes,5,rep,name=class_prices,json=classPrices,proto3" json:"class_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // {"economy": 50000, "ac": 80000}
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	BasePricePaisa     int64                  `protobuf:"varint,1,opt,name=base_price_paisa,json=basePricePaisa,proto3" json:"base_price_paisa,omitempty"` // Price in smallest unit (paisa)
+	TaxPaisa           int64                  `protobuf:"varint,2,opt,name=tax_paisa,json=taxPaisa,proto3" json:"tax_paisa,omitempty"`
+	BookingFeePaisa    int64                  `protobuf:"varint,3,opt,name=booking_fee_paisa,json=bookingFeePaisa,proto3" json:"booking_fee_paisa,omitempty"`
+	Currency           string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`                                                                                                                            // "BDT", "INR"
+	ClassPrices        map[string]int64       `protobuf:"bytes,5,rep,name=class_prices,json=classPrices,proto3" json:"class_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`                        // {"economy": 50000, "ac": 80000}
+	SeatCategoryPrices map[string]int64       `protobuf:"bytes,6,rep,name=seat_category_prices,json=seatCategoryPrices,proto3" json:"seat_category_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // {"vip": 120000, "window": 90000}
+	SegmentPrices      []*SegmentPricing      `protobuf:"bytes,7,rep,name=segment_prices,json=segmentPrices,proto3" json:"segment_prices,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *TripPricing) Reset() {
 	*x = TripPricing{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[18]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1744,7 +1811,7 @@ func (x *TripPricing) String() string {
 func (*TripPricing) ProtoMessage() {}
 
 func (x *TripPricing) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[18]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1757,7 +1824,7 @@ func (x *TripPricing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TripPricing.ProtoReflect.Descriptor instead.
 func (*TripPricing) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{18}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TripPricing) GetBasePricePaisa() int64 {
@@ -1795,6 +1862,96 @@ func (x *TripPricing) GetClassPrices() map[string]int64 {
 	return nil
 }
 
+func (x *TripPricing) GetSeatCategoryPrices() map[string]int64 {
+	if x != nil {
+		return x.SeatCategoryPrices
+	}
+	return nil
+}
+
+func (x *TripPricing) GetSegmentPrices() []*SegmentPricing {
+	if x != nil {
+		return x.SegmentPrices
+	}
+	return nil
+}
+
+type SegmentPricing struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	FromStationId      string                 `protobuf:"bytes,1,opt,name=from_station_id,json=fromStationId,proto3" json:"from_station_id,omitempty"`
+	ToStationId        string                 `protobuf:"bytes,2,opt,name=to_station_id,json=toStationId,proto3" json:"to_station_id,omitempty"`
+	BasePricePaisa     int64                  `protobuf:"varint,3,opt,name=base_price_paisa,json=basePricePaisa,proto3" json:"base_price_paisa,omitempty"`
+	ClassPrices        map[string]int64       `protobuf:"bytes,4,rep,name=class_prices,json=classPrices,proto3" json:"class_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	SeatCategoryPrices map[string]int64       `protobuf:"bytes,5,rep,name=seat_category_prices,json=seatCategoryPrices,proto3" json:"seat_category_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *SegmentPricing) Reset() {
+	*x = SegmentPricing{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SegmentPricing) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SegmentPricing) ProtoMessage() {}
+
+func (x *SegmentPricing) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SegmentPricing.ProtoReflect.Descriptor instead.
+func (*SegmentPricing) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *SegmentPricing) GetFromStationId() string {
+	if x != nil {
+		return x.FromStationId
+	}
+	return ""
+}
+
+func (x *SegmentPricing) GetToStationId() string {
+	if x != nil {
+		return x.ToStationId
+	}
+	return ""
+}
+
+func (x *SegmentPricing) GetBasePricePaisa() int64 {
+	if x != nil {
+		return x.BasePricePaisa
+	}
+	return 0
+}
+
+func (x *SegmentPricing) GetClassPrices() map[string]int64 {
+	if x != nil {
+		return x.ClassPrices
+	}
+	return nil
+}
+
+func (x *SegmentPricing) GetSeatCategoryPrices() map[string]int64 {
+	if x != nil {
+		return x.SeatCategoryPrices
+	}
+	return nil
+}
+
 type TripSegment struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	SegmentIndex   int32                  `protobuf:"varint,1,opt,name=segment_index,json=segmentIndex,proto3" json:"segment_index,omitempty"`
@@ -1809,7 +1966,7 @@ type TripSegment struct {
 
 func (x *TripSegment) Reset() {
 	*x = TripSegment{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[19]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1821,7 +1978,7 @@ func (x *TripSegment) String() string {
 func (*TripSegment) ProtoMessage() {}
 
 func (x *TripSegment) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[19]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1834,7 +1991,7 @@ func (x *TripSegment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TripSegment.ProtoReflect.Descriptor instead.
 func (*TripSegment) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{19}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *TripSegment) GetSegmentIndex() int32 {
@@ -1895,7 +2052,7 @@ type CreateTripRequest struct {
 
 func (x *CreateTripRequest) Reset() {
 	*x = CreateTripRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[20]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1907,7 +2064,7 @@ func (x *CreateTripRequest) String() string {
 func (*CreateTripRequest) ProtoMessage() {}
 
 func (x *CreateTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[20]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1920,7 +2077,7 @@ func (x *CreateTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTripRequest.ProtoReflect.Descriptor instead.
 func (*CreateTripRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{20}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CreateTripRequest) GetOrganizationId() string {
@@ -1989,7 +2146,7 @@ type GetTripRequest struct {
 
 func (x *GetTripRequest) Reset() {
 	*x = GetTripRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[21]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2001,7 +2158,7 @@ func (x *GetTripRequest) String() string {
 func (*GetTripRequest) ProtoMessage() {}
 
 func (x *GetTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[21]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2014,7 +2171,7 @@ func (x *GetTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTripRequest.ProtoReflect.Descriptor instead.
 func (*GetTripRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{21}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetTripRequest) GetId() string {
@@ -2040,13 +2197,15 @@ type ListTripsRequest struct {
 	Status          TripStatus             `protobuf:"varint,5,opt,name=status,proto3,enum=catalog.v1.TripStatus" json:"status,omitempty"`
 	PageSize        int32                  `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken       string                 `protobuf:"bytes,7,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	ScheduleId      string                 `protobuf:"bytes,8,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	ServiceDate     string                 `protobuf:"bytes,9,opt,name=service_date,json=serviceDate,proto3" json:"service_date,omitempty"` // YYYY-MM-DD
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ListTripsRequest) Reset() {
 	*x = ListTripsRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[22]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2058,7 +2217,7 @@ func (x *ListTripsRequest) String() string {
 func (*ListTripsRequest) ProtoMessage() {}
 
 func (x *ListTripsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[22]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2071,7 +2230,7 @@ func (x *ListTripsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTripsRequest.ProtoReflect.Descriptor instead.
 func (*ListTripsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{22}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListTripsRequest) GetOrganizationId() string {
@@ -2123,6 +2282,20 @@ func (x *ListTripsRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListTripsRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ListTripsRequest) GetServiceDate() string {
+	if x != nil {
+		return x.ServiceDate
+	}
+	return ""
+}
+
 type ListTripsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Trips         []*Trip                `protobuf:"bytes,1,rep,name=trips,proto3" json:"trips,omitempty"`
@@ -2134,7 +2307,7 @@ type ListTripsResponse struct {
 
 func (x *ListTripsResponse) Reset() {
 	*x = ListTripsResponse{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[23]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2146,7 +2319,7 @@ func (x *ListTripsResponse) String() string {
 func (*ListTripsResponse) ProtoMessage() {}
 
 func (x *ListTripsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[23]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2159,7 +2332,7 @@ func (x *ListTripsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTripsResponse.ProtoReflect.Descriptor instead.
 func (*ListTripsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{23}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListTripsResponse) GetTrips() []*Trip {
@@ -2196,7 +2369,7 @@ type UpdateTripRequest struct {
 
 func (x *UpdateTripRequest) Reset() {
 	*x = UpdateTripRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[24]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2208,7 +2381,7 @@ func (x *UpdateTripRequest) String() string {
 func (*UpdateTripRequest) ProtoMessage() {}
 
 func (x *UpdateTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[24]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2221,7 +2394,7 @@ func (x *UpdateTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTripRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTripRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{24}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *UpdateTripRequest) GetId() string {
@@ -2270,7 +2443,7 @@ type CancelTripRequest struct {
 
 func (x *CancelTripRequest) Reset() {
 	*x = CancelTripRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[25]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2282,7 +2455,7 @@ func (x *CancelTripRequest) String() string {
 func (*CancelTripRequest) ProtoMessage() {}
 
 func (x *CancelTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[25]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2295,7 +2468,7 @@ func (x *CancelTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelTripRequest.ProtoReflect.Descriptor instead.
 func (*CancelTripRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{25}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CancelTripRequest) GetId() string {
@@ -2337,7 +2510,7 @@ type SearchTripsRequest struct {
 
 func (x *SearchTripsRequest) Reset() {
 	*x = SearchTripsRequest{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[26]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2349,7 +2522,7 @@ func (x *SearchTripsRequest) String() string {
 func (*SearchTripsRequest) ProtoMessage() {}
 
 func (x *SearchTripsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[26]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2362,7 +2535,7 @@ func (x *SearchTripsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchTripsRequest.ProtoReflect.Descriptor instead.
 func (*SearchTripsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{26}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SearchTripsRequest) GetOrganizationId() string {
@@ -2447,7 +2620,7 @@ type SearchTripsResponse struct {
 
 func (x *SearchTripsResponse) Reset() {
 	*x = SearchTripsResponse{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[27]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2459,7 +2632,7 @@ func (x *SearchTripsResponse) String() string {
 func (*SearchTripsResponse) ProtoMessage() {}
 
 func (x *SearchTripsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[27]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2472,7 +2645,7 @@ func (x *SearchTripsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchTripsResponse.ProtoReflect.Descriptor instead.
 func (*SearchTripsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{27}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SearchTripsResponse) GetResults() []*TripSearchResult {
@@ -2516,7 +2689,7 @@ type TripSearchResult struct {
 
 func (x *TripSearchResult) Reset() {
 	*x = TripSearchResult{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[28]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2528,7 +2701,7 @@ func (x *TripSearchResult) String() string {
 func (*TripSearchResult) ProtoMessage() {}
 
 func (x *TripSearchResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[28]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2541,7 +2714,7 @@ func (x *TripSearchResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TripSearchResult.ProtoReflect.Descriptor instead.
 func (*TripSearchResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{28}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *TripSearchResult) GetTrip() *Trip {
@@ -2579,6 +2752,1506 @@ func (x *TripSearchResult) GetOperatorName() string {
 	return ""
 }
 
+type Schedule struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrganizationId       string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	RouteId              string                 `protobuf:"bytes,3,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	VehicleId            string                 `protobuf:"bytes,4,opt,name=vehicle_id,json=vehicleId,proto3" json:"vehicle_id,omitempty"`
+	VehicleType          string                 `protobuf:"bytes,5,opt,name=vehicle_type,json=vehicleType,proto3" json:"vehicle_type,omitempty"`
+	VehicleClass         string                 `protobuf:"bytes,6,opt,name=vehicle_class,json=vehicleClass,proto3" json:"vehicle_class,omitempty"`
+	TotalSeats           int32                  `protobuf:"varint,7,opt,name=total_seats,json=totalSeats,proto3" json:"total_seats,omitempty"`
+	Pricing              *TripPricing           `protobuf:"bytes,8,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	DepartureMinutes     int32                  `protobuf:"varint,9,opt,name=departure_minutes,json=departureMinutes,proto3" json:"departure_minutes,omitempty"` // Minutes since midnight
+	ArrivalOffsetMinutes int32                  `protobuf:"varint,10,opt,name=arrival_offset_minutes,json=arrivalOffsetMinutes,proto3" json:"arrival_offset_minutes,omitempty"`
+	Timezone             string                 `protobuf:"bytes,11,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	StartDate            string                 `protobuf:"bytes,12,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`       // YYYY-MM-DD
+	EndDate              string                 `protobuf:"bytes,13,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`             // YYYY-MM-DD
+	DaysOfWeek           int32                  `protobuf:"varint,14,opt,name=days_of_week,json=daysOfWeek,proto3" json:"days_of_week,omitempty"` // Bitmask, Mon=1..Sun=64
+	Status               ScheduleStatus         `protobuf:"varint,15,opt,name=status,proto3,enum=catalog.v1.ScheduleStatus" json:"status,omitempty"`
+	CreatedAt            int64                  `protobuf:"varint,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt            int64                  `protobuf:"varint,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Version              int32                  `protobuf:"varint,18,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *Schedule) Reset() {
+	*x = Schedule{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Schedule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Schedule) ProtoMessage() {}
+
+func (x *Schedule) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Schedule.ProtoReflect.Descriptor instead.
+func (*Schedule) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *Schedule) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Schedule) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *Schedule) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
+	}
+	return ""
+}
+
+func (x *Schedule) GetVehicleId() string {
+	if x != nil {
+		return x.VehicleId
+	}
+	return ""
+}
+
+func (x *Schedule) GetVehicleType() string {
+	if x != nil {
+		return x.VehicleType
+	}
+	return ""
+}
+
+func (x *Schedule) GetVehicleClass() string {
+	if x != nil {
+		return x.VehicleClass
+	}
+	return ""
+}
+
+func (x *Schedule) GetTotalSeats() int32 {
+	if x != nil {
+		return x.TotalSeats
+	}
+	return 0
+}
+
+func (x *Schedule) GetPricing() *TripPricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+func (x *Schedule) GetDepartureMinutes() int32 {
+	if x != nil {
+		return x.DepartureMinutes
+	}
+	return 0
+}
+
+func (x *Schedule) GetArrivalOffsetMinutes() int32 {
+	if x != nil {
+		return x.ArrivalOffsetMinutes
+	}
+	return 0
+}
+
+func (x *Schedule) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *Schedule) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *Schedule) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *Schedule) GetDaysOfWeek() int32 {
+	if x != nil {
+		return x.DaysOfWeek
+	}
+	return 0
+}
+
+func (x *Schedule) GetStatus() ScheduleStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ScheduleStatus_SCHEDULE_STATUS_UNSPECIFIED
+}
+
+func (x *Schedule) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *Schedule) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *Schedule) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+type CreateScheduleRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId       string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	RouteId              string                 `protobuf:"bytes,2,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	VehicleId            string                 `protobuf:"bytes,3,opt,name=vehicle_id,json=vehicleId,proto3" json:"vehicle_id,omitempty"`
+	VehicleType          string                 `protobuf:"bytes,4,opt,name=vehicle_type,json=vehicleType,proto3" json:"vehicle_type,omitempty"`
+	VehicleClass         string                 `protobuf:"bytes,5,opt,name=vehicle_class,json=vehicleClass,proto3" json:"vehicle_class,omitempty"`
+	TotalSeats           int32                  `protobuf:"varint,6,opt,name=total_seats,json=totalSeats,proto3" json:"total_seats,omitempty"`
+	Pricing              *TripPricing           `protobuf:"bytes,7,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	DepartureMinutes     int32                  `protobuf:"varint,8,opt,name=departure_minutes,json=departureMinutes,proto3" json:"departure_minutes,omitempty"`
+	ArrivalOffsetMinutes int32                  `protobuf:"varint,9,opt,name=arrival_offset_minutes,json=arrivalOffsetMinutes,proto3" json:"arrival_offset_minutes,omitempty"`
+	Timezone             string                 `protobuf:"bytes,10,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	StartDate            string                 `protobuf:"bytes,11,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate              string                 `protobuf:"bytes,12,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	DaysOfWeek           int32                  `protobuf:"varint,13,opt,name=days_of_week,json=daysOfWeek,proto3" json:"days_of_week,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CreateScheduleRequest) Reset() {
+	*x = CreateScheduleRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateScheduleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateScheduleRequest) ProtoMessage() {}
+
+func (x *CreateScheduleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateScheduleRequest.ProtoReflect.Descriptor instead.
+func (*CreateScheduleRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *CreateScheduleRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetVehicleId() string {
+	if x != nil {
+		return x.VehicleId
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetVehicleType() string {
+	if x != nil {
+		return x.VehicleType
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetVehicleClass() string {
+	if x != nil {
+		return x.VehicleClass
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetTotalSeats() int32 {
+	if x != nil {
+		return x.TotalSeats
+	}
+	return 0
+}
+
+func (x *CreateScheduleRequest) GetPricing() *TripPricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+func (x *CreateScheduleRequest) GetDepartureMinutes() int32 {
+	if x != nil {
+		return x.DepartureMinutes
+	}
+	return 0
+}
+
+func (x *CreateScheduleRequest) GetArrivalOffsetMinutes() int32 {
+	if x != nil {
+		return x.ArrivalOffsetMinutes
+	}
+	return 0
+}
+
+func (x *CreateScheduleRequest) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetDaysOfWeek() int32 {
+	if x != nil {
+		return x.DaysOfWeek
+	}
+	return 0
+}
+
+type ScheduleDefinition struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	RouteId              string                 `protobuf:"bytes,1,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	VehicleId            string                 `protobuf:"bytes,2,opt,name=vehicle_id,json=vehicleId,proto3" json:"vehicle_id,omitempty"`
+	VehicleType          string                 `protobuf:"bytes,3,opt,name=vehicle_type,json=vehicleType,proto3" json:"vehicle_type,omitempty"`
+	VehicleClass         string                 `protobuf:"bytes,4,opt,name=vehicle_class,json=vehicleClass,proto3" json:"vehicle_class,omitempty"`
+	TotalSeats           int32                  `protobuf:"varint,5,opt,name=total_seats,json=totalSeats,proto3" json:"total_seats,omitempty"`
+	Pricing              *TripPricing           `protobuf:"bytes,6,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	DepartureMinutes     int32                  `protobuf:"varint,7,opt,name=departure_minutes,json=departureMinutes,proto3" json:"departure_minutes,omitempty"`
+	ArrivalOffsetMinutes int32                  `protobuf:"varint,8,opt,name=arrival_offset_minutes,json=arrivalOffsetMinutes,proto3" json:"arrival_offset_minutes,omitempty"`
+	Timezone             string                 `protobuf:"bytes,9,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	StartDate            string                 `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate              string                 `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	DaysOfWeek           int32                  `protobuf:"varint,12,opt,name=days_of_week,json=daysOfWeek,proto3" json:"days_of_week,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ScheduleDefinition) Reset() {
+	*x = ScheduleDefinition{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleDefinition) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleDefinition) ProtoMessage() {}
+
+func (x *ScheduleDefinition) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleDefinition.ProtoReflect.Descriptor instead.
+func (*ScheduleDefinition) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *ScheduleDefinition) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetVehicleId() string {
+	if x != nil {
+		return x.VehicleId
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetVehicleType() string {
+	if x != nil {
+		return x.VehicleType
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetVehicleClass() string {
+	if x != nil {
+		return x.VehicleClass
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetTotalSeats() int32 {
+	if x != nil {
+		return x.TotalSeats
+	}
+	return 0
+}
+
+func (x *ScheduleDefinition) GetPricing() *TripPricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+func (x *ScheduleDefinition) GetDepartureMinutes() int32 {
+	if x != nil {
+		return x.DepartureMinutes
+	}
+	return 0
+}
+
+func (x *ScheduleDefinition) GetArrivalOffsetMinutes() int32 {
+	if x != nil {
+		return x.ArrivalOffsetMinutes
+	}
+	return 0
+}
+
+func (x *ScheduleDefinition) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *ScheduleDefinition) GetDaysOfWeek() int32 {
+	if x != nil {
+		return x.DaysOfWeek
+	}
+	return 0
+}
+
+type BulkCreateSchedulesRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	Schedules      []*ScheduleDefinition  `protobuf:"bytes,2,rep,name=schedules,proto3" json:"schedules,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BulkCreateSchedulesRequest) Reset() {
+	*x = BulkCreateSchedulesRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkCreateSchedulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkCreateSchedulesRequest) ProtoMessage() {}
+
+func (x *BulkCreateSchedulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkCreateSchedulesRequest.ProtoReflect.Descriptor instead.
+func (*BulkCreateSchedulesRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *BulkCreateSchedulesRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *BulkCreateSchedulesRequest) GetSchedules() []*ScheduleDefinition {
+	if x != nil {
+		return x.Schedules
+	}
+	return nil
+}
+
+type BulkCreateSchedulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Schedules     []*Schedule            `protobuf:"bytes,1,rep,name=schedules,proto3" json:"schedules,omitempty"`
+	CreatedCount  int32                  `protobuf:"varint,2,opt,name=created_count,json=createdCount,proto3" json:"created_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkCreateSchedulesResponse) Reset() {
+	*x = BulkCreateSchedulesResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkCreateSchedulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkCreateSchedulesResponse) ProtoMessage() {}
+
+func (x *BulkCreateSchedulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkCreateSchedulesResponse.ProtoReflect.Descriptor instead.
+func (*BulkCreateSchedulesResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *BulkCreateSchedulesResponse) GetSchedules() []*Schedule {
+	if x != nil {
+		return x.Schedules
+	}
+	return nil
+}
+
+func (x *BulkCreateSchedulesResponse) GetCreatedCount() int32 {
+	if x != nil {
+		return x.CreatedCount
+	}
+	return 0
+}
+
+type GetScheduleRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetScheduleRequest) Reset() {
+	*x = GetScheduleRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetScheduleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetScheduleRequest) ProtoMessage() {}
+
+func (x *GetScheduleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetScheduleRequest.ProtoReflect.Descriptor instead.
+func (*GetScheduleRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *GetScheduleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GetScheduleRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type ListSchedulesRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	RouteId        string                 `protobuf:"bytes,2,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	Status         ScheduleStatus         `protobuf:"varint,3,opt,name=status,proto3,enum=catalog.v1.ScheduleStatus" json:"status,omitempty"`
+	PageSize       int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListSchedulesRequest) Reset() {
+	*x = ListSchedulesRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSchedulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSchedulesRequest) ProtoMessage() {}
+
+func (x *ListSchedulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSchedulesRequest.ProtoReflect.Descriptor instead.
+func (*ListSchedulesRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *ListSchedulesRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *ListSchedulesRequest) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
+	}
+	return ""
+}
+
+func (x *ListSchedulesRequest) GetStatus() ScheduleStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ScheduleStatus_SCHEDULE_STATUS_UNSPECIFIED
+}
+
+func (x *ListSchedulesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListSchedulesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListSchedulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Schedules     []*Schedule            `protobuf:"bytes,1,rep,name=schedules,proto3" json:"schedules,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	TotalCount    int32                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSchedulesResponse) Reset() {
+	*x = ListSchedulesResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSchedulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSchedulesResponse) ProtoMessage() {}
+
+func (x *ListSchedulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSchedulesResponse.ProtoReflect.Descriptor instead.
+func (*ListSchedulesResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ListSchedulesResponse) GetSchedules() []*Schedule {
+	if x != nil {
+		return x.Schedules
+	}
+	return nil
+}
+
+func (x *ListSchedulesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListSchedulesResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+type UpdateScheduleRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrganizationId       string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	TotalSeats           int32                  `protobuf:"varint,3,opt,name=total_seats,json=totalSeats,proto3" json:"total_seats,omitempty"`
+	Pricing              *TripPricing           `protobuf:"bytes,4,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	DepartureMinutes     int32                  `protobuf:"varint,5,opt,name=departure_minutes,json=departureMinutes,proto3" json:"departure_minutes,omitempty"`
+	ArrivalOffsetMinutes int32                  `protobuf:"varint,6,opt,name=arrival_offset_minutes,json=arrivalOffsetMinutes,proto3" json:"arrival_offset_minutes,omitempty"`
+	Timezone             string                 `protobuf:"bytes,7,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	StartDate            string                 `protobuf:"bytes,8,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate              string                 `protobuf:"bytes,9,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	DaysOfWeek           int32                  `protobuf:"varint,10,opt,name=days_of_week,json=daysOfWeek,proto3" json:"days_of_week,omitempty"`
+	Status               ScheduleStatus         `protobuf:"varint,11,opt,name=status,proto3,enum=catalog.v1.ScheduleStatus" json:"status,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UpdateScheduleRequest) Reset() {
+	*x = UpdateScheduleRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateScheduleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateScheduleRequest) ProtoMessage() {}
+
+func (x *UpdateScheduleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateScheduleRequest.ProtoReflect.Descriptor instead.
+func (*UpdateScheduleRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *UpdateScheduleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateScheduleRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *UpdateScheduleRequest) GetTotalSeats() int32 {
+	if x != nil {
+		return x.TotalSeats
+	}
+	return 0
+}
+
+func (x *UpdateScheduleRequest) GetPricing() *TripPricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+func (x *UpdateScheduleRequest) GetDepartureMinutes() int32 {
+	if x != nil {
+		return x.DepartureMinutes
+	}
+	return 0
+}
+
+func (x *UpdateScheduleRequest) GetArrivalOffsetMinutes() int32 {
+	if x != nil {
+		return x.ArrivalOffsetMinutes
+	}
+	return 0
+}
+
+func (x *UpdateScheduleRequest) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *UpdateScheduleRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *UpdateScheduleRequest) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *UpdateScheduleRequest) GetDaysOfWeek() int32 {
+	if x != nil {
+		return x.DaysOfWeek
+	}
+	return 0
+}
+
+func (x *UpdateScheduleRequest) GetStatus() ScheduleStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ScheduleStatus_SCHEDULE_STATUS_UNSPECIFIED
+}
+
+type DeleteScheduleRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *DeleteScheduleRequest) Reset() {
+	*x = DeleteScheduleRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteScheduleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteScheduleRequest) ProtoMessage() {}
+
+func (x *DeleteScheduleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteScheduleRequest.ProtoReflect.Descriptor instead.
+func (*DeleteScheduleRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *DeleteScheduleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DeleteScheduleRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type DeleteScheduleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteScheduleResponse) Reset() {
+	*x = DeleteScheduleResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteScheduleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteScheduleResponse) ProtoMessage() {}
+
+func (x *DeleteScheduleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteScheduleResponse.ProtoReflect.Descriptor instead.
+func (*DeleteScheduleResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *DeleteScheduleResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ScheduleException struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ScheduleId    string                 `protobuf:"bytes,2,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	ServiceDate   string                 `protobuf:"bytes,3,opt,name=service_date,json=serviceDate,proto3" json:"service_date,omitempty"` // YYYY-MM-DD
+	IsAdded       bool                   `protobuf:"varint,4,opt,name=is_added,json=isAdded,proto3" json:"is_added,omitempty"`
+	Reason        string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScheduleException) Reset() {
+	*x = ScheduleException{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleException) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleException) ProtoMessage() {}
+
+func (x *ScheduleException) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleException.ProtoReflect.Descriptor instead.
+func (*ScheduleException) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ScheduleException) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ScheduleException) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ScheduleException) GetServiceDate() string {
+	if x != nil {
+		return x.ServiceDate
+	}
+	return ""
+}
+
+func (x *ScheduleException) GetIsAdded() bool {
+	if x != nil {
+		return x.IsAdded
+	}
+	return false
+}
+
+func (x *ScheduleException) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ScheduleException) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+type AddScheduleExceptionRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ScheduleId     string                 `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	ServiceDate    string                 `protobuf:"bytes,3,opt,name=service_date,json=serviceDate,proto3" json:"service_date,omitempty"`
+	IsAdded        bool                   `protobuf:"varint,4,opt,name=is_added,json=isAdded,proto3" json:"is_added,omitempty"`
+	Reason         string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AddScheduleExceptionRequest) Reset() {
+	*x = AddScheduleExceptionRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddScheduleExceptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddScheduleExceptionRequest) ProtoMessage() {}
+
+func (x *AddScheduleExceptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddScheduleExceptionRequest.ProtoReflect.Descriptor instead.
+func (*AddScheduleExceptionRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *AddScheduleExceptionRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *AddScheduleExceptionRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *AddScheduleExceptionRequest) GetServiceDate() string {
+	if x != nil {
+		return x.ServiceDate
+	}
+	return ""
+}
+
+func (x *AddScheduleExceptionRequest) GetIsAdded() bool {
+	if x != nil {
+		return x.IsAdded
+	}
+	return false
+}
+
+func (x *AddScheduleExceptionRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type ListScheduleExceptionsRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ScheduleId     string                 `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListScheduleExceptionsRequest) Reset() {
+	*x = ListScheduleExceptionsRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListScheduleExceptionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListScheduleExceptionsRequest) ProtoMessage() {}
+
+func (x *ListScheduleExceptionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListScheduleExceptionsRequest.ProtoReflect.Descriptor instead.
+func (*ListScheduleExceptionsRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *ListScheduleExceptionsRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ListScheduleExceptionsRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type ListScheduleExceptionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Exceptions    []*ScheduleException   `protobuf:"bytes,1,rep,name=exceptions,proto3" json:"exceptions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListScheduleExceptionsResponse) Reset() {
+	*x = ListScheduleExceptionsResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListScheduleExceptionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListScheduleExceptionsResponse) ProtoMessage() {}
+
+func (x *ListScheduleExceptionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListScheduleExceptionsResponse.ProtoReflect.Descriptor instead.
+func (*ListScheduleExceptionsResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ListScheduleExceptionsResponse) GetExceptions() []*ScheduleException {
+	if x != nil {
+		return x.Exceptions
+	}
+	return nil
+}
+
+type GenerateTripInstancesRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ScheduleId     string                 `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	StartDate      string                 `protobuf:"bytes,3,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"` // YYYY-MM-DD
+	EndDate        string                 `protobuf:"bytes,4,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`       // YYYY-MM-DD
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GenerateTripInstancesRequest) Reset() {
+	*x = GenerateTripInstancesRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateTripInstancesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateTripInstancesRequest) ProtoMessage() {}
+
+func (x *GenerateTripInstancesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateTripInstancesRequest.ProtoReflect.Descriptor instead.
+func (*GenerateTripInstancesRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *GenerateTripInstancesRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *GenerateTripInstancesRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *GenerateTripInstancesRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *GenerateTripInstancesRequest) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+type GenerateTripInstancesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Trips         []*Trip                `protobuf:"bytes,1,rep,name=trips,proto3" json:"trips,omitempty"`
+	CreatedCount  int32                  `protobuf:"varint,2,opt,name=created_count,json=createdCount,proto3" json:"created_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateTripInstancesResponse) Reset() {
+	*x = GenerateTripInstancesResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateTripInstancesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateTripInstancesResponse) ProtoMessage() {}
+
+func (x *GenerateTripInstancesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateTripInstancesResponse.ProtoReflect.Descriptor instead.
+func (*GenerateTripInstancesResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *GenerateTripInstancesResponse) GetTrips() []*Trip {
+	if x != nil {
+		return x.Trips
+	}
+	return nil
+}
+
+func (x *GenerateTripInstancesResponse) GetCreatedCount() int32 {
+	if x != nil {
+		return x.CreatedCount
+	}
+	return 0
+}
+
+type ListTripInstancesRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	ScheduleId     string                 `protobuf:"bytes,2,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	RouteId        string                 `protobuf:"bytes,3,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	StartDate      string                 `protobuf:"bytes,4,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"` // YYYY-MM-DD
+	EndDate        string                 `protobuf:"bytes,5,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`       // YYYY-MM-DD
+	Status         TripStatus             `protobuf:"varint,6,opt,name=status,proto3,enum=catalog.v1.TripStatus" json:"status,omitempty"`
+	PageSize       int32                  `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,8,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListTripInstancesRequest) Reset() {
+	*x = ListTripInstancesRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTripInstancesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTripInstancesRequest) ProtoMessage() {}
+
+func (x *ListTripInstancesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTripInstancesRequest.ProtoReflect.Descriptor instead.
+func (*ListTripInstancesRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *ListTripInstancesRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *ListTripInstancesRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ListTripInstancesRequest) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
+	}
+	return ""
+}
+
+func (x *ListTripInstancesRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *ListTripInstancesRequest) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *ListTripInstancesRequest) GetStatus() TripStatus {
+	if x != nil {
+		return x.Status
+	}
+	return TripStatus_TRIP_STATUS_UNSPECIFIED
+}
+
+func (x *ListTripInstancesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListTripInstancesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListTripInstancesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*TripSearchResult    `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	TotalCount    int32                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTripInstancesResponse) Reset() {
+	*x = ListTripInstancesResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTripInstancesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTripInstancesResponse) ProtoMessage() {}
+
+func (x *ListTripInstancesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTripInstancesResponse.ProtoReflect.Descriptor instead.
+func (*ListTripInstancesResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *ListTripInstancesResponse) GetResults() []*TripSearchResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *ListTripInstancesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListTripInstancesResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
 type SearchFilters struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	VehicleTypes   []string               `protobuf:"bytes,1,rep,name=vehicle_types,json=vehicleTypes,proto3" json:"vehicle_types,omitempty"`
@@ -2592,7 +4265,7 @@ type SearchFilters struct {
 
 func (x *SearchFilters) Reset() {
 	*x = SearchFilters{}
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[29]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2604,7 +4277,7 @@ func (x *SearchFilters) String() string {
 func (*SearchFilters) ProtoMessage() {}
 
 func (x *SearchFilters) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_catalog_v1_catalog_proto_msgTypes[29]
+	mi := &file_catalog_v1_catalog_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2617,7 +4290,7 @@ func (x *SearchFilters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchFilters.ProtoReflect.Descriptor instead.
 func (*SearchFilters) Descriptor() ([]byte, []int) {
-	return file_api_proto_catalog_v1_catalog_proto_rawDescGZIP(), []int{29}
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *SearchFilters) GetVehicleTypes() []string {
@@ -2655,11 +4328,183 @@ func (x *SearchFilters) GetOperators() []string {
 	return nil
 }
 
-var File_api_proto_catalog_v1_catalog_proto protoreflect.FileDescriptor
+type ScheduleVersion struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ScheduleId    string                 `protobuf:"bytes,2,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	Version       int32                  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	Snapshot      *Schedule              `protobuf:"bytes,4,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
+func (x *ScheduleVersion) Reset() {
+	*x = ScheduleVersion{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleVersion) ProtoMessage() {}
+
+func (x *ScheduleVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleVersion.ProtoReflect.Descriptor instead.
+func (*ScheduleVersion) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ScheduleVersion) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ScheduleVersion) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ScheduleVersion) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *ScheduleVersion) GetSnapshot() *Schedule {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+func (x *ScheduleVersion) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+type GetScheduleHistoryRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ScheduleId     string                 `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetScheduleHistoryRequest) Reset() {
+	*x = GetScheduleHistoryRequest{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetScheduleHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetScheduleHistoryRequest) ProtoMessage() {}
+
+func (x *GetScheduleHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetScheduleHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetScheduleHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *GetScheduleHistoryRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *GetScheduleHistoryRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type GetScheduleHistoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Versions      []*ScheduleVersion     `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetScheduleHistoryResponse) Reset() {
+	*x = GetScheduleHistoryResponse{}
+	mi := &file_catalog_v1_catalog_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetScheduleHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetScheduleHistoryResponse) ProtoMessage() {}
+
+func (x *GetScheduleHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_catalog_v1_catalog_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetScheduleHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetScheduleHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_catalog_v1_catalog_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GetScheduleHistoryResponse) GetVersions() []*ScheduleVersion {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+var File_catalog_v1_catalog_proto protoreflect.FileDescriptor
+
+const file_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\"api/proto/catalog/v1/catalog.proto\x12\n" +
+	"\x18catalog/v1/catalog.proto\x12\n" +
 	"catalog.v1\"\xad\x03\n" +
 	"\aStation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
@@ -2779,7 +4624,7 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"/\n" +
 	"\x13DeleteRouteResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xab\x04\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xef\x04\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x19\n" +
@@ -2800,14 +4645,34 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x0e \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x0f \x01(\x03R\tupdatedAt\"\xa9\x02\n" +
+	"updated_at\x18\x0f \x01(\x03R\tupdatedAt\x12\x1f\n" +
+	"\vschedule_id\x18\x10 \x01(\tR\n" +
+	"scheduleId\x12!\n" +
+	"\fservice_date\x18\x11 \x01(\tR\vserviceDate\"\x96\x04\n" +
 	"\vTripPricing\x12(\n" +
 	"\x10base_price_paisa\x18\x01 \x01(\x03R\x0ebasePricePaisa\x12\x1b\n" +
 	"\ttax_paisa\x18\x02 \x01(\x03R\btaxPaisa\x12*\n" +
 	"\x11booking_fee_paisa\x18\x03 \x01(\x03R\x0fbookingFeePaisa\x12\x1a\n" +
 	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12K\n" +
-	"\fclass_prices\x18\x05 \x03(\v2(.catalog.v1.TripPricing.ClassPricesEntryR\vclassPrices\x1a>\n" +
+	"\fclass_prices\x18\x05 \x03(\v2(.catalog.v1.TripPricing.ClassPricesEntryR\vclassPrices\x12a\n" +
+	"\x14seat_category_prices\x18\x06 \x03(\v2/.catalog.v1.TripPricing.SeatCategoryPricesEntryR\x12seatCategoryPrices\x12A\n" +
+	"\x0esegment_prices\x18\a \x03(\v2\x1a.catalog.v1.SegmentPricingR\rsegmentPrices\x1a>\n" +
 	"\x10ClassPricesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\x1aE\n" +
+	"\x17SeatCategoryPricesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\xc3\x03\n" +
+	"\x0eSegmentPricing\x12&\n" +
+	"\x0ffrom_station_id\x18\x01 \x01(\tR\rfromStationId\x12\"\n" +
+	"\rto_station_id\x18\x02 \x01(\tR\vtoStationId\x12(\n" +
+	"\x10base_price_paisa\x18\x03 \x01(\x03R\x0ebasePricePaisa\x12N\n" +
+	"\fclass_prices\x18\x04 \x03(\v2+.catalog.v1.SegmentPricing.ClassPricesEntryR\vclassPrices\x12d\n" +
+	"\x14seat_category_prices\x18\x05 \x03(\v22.catalog.v1.SegmentPricing.SeatCategoryPricesEntryR\x12seatCategoryPrices\x1a>\n" +
+	"\x10ClassPricesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\x1aE\n" +
+	"\x17SeatCategoryPricesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\xf1\x01\n" +
 	"\vTripSegment\x12#\n" +
@@ -2830,7 +4695,7 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"\apricing\x18\b \x01(\v2\x17.catalog.v1.TripPricingR\apricing\"I\n" +
 	"\x0eGetTripRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
-	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"\x96\x02\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"\xda\x02\n" +
 	"\x10ListTripsRequest\x12'\n" +
 	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x19\n" +
 	"\broute_id\x18\x02 \x01(\tR\arouteId\x12'\n" +
@@ -2839,7 +4704,10 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x06status\x18\x05 \x01(\x0e2\x16.catalog.v1.TripStatusR\x06status\x12\x1b\n" +
 	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\a \x01(\tR\tpageToken\"\x84\x01\n" +
+	"page_token\x18\a \x01(\tR\tpageToken\x12\x1f\n" +
+	"\vschedule_id\x18\b \x01(\tR\n" +
+	"scheduleId\x12!\n" +
+	"\fservice_date\x18\t \x01(\tR\vserviceDate\"\x84\x01\n" +
 	"\x11ListTripsResponse\x12&\n" +
 	"\x05trips\x18\x01 \x03(\v2\x10.catalog.v1.TripR\x05trips\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
@@ -2883,13 +4751,183 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x05route\x18\x02 \x01(\v2\x11.catalog.v1.RouteR\x05route\x12:\n" +
 	"\x0eorigin_station\x18\x03 \x01(\v2\x13.catalog.v1.StationR\roriginStation\x12D\n" +
 	"\x13destination_station\x18\x04 \x01(\v2\x13.catalog.v1.StationR\x12destinationStation\x12#\n" +
-	"\roperator_name\x18\x05 \x01(\tR\foperatorName\"\xb5\x01\n" +
+	"\roperator_name\x18\x05 \x01(\tR\foperatorName\"\x80\x05\n" +
+	"\bSchedule\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x19\n" +
+	"\broute_id\x18\x03 \x01(\tR\arouteId\x12\x1d\n" +
+	"\n" +
+	"vehicle_id\x18\x04 \x01(\tR\tvehicleId\x12!\n" +
+	"\fvehicle_type\x18\x05 \x01(\tR\vvehicleType\x12#\n" +
+	"\rvehicle_class\x18\x06 \x01(\tR\fvehicleClass\x12\x1f\n" +
+	"\vtotal_seats\x18\a \x01(\x05R\n" +
+	"totalSeats\x121\n" +
+	"\apricing\x18\b \x01(\v2\x17.catalog.v1.TripPricingR\apricing\x12+\n" +
+	"\x11departure_minutes\x18\t \x01(\x05R\x10departureMinutes\x124\n" +
+	"\x16arrival_offset_minutes\x18\n" +
+	" \x01(\x05R\x14arrivalOffsetMinutes\x12\x1a\n" +
+	"\btimezone\x18\v \x01(\tR\btimezone\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\f \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\r \x01(\tR\aendDate\x12 \n" +
+	"\fdays_of_week\x18\x0e \x01(\x05R\n" +
+	"daysOfWeek\x122\n" +
+	"\x06status\x18\x0f \x01(\x0e2\x1a.catalog.v1.ScheduleStatusR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x10 \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x11 \x01(\x03R\tupdatedAt\x12\x18\n" +
+	"\aversion\x18\x12 \x01(\x05R\aversion\"\xf1\x03\n" +
+	"\x15CreateScheduleRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x19\n" +
+	"\broute_id\x18\x02 \x01(\tR\arouteId\x12\x1d\n" +
+	"\n" +
+	"vehicle_id\x18\x03 \x01(\tR\tvehicleId\x12!\n" +
+	"\fvehicle_type\x18\x04 \x01(\tR\vvehicleType\x12#\n" +
+	"\rvehicle_class\x18\x05 \x01(\tR\fvehicleClass\x12\x1f\n" +
+	"\vtotal_seats\x18\x06 \x01(\x05R\n" +
+	"totalSeats\x121\n" +
+	"\apricing\x18\a \x01(\v2\x17.catalog.v1.TripPricingR\apricing\x12+\n" +
+	"\x11departure_minutes\x18\b \x01(\x05R\x10departureMinutes\x124\n" +
+	"\x16arrival_offset_minutes\x18\t \x01(\x05R\x14arrivalOffsetMinutes\x12\x1a\n" +
+	"\btimezone\x18\n" +
+	" \x01(\tR\btimezone\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\v \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\f \x01(\tR\aendDate\x12 \n" +
+	"\fdays_of_week\x18\r \x01(\x05R\n" +
+	"daysOfWeek\"\xc5\x03\n" +
+	"\x12ScheduleDefinition\x12\x19\n" +
+	"\broute_id\x18\x01 \x01(\tR\arouteId\x12\x1d\n" +
+	"\n" +
+	"vehicle_id\x18\x02 \x01(\tR\tvehicleId\x12!\n" +
+	"\fvehicle_type\x18\x03 \x01(\tR\vvehicleType\x12#\n" +
+	"\rvehicle_class\x18\x04 \x01(\tR\fvehicleClass\x12\x1f\n" +
+	"\vtotal_seats\x18\x05 \x01(\x05R\n" +
+	"totalSeats\x121\n" +
+	"\apricing\x18\x06 \x01(\v2\x17.catalog.v1.TripPricingR\apricing\x12+\n" +
+	"\x11departure_minutes\x18\a \x01(\x05R\x10departureMinutes\x124\n" +
+	"\x16arrival_offset_minutes\x18\b \x01(\x05R\x14arrivalOffsetMinutes\x12\x1a\n" +
+	"\btimezone\x18\t \x01(\tR\btimezone\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\n" +
+	" \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\v \x01(\tR\aendDate\x12 \n" +
+	"\fdays_of_week\x18\f \x01(\x05R\n" +
+	"daysOfWeek\"\x83\x01\n" +
+	"\x1aBulkCreateSchedulesRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12<\n" +
+	"\tschedules\x18\x02 \x03(\v2\x1e.catalog.v1.ScheduleDefinitionR\tschedules\"v\n" +
+	"\x1bBulkCreateSchedulesResponse\x122\n" +
+	"\tschedules\x18\x01 \x03(\v2\x14.catalog.v1.ScheduleR\tschedules\x12#\n" +
+	"\rcreated_count\x18\x02 \x01(\x05R\fcreatedCount\"M\n" +
+	"\x12GetScheduleRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"\xca\x01\n" +
+	"\x14ListSchedulesRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x19\n" +
+	"\broute_id\x18\x02 \x01(\tR\arouteId\x122\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1a.catalog.v1.ScheduleStatusR\x06status\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\x94\x01\n" +
+	"\x15ListSchedulesResponse\x122\n" +
+	"\tschedules\x18\x01 \x03(\v2\x14.catalog.v1.ScheduleR\tschedules\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"totalCount\"\xb3\x03\n" +
+	"\x15UpdateScheduleRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x1f\n" +
+	"\vtotal_seats\x18\x03 \x01(\x05R\n" +
+	"totalSeats\x121\n" +
+	"\apricing\x18\x04 \x01(\v2\x17.catalog.v1.TripPricingR\apricing\x12+\n" +
+	"\x11departure_minutes\x18\x05 \x01(\x05R\x10departureMinutes\x124\n" +
+	"\x16arrival_offset_minutes\x18\x06 \x01(\x05R\x14arrivalOffsetMinutes\x12\x1a\n" +
+	"\btimezone\x18\a \x01(\tR\btimezone\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\b \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\t \x01(\tR\aendDate\x12 \n" +
+	"\fdays_of_week\x18\n" +
+	" \x01(\x05R\n" +
+	"daysOfWeek\x122\n" +
+	"\x06status\x18\v \x01(\x0e2\x1a.catalog.v1.ScheduleStatusR\x06status\"P\n" +
+	"\x15DeleteScheduleRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"2\n" +
+	"\x16DeleteScheduleResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xb9\x01\n" +
+	"\x11ScheduleException\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vschedule_id\x18\x02 \x01(\tR\n" +
+	"scheduleId\x12!\n" +
+	"\fservice_date\x18\x03 \x01(\tR\vserviceDate\x12\x19\n" +
+	"\bis_added\x18\x04 \x01(\bR\aisAdded\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\x03R\tcreatedAt\"\xbd\x01\n" +
+	"\x1bAddScheduleExceptionRequest\x12\x1f\n" +
+	"\vschedule_id\x18\x01 \x01(\tR\n" +
+	"scheduleId\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12!\n" +
+	"\fservice_date\x18\x03 \x01(\tR\vserviceDate\x12\x19\n" +
+	"\bis_added\x18\x04 \x01(\bR\aisAdded\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\"i\n" +
+	"\x1dListScheduleExceptionsRequest\x12\x1f\n" +
+	"\vschedule_id\x18\x01 \x01(\tR\n" +
+	"scheduleId\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"_\n" +
+	"\x1eListScheduleExceptionsResponse\x12=\n" +
+	"\n" +
+	"exceptions\x18\x01 \x03(\v2\x1d.catalog.v1.ScheduleExceptionR\n" +
+	"exceptions\"\xa2\x01\n" +
+	"\x1cGenerateTripInstancesRequest\x12\x1f\n" +
+	"\vschedule_id\x18\x01 \x01(\tR\n" +
+	"scheduleId\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x03 \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\x04 \x01(\tR\aendDate\"l\n" +
+	"\x1dGenerateTripInstancesResponse\x12&\n" +
+	"\x05trips\x18\x01 \x03(\v2\x10.catalog.v1.TripR\x05trips\x12#\n" +
+	"\rcreated_count\x18\x02 \x01(\x05R\fcreatedCount\"\xa5\x02\n" +
+	"\x18ListTripInstancesRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x1f\n" +
+	"\vschedule_id\x18\x02 \x01(\tR\n" +
+	"scheduleId\x12\x19\n" +
+	"\broute_id\x18\x03 \x01(\tR\arouteId\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x04 \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\x05 \x01(\tR\aendDate\x12.\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x16.catalog.v1.TripStatusR\x06status\x12\x1b\n" +
+	"\tpage_size\x18\a \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\b \x01(\tR\tpageToken\"\x9c\x01\n" +
+	"\x19ListTripInstancesResponse\x126\n" +
+	"\aresults\x18\x01 \x03(\v2\x1c.catalog.v1.TripSearchResultR\aresults\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"totalCount\"\xb5\x01\n" +
 	"\rSearchFilters\x12#\n" +
 	"\rvehicle_types\x18\x01 \x03(\tR\fvehicleTypes\x12'\n" +
 	"\x0fvehicle_classes\x18\x02 \x03(\tR\x0evehicleClasses\x12\x1b\n" +
 	"\tmin_price\x18\x03 \x01(\x03R\bminPrice\x12\x1b\n" +
 	"\tmax_price\x18\x04 \x01(\x03R\bmaxPrice\x12\x1c\n" +
-	"\toperators\x18\x05 \x03(\tR\toperators*\x8e\x01\n" +
+	"\toperators\x18\x05 \x03(\tR\toperators\"\xad\x01\n" +
+	"\x0fScheduleVersion\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vschedule_id\x18\x02 \x01(\tR\n" +
+	"scheduleId\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\x120\n" +
+	"\bsnapshot\x18\x04 \x01(\v2\x14.catalog.v1.ScheduleR\bsnapshot\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\x03R\tcreatedAt\"e\n" +
+	"\x19GetScheduleHistoryRequest\x12\x1f\n" +
+	"\vschedule_id\x18\x01 \x01(\tR\n" +
+	"scheduleId\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\"U\n" +
+	"\x1aGetScheduleHistoryResponse\x127\n" +
+	"\bversions\x18\x01 \x03(\v2\x1b.catalog.v1.ScheduleVersionR\bversions*\x8e\x01\n" +
 	"\rStationStatus\x12\x1e\n" +
 	"\x1aSTATION_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15STATION_STATUS_ACTIVE\x10\x01\x12\x1b\n" +
@@ -2916,7 +4954,11 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x19SORT_ORDER_DEPARTURE_DESC\x10\x02\x12\x18\n" +
 	"\x14SORT_ORDER_PRICE_ASC\x10\x03\x12\x19\n" +
 	"\x15SORT_ORDER_PRICE_DESC\x10\x04\x12\x1b\n" +
-	"\x17SORT_ORDER_DURATION_ASC\x10\x052\xf8\b\n" +
+	"\x17SORT_ORDER_DURATION_ASC\x10\x05*k\n" +
+	"\x0eScheduleStatus\x12\x1f\n" +
+	"\x1bSCHEDULE_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16SCHEDULE_STATUS_ACTIVE\x10\x01\x12\x1c\n" +
+	"\x18SCHEDULE_STATUS_INACTIVE\x10\x022\xec\x10\n" +
 	"\x0eCatalogService\x12F\n" +
 	"\rCreateStation\x12 .catalog.v1.CreateStationRequest\x1a\x13.catalog.v1.Station\x12@\n" +
 	"\n" +
@@ -2938,145 +4980,225 @@ const file_api_proto_catalog_v1_catalog_proto_rawDesc = "" +
 	"UpdateTrip\x12\x1d.catalog.v1.UpdateTripRequest\x1a\x10.catalog.v1.Trip\x12=\n" +
 	"\n" +
 	"CancelTrip\x12\x1d.catalog.v1.CancelTripRequest\x1a\x10.catalog.v1.Trip\x12N\n" +
-	"\vSearchTrips\x12\x1e.catalog.v1.SearchTripsRequest\x1a\x1f.catalog.v1.SearchTripsResponseB:Z8github.com/MuhibNayem/Travio/server/api/proto/catalog/v1b\x06proto3"
+	"\vSearchTrips\x12\x1e.catalog.v1.SearchTripsRequest\x1a\x1f.catalog.v1.SearchTripsResponse\x12I\n" +
+	"\x0eCreateSchedule\x12!.catalog.v1.CreateScheduleRequest\x1a\x14.catalog.v1.Schedule\x12C\n" +
+	"\vGetSchedule\x12\x1e.catalog.v1.GetScheduleRequest\x1a\x14.catalog.v1.Schedule\x12T\n" +
+	"\rListSchedules\x12 .catalog.v1.ListSchedulesRequest\x1a!.catalog.v1.ListSchedulesResponse\x12I\n" +
+	"\x0eUpdateSchedule\x12!.catalog.v1.UpdateScheduleRequest\x1a\x14.catalog.v1.Schedule\x12W\n" +
+	"\x0eDeleteSchedule\x12!.catalog.v1.DeleteScheduleRequest\x1a\".catalog.v1.DeleteScheduleResponse\x12^\n" +
+	"\x14AddScheduleException\x12'.catalog.v1.AddScheduleExceptionRequest\x1a\x1d.catalog.v1.ScheduleException\x12o\n" +
+	"\x16ListScheduleExceptions\x12).catalog.v1.ListScheduleExceptionsRequest\x1a*.catalog.v1.ListScheduleExceptionsResponse\x12l\n" +
+	"\x15GenerateTripInstances\x12(.catalog.v1.GenerateTripInstancesRequest\x1a).catalog.v1.GenerateTripInstancesResponse\x12`\n" +
+	"\x11ListTripInstances\x12$.catalog.v1.ListTripInstancesRequest\x1a%.catalog.v1.ListTripInstancesResponse\x12b\n" +
+	"\x0fCreateSchedules\x12&.catalog.v1.BulkCreateSchedulesRequest\x1a'.catalog.v1.BulkCreateSchedulesResponse\x12c\n" +
+	"\x12GetScheduleHistory\x12%.catalog.v1.GetScheduleHistoryRequest\x1a&.catalog.v1.GetScheduleHistoryResponseB:Z8github.com/MuhibNayem/Travio/server/api/proto/catalog/v1b\x06proto3"
 
 var (
-	file_api_proto_catalog_v1_catalog_proto_rawDescOnce sync.Once
-	file_api_proto_catalog_v1_catalog_proto_rawDescData []byte
+	file_catalog_v1_catalog_proto_rawDescOnce sync.Once
+	file_catalog_v1_catalog_proto_rawDescData []byte
 )
 
-func file_api_proto_catalog_v1_catalog_proto_rawDescGZIP() []byte {
-	file_api_proto_catalog_v1_catalog_proto_rawDescOnce.Do(func() {
-		file_api_proto_catalog_v1_catalog_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_catalog_v1_catalog_proto_rawDesc), len(file_api_proto_catalog_v1_catalog_proto_rawDesc)))
+func file_catalog_v1_catalog_proto_rawDescGZIP() []byte {
+	file_catalog_v1_catalog_proto_rawDescOnce.Do(func() {
+		file_catalog_v1_catalog_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_catalog_v1_catalog_proto_rawDesc), len(file_catalog_v1_catalog_proto_rawDesc)))
 	})
-	return file_api_proto_catalog_v1_catalog_proto_rawDescData
+	return file_catalog_v1_catalog_proto_rawDescData
 }
 
-var file_api_proto_catalog_v1_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_api_proto_catalog_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
-var file_api_proto_catalog_v1_catalog_proto_goTypes = []any{
-	(StationStatus)(0),            // 0: catalog.v1.StationStatus
-	(RouteStatus)(0),              // 1: catalog.v1.RouteStatus
-	(TripStatus)(0),               // 2: catalog.v1.TripStatus
-	(SortOrder)(0),                // 3: catalog.v1.SortOrder
-	(*Station)(nil),               // 4: catalog.v1.Station
-	(*CreateStationRequest)(nil),  // 5: catalog.v1.CreateStationRequest
-	(*GetStationRequest)(nil),     // 6: catalog.v1.GetStationRequest
-	(*ListStationsRequest)(nil),   // 7: catalog.v1.ListStationsRequest
-	(*ListStationsResponse)(nil),  // 8: catalog.v1.ListStationsResponse
-	(*UpdateStationRequest)(nil),  // 9: catalog.v1.UpdateStationRequest
-	(*DeleteStationRequest)(nil),  // 10: catalog.v1.DeleteStationRequest
-	(*DeleteStationResponse)(nil), // 11: catalog.v1.DeleteStationResponse
-	(*Route)(nil),                 // 12: catalog.v1.Route
-	(*RouteStop)(nil),             // 13: catalog.v1.RouteStop
-	(*CreateRouteRequest)(nil),    // 14: catalog.v1.CreateRouteRequest
-	(*GetRouteRequest)(nil),       // 15: catalog.v1.GetRouteRequest
-	(*ListRoutesRequest)(nil),     // 16: catalog.v1.ListRoutesRequest
-	(*ListRoutesResponse)(nil),    // 17: catalog.v1.ListRoutesResponse
-	(*UpdateRouteRequest)(nil),    // 18: catalog.v1.UpdateRouteRequest
-	(*DeleteRouteRequest)(nil),    // 19: catalog.v1.DeleteRouteRequest
-	(*DeleteRouteResponse)(nil),   // 20: catalog.v1.DeleteRouteResponse
-	(*Trip)(nil),                  // 21: catalog.v1.Trip
-	(*TripPricing)(nil),           // 22: catalog.v1.TripPricing
-	(*TripSegment)(nil),           // 23: catalog.v1.TripSegment
-	(*CreateTripRequest)(nil),     // 24: catalog.v1.CreateTripRequest
-	(*GetTripRequest)(nil),        // 25: catalog.v1.GetTripRequest
-	(*ListTripsRequest)(nil),      // 26: catalog.v1.ListTripsRequest
-	(*ListTripsResponse)(nil),     // 27: catalog.v1.ListTripsResponse
-	(*UpdateTripRequest)(nil),     // 28: catalog.v1.UpdateTripRequest
-	(*CancelTripRequest)(nil),     // 29: catalog.v1.CancelTripRequest
-	(*SearchTripsRequest)(nil),    // 30: catalog.v1.SearchTripsRequest
-	(*SearchTripsResponse)(nil),   // 31: catalog.v1.SearchTripsResponse
-	(*TripSearchResult)(nil),      // 32: catalog.v1.TripSearchResult
-	(*SearchFilters)(nil),         // 33: catalog.v1.SearchFilters
-	nil,                           // 34: catalog.v1.TripPricing.ClassPricesEntry
+var file_catalog_v1_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_catalog_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
+var file_catalog_v1_catalog_proto_goTypes = []any{
+	(StationStatus)(0),                     // 0: catalog.v1.StationStatus
+	(RouteStatus)(0),                       // 1: catalog.v1.RouteStatus
+	(TripStatus)(0),                        // 2: catalog.v1.TripStatus
+	(SortOrder)(0),                         // 3: catalog.v1.SortOrder
+	(ScheduleStatus)(0),                    // 4: catalog.v1.ScheduleStatus
+	(*Station)(nil),                        // 5: catalog.v1.Station
+	(*CreateStationRequest)(nil),           // 6: catalog.v1.CreateStationRequest
+	(*GetStationRequest)(nil),              // 7: catalog.v1.GetStationRequest
+	(*ListStationsRequest)(nil),            // 8: catalog.v1.ListStationsRequest
+	(*ListStationsResponse)(nil),           // 9: catalog.v1.ListStationsResponse
+	(*UpdateStationRequest)(nil),           // 10: catalog.v1.UpdateStationRequest
+	(*DeleteStationRequest)(nil),           // 11: catalog.v1.DeleteStationRequest
+	(*DeleteStationResponse)(nil),          // 12: catalog.v1.DeleteStationResponse
+	(*Route)(nil),                          // 13: catalog.v1.Route
+	(*RouteStop)(nil),                      // 14: catalog.v1.RouteStop
+	(*CreateRouteRequest)(nil),             // 15: catalog.v1.CreateRouteRequest
+	(*GetRouteRequest)(nil),                // 16: catalog.v1.GetRouteRequest
+	(*ListRoutesRequest)(nil),              // 17: catalog.v1.ListRoutesRequest
+	(*ListRoutesResponse)(nil),             // 18: catalog.v1.ListRoutesResponse
+	(*UpdateRouteRequest)(nil),             // 19: catalog.v1.UpdateRouteRequest
+	(*DeleteRouteRequest)(nil),             // 20: catalog.v1.DeleteRouteRequest
+	(*DeleteRouteResponse)(nil),            // 21: catalog.v1.DeleteRouteResponse
+	(*Trip)(nil),                           // 22: catalog.v1.Trip
+	(*TripPricing)(nil),                    // 23: catalog.v1.TripPricing
+	(*SegmentPricing)(nil),                 // 24: catalog.v1.SegmentPricing
+	(*TripSegment)(nil),                    // 25: catalog.v1.TripSegment
+	(*CreateTripRequest)(nil),              // 26: catalog.v1.CreateTripRequest
+	(*GetTripRequest)(nil),                 // 27: catalog.v1.GetTripRequest
+	(*ListTripsRequest)(nil),               // 28: catalog.v1.ListTripsRequest
+	(*ListTripsResponse)(nil),              // 29: catalog.v1.ListTripsResponse
+	(*UpdateTripRequest)(nil),              // 30: catalog.v1.UpdateTripRequest
+	(*CancelTripRequest)(nil),              // 31: catalog.v1.CancelTripRequest
+	(*SearchTripsRequest)(nil),             // 32: catalog.v1.SearchTripsRequest
+	(*SearchTripsResponse)(nil),            // 33: catalog.v1.SearchTripsResponse
+	(*TripSearchResult)(nil),               // 34: catalog.v1.TripSearchResult
+	(*Schedule)(nil),                       // 35: catalog.v1.Schedule
+	(*CreateScheduleRequest)(nil),          // 36: catalog.v1.CreateScheduleRequest
+	(*ScheduleDefinition)(nil),             // 37: catalog.v1.ScheduleDefinition
+	(*BulkCreateSchedulesRequest)(nil),     // 38: catalog.v1.BulkCreateSchedulesRequest
+	(*BulkCreateSchedulesResponse)(nil),    // 39: catalog.v1.BulkCreateSchedulesResponse
+	(*GetScheduleRequest)(nil),             // 40: catalog.v1.GetScheduleRequest
+	(*ListSchedulesRequest)(nil),           // 41: catalog.v1.ListSchedulesRequest
+	(*ListSchedulesResponse)(nil),          // 42: catalog.v1.ListSchedulesResponse
+	(*UpdateScheduleRequest)(nil),          // 43: catalog.v1.UpdateScheduleRequest
+	(*DeleteScheduleRequest)(nil),          // 44: catalog.v1.DeleteScheduleRequest
+	(*DeleteScheduleResponse)(nil),         // 45: catalog.v1.DeleteScheduleResponse
+	(*ScheduleException)(nil),              // 46: catalog.v1.ScheduleException
+	(*AddScheduleExceptionRequest)(nil),    // 47: catalog.v1.AddScheduleExceptionRequest
+	(*ListScheduleExceptionsRequest)(nil),  // 48: catalog.v1.ListScheduleExceptionsRequest
+	(*ListScheduleExceptionsResponse)(nil), // 49: catalog.v1.ListScheduleExceptionsResponse
+	(*GenerateTripInstancesRequest)(nil),   // 50: catalog.v1.GenerateTripInstancesRequest
+	(*GenerateTripInstancesResponse)(nil),  // 51: catalog.v1.GenerateTripInstancesResponse
+	(*ListTripInstancesRequest)(nil),       // 52: catalog.v1.ListTripInstancesRequest
+	(*ListTripInstancesResponse)(nil),      // 53: catalog.v1.ListTripInstancesResponse
+	(*SearchFilters)(nil),                  // 54: catalog.v1.SearchFilters
+	(*ScheduleVersion)(nil),                // 55: catalog.v1.ScheduleVersion
+	(*GetScheduleHistoryRequest)(nil),      // 56: catalog.v1.GetScheduleHistoryRequest
+	(*GetScheduleHistoryResponse)(nil),     // 57: catalog.v1.GetScheduleHistoryResponse
+	nil,                                    // 58: catalog.v1.TripPricing.ClassPricesEntry
+	nil,                                    // 59: catalog.v1.TripPricing.SeatCategoryPricesEntry
+	nil,                                    // 60: catalog.v1.SegmentPricing.ClassPricesEntry
+	nil,                                    // 61: catalog.v1.SegmentPricing.SeatCategoryPricesEntry
 }
-var file_api_proto_catalog_v1_catalog_proto_depIdxs = []int32{
+var file_catalog_v1_catalog_proto_depIdxs = []int32{
 	0,  // 0: catalog.v1.Station.status:type_name -> catalog.v1.StationStatus
-	4,  // 1: catalog.v1.ListStationsResponse.stations:type_name -> catalog.v1.Station
+	5,  // 1: catalog.v1.ListStationsResponse.stations:type_name -> catalog.v1.Station
 	0,  // 2: catalog.v1.UpdateStationRequest.status:type_name -> catalog.v1.StationStatus
-	13, // 3: catalog.v1.Route.intermediate_stops:type_name -> catalog.v1.RouteStop
+	14, // 3: catalog.v1.Route.intermediate_stops:type_name -> catalog.v1.RouteStop
 	1,  // 4: catalog.v1.Route.status:type_name -> catalog.v1.RouteStatus
-	13, // 5: catalog.v1.CreateRouteRequest.intermediate_stops:type_name -> catalog.v1.RouteStop
-	12, // 6: catalog.v1.ListRoutesResponse.routes:type_name -> catalog.v1.Route
-	13, // 7: catalog.v1.UpdateRouteRequest.intermediate_stops:type_name -> catalog.v1.RouteStop
+	14, // 5: catalog.v1.CreateRouteRequest.intermediate_stops:type_name -> catalog.v1.RouteStop
+	13, // 6: catalog.v1.ListRoutesResponse.routes:type_name -> catalog.v1.Route
+	14, // 7: catalog.v1.UpdateRouteRequest.intermediate_stops:type_name -> catalog.v1.RouteStop
 	1,  // 8: catalog.v1.UpdateRouteRequest.status:type_name -> catalog.v1.RouteStatus
-	22, // 9: catalog.v1.Trip.pricing:type_name -> catalog.v1.TripPricing
+	23, // 9: catalog.v1.Trip.pricing:type_name -> catalog.v1.TripPricing
 	2,  // 10: catalog.v1.Trip.status:type_name -> catalog.v1.TripStatus
-	23, // 11: catalog.v1.Trip.segments:type_name -> catalog.v1.TripSegment
-	34, // 12: catalog.v1.TripPricing.class_prices:type_name -> catalog.v1.TripPricing.ClassPricesEntry
-	22, // 13: catalog.v1.CreateTripRequest.pricing:type_name -> catalog.v1.TripPricing
-	2,  // 14: catalog.v1.ListTripsRequest.status:type_name -> catalog.v1.TripStatus
-	21, // 15: catalog.v1.ListTripsResponse.trips:type_name -> catalog.v1.Trip
-	22, // 16: catalog.v1.UpdateTripRequest.pricing:type_name -> catalog.v1.TripPricing
-	2,  // 17: catalog.v1.UpdateTripRequest.status:type_name -> catalog.v1.TripStatus
-	3,  // 18: catalog.v1.SearchTripsRequest.sort_by:type_name -> catalog.v1.SortOrder
-	32, // 19: catalog.v1.SearchTripsResponse.results:type_name -> catalog.v1.TripSearchResult
-	33, // 20: catalog.v1.SearchTripsResponse.available_filters:type_name -> catalog.v1.SearchFilters
-	21, // 21: catalog.v1.TripSearchResult.trip:type_name -> catalog.v1.Trip
-	12, // 22: catalog.v1.TripSearchResult.route:type_name -> catalog.v1.Route
-	4,  // 23: catalog.v1.TripSearchResult.origin_station:type_name -> catalog.v1.Station
-	4,  // 24: catalog.v1.TripSearchResult.destination_station:type_name -> catalog.v1.Station
-	5,  // 25: catalog.v1.CatalogService.CreateStation:input_type -> catalog.v1.CreateStationRequest
-	6,  // 26: catalog.v1.CatalogService.GetStation:input_type -> catalog.v1.GetStationRequest
-	7,  // 27: catalog.v1.CatalogService.ListStations:input_type -> catalog.v1.ListStationsRequest
-	9,  // 28: catalog.v1.CatalogService.UpdateStation:input_type -> catalog.v1.UpdateStationRequest
-	10, // 29: catalog.v1.CatalogService.DeleteStation:input_type -> catalog.v1.DeleteStationRequest
-	14, // 30: catalog.v1.CatalogService.CreateRoute:input_type -> catalog.v1.CreateRouteRequest
-	15, // 31: catalog.v1.CatalogService.GetRoute:input_type -> catalog.v1.GetRouteRequest
-	16, // 32: catalog.v1.CatalogService.ListRoutes:input_type -> catalog.v1.ListRoutesRequest
-	18, // 33: catalog.v1.CatalogService.UpdateRoute:input_type -> catalog.v1.UpdateRouteRequest
-	19, // 34: catalog.v1.CatalogService.DeleteRoute:input_type -> catalog.v1.DeleteRouteRequest
-	24, // 35: catalog.v1.CatalogService.CreateTrip:input_type -> catalog.v1.CreateTripRequest
-	25, // 36: catalog.v1.CatalogService.GetTrip:input_type -> catalog.v1.GetTripRequest
-	26, // 37: catalog.v1.CatalogService.ListTrips:input_type -> catalog.v1.ListTripsRequest
-	28, // 38: catalog.v1.CatalogService.UpdateTrip:input_type -> catalog.v1.UpdateTripRequest
-	29, // 39: catalog.v1.CatalogService.CancelTrip:input_type -> catalog.v1.CancelTripRequest
-	30, // 40: catalog.v1.CatalogService.SearchTrips:input_type -> catalog.v1.SearchTripsRequest
-	4,  // 41: catalog.v1.CatalogService.CreateStation:output_type -> catalog.v1.Station
-	4,  // 42: catalog.v1.CatalogService.GetStation:output_type -> catalog.v1.Station
-	8,  // 43: catalog.v1.CatalogService.ListStations:output_type -> catalog.v1.ListStationsResponse
-	4,  // 44: catalog.v1.CatalogService.UpdateStation:output_type -> catalog.v1.Station
-	11, // 45: catalog.v1.CatalogService.DeleteStation:output_type -> catalog.v1.DeleteStationResponse
-	12, // 46: catalog.v1.CatalogService.CreateRoute:output_type -> catalog.v1.Route
-	12, // 47: catalog.v1.CatalogService.GetRoute:output_type -> catalog.v1.Route
-	17, // 48: catalog.v1.CatalogService.ListRoutes:output_type -> catalog.v1.ListRoutesResponse
-	12, // 49: catalog.v1.CatalogService.UpdateRoute:output_type -> catalog.v1.Route
-	20, // 50: catalog.v1.CatalogService.DeleteRoute:output_type -> catalog.v1.DeleteRouteResponse
-	21, // 51: catalog.v1.CatalogService.CreateTrip:output_type -> catalog.v1.Trip
-	21, // 52: catalog.v1.CatalogService.GetTrip:output_type -> catalog.v1.Trip
-	27, // 53: catalog.v1.CatalogService.ListTrips:output_type -> catalog.v1.ListTripsResponse
-	21, // 54: catalog.v1.CatalogService.UpdateTrip:output_type -> catalog.v1.Trip
-	21, // 55: catalog.v1.CatalogService.CancelTrip:output_type -> catalog.v1.Trip
-	31, // 56: catalog.v1.CatalogService.SearchTrips:output_type -> catalog.v1.SearchTripsResponse
-	41, // [41:57] is the sub-list for method output_type
-	25, // [25:41] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	25, // 11: catalog.v1.Trip.segments:type_name -> catalog.v1.TripSegment
+	58, // 12: catalog.v1.TripPricing.class_prices:type_name -> catalog.v1.TripPricing.ClassPricesEntry
+	59, // 13: catalog.v1.TripPricing.seat_category_prices:type_name -> catalog.v1.TripPricing.SeatCategoryPricesEntry
+	24, // 14: catalog.v1.TripPricing.segment_prices:type_name -> catalog.v1.SegmentPricing
+	60, // 15: catalog.v1.SegmentPricing.class_prices:type_name -> catalog.v1.SegmentPricing.ClassPricesEntry
+	61, // 16: catalog.v1.SegmentPricing.seat_category_prices:type_name -> catalog.v1.SegmentPricing.SeatCategoryPricesEntry
+	23, // 17: catalog.v1.CreateTripRequest.pricing:type_name -> catalog.v1.TripPricing
+	2,  // 18: catalog.v1.ListTripsRequest.status:type_name -> catalog.v1.TripStatus
+	22, // 19: catalog.v1.ListTripsResponse.trips:type_name -> catalog.v1.Trip
+	23, // 20: catalog.v1.UpdateTripRequest.pricing:type_name -> catalog.v1.TripPricing
+	2,  // 21: catalog.v1.UpdateTripRequest.status:type_name -> catalog.v1.TripStatus
+	3,  // 22: catalog.v1.SearchTripsRequest.sort_by:type_name -> catalog.v1.SortOrder
+	34, // 23: catalog.v1.SearchTripsResponse.results:type_name -> catalog.v1.TripSearchResult
+	54, // 24: catalog.v1.SearchTripsResponse.available_filters:type_name -> catalog.v1.SearchFilters
+	22, // 25: catalog.v1.TripSearchResult.trip:type_name -> catalog.v1.Trip
+	13, // 26: catalog.v1.TripSearchResult.route:type_name -> catalog.v1.Route
+	5,  // 27: catalog.v1.TripSearchResult.origin_station:type_name -> catalog.v1.Station
+	5,  // 28: catalog.v1.TripSearchResult.destination_station:type_name -> catalog.v1.Station
+	23, // 29: catalog.v1.Schedule.pricing:type_name -> catalog.v1.TripPricing
+	4,  // 30: catalog.v1.Schedule.status:type_name -> catalog.v1.ScheduleStatus
+	23, // 31: catalog.v1.CreateScheduleRequest.pricing:type_name -> catalog.v1.TripPricing
+	23, // 32: catalog.v1.ScheduleDefinition.pricing:type_name -> catalog.v1.TripPricing
+	37, // 33: catalog.v1.BulkCreateSchedulesRequest.schedules:type_name -> catalog.v1.ScheduleDefinition
+	35, // 34: catalog.v1.BulkCreateSchedulesResponse.schedules:type_name -> catalog.v1.Schedule
+	4,  // 35: catalog.v1.ListSchedulesRequest.status:type_name -> catalog.v1.ScheduleStatus
+	35, // 36: catalog.v1.ListSchedulesResponse.schedules:type_name -> catalog.v1.Schedule
+	23, // 37: catalog.v1.UpdateScheduleRequest.pricing:type_name -> catalog.v1.TripPricing
+	4,  // 38: catalog.v1.UpdateScheduleRequest.status:type_name -> catalog.v1.ScheduleStatus
+	46, // 39: catalog.v1.ListScheduleExceptionsResponse.exceptions:type_name -> catalog.v1.ScheduleException
+	22, // 40: catalog.v1.GenerateTripInstancesResponse.trips:type_name -> catalog.v1.Trip
+	2,  // 41: catalog.v1.ListTripInstancesRequest.status:type_name -> catalog.v1.TripStatus
+	34, // 42: catalog.v1.ListTripInstancesResponse.results:type_name -> catalog.v1.TripSearchResult
+	35, // 43: catalog.v1.ScheduleVersion.snapshot:type_name -> catalog.v1.Schedule
+	55, // 44: catalog.v1.GetScheduleHistoryResponse.versions:type_name -> catalog.v1.ScheduleVersion
+	6,  // 45: catalog.v1.CatalogService.CreateStation:input_type -> catalog.v1.CreateStationRequest
+	7,  // 46: catalog.v1.CatalogService.GetStation:input_type -> catalog.v1.GetStationRequest
+	8,  // 47: catalog.v1.CatalogService.ListStations:input_type -> catalog.v1.ListStationsRequest
+	10, // 48: catalog.v1.CatalogService.UpdateStation:input_type -> catalog.v1.UpdateStationRequest
+	11, // 49: catalog.v1.CatalogService.DeleteStation:input_type -> catalog.v1.DeleteStationRequest
+	15, // 50: catalog.v1.CatalogService.CreateRoute:input_type -> catalog.v1.CreateRouteRequest
+	16, // 51: catalog.v1.CatalogService.GetRoute:input_type -> catalog.v1.GetRouteRequest
+	17, // 52: catalog.v1.CatalogService.ListRoutes:input_type -> catalog.v1.ListRoutesRequest
+	19, // 53: catalog.v1.CatalogService.UpdateRoute:input_type -> catalog.v1.UpdateRouteRequest
+	20, // 54: catalog.v1.CatalogService.DeleteRoute:input_type -> catalog.v1.DeleteRouteRequest
+	26, // 55: catalog.v1.CatalogService.CreateTrip:input_type -> catalog.v1.CreateTripRequest
+	27, // 56: catalog.v1.CatalogService.GetTrip:input_type -> catalog.v1.GetTripRequest
+	28, // 57: catalog.v1.CatalogService.ListTrips:input_type -> catalog.v1.ListTripsRequest
+	30, // 58: catalog.v1.CatalogService.UpdateTrip:input_type -> catalog.v1.UpdateTripRequest
+	31, // 59: catalog.v1.CatalogService.CancelTrip:input_type -> catalog.v1.CancelTripRequest
+	32, // 60: catalog.v1.CatalogService.SearchTrips:input_type -> catalog.v1.SearchTripsRequest
+	36, // 61: catalog.v1.CatalogService.CreateSchedule:input_type -> catalog.v1.CreateScheduleRequest
+	40, // 62: catalog.v1.CatalogService.GetSchedule:input_type -> catalog.v1.GetScheduleRequest
+	41, // 63: catalog.v1.CatalogService.ListSchedules:input_type -> catalog.v1.ListSchedulesRequest
+	43, // 64: catalog.v1.CatalogService.UpdateSchedule:input_type -> catalog.v1.UpdateScheduleRequest
+	44, // 65: catalog.v1.CatalogService.DeleteSchedule:input_type -> catalog.v1.DeleteScheduleRequest
+	47, // 66: catalog.v1.CatalogService.AddScheduleException:input_type -> catalog.v1.AddScheduleExceptionRequest
+	48, // 67: catalog.v1.CatalogService.ListScheduleExceptions:input_type -> catalog.v1.ListScheduleExceptionsRequest
+	50, // 68: catalog.v1.CatalogService.GenerateTripInstances:input_type -> catalog.v1.GenerateTripInstancesRequest
+	52, // 69: catalog.v1.CatalogService.ListTripInstances:input_type -> catalog.v1.ListTripInstancesRequest
+	38, // 70: catalog.v1.CatalogService.CreateSchedules:input_type -> catalog.v1.BulkCreateSchedulesRequest
+	56, // 71: catalog.v1.CatalogService.GetScheduleHistory:input_type -> catalog.v1.GetScheduleHistoryRequest
+	5,  // 72: catalog.v1.CatalogService.CreateStation:output_type -> catalog.v1.Station
+	5,  // 73: catalog.v1.CatalogService.GetStation:output_type -> catalog.v1.Station
+	9,  // 74: catalog.v1.CatalogService.ListStations:output_type -> catalog.v1.ListStationsResponse
+	5,  // 75: catalog.v1.CatalogService.UpdateStation:output_type -> catalog.v1.Station
+	12, // 76: catalog.v1.CatalogService.DeleteStation:output_type -> catalog.v1.DeleteStationResponse
+	13, // 77: catalog.v1.CatalogService.CreateRoute:output_type -> catalog.v1.Route
+	13, // 78: catalog.v1.CatalogService.GetRoute:output_type -> catalog.v1.Route
+	18, // 79: catalog.v1.CatalogService.ListRoutes:output_type -> catalog.v1.ListRoutesResponse
+	13, // 80: catalog.v1.CatalogService.UpdateRoute:output_type -> catalog.v1.Route
+	21, // 81: catalog.v1.CatalogService.DeleteRoute:output_type -> catalog.v1.DeleteRouteResponse
+	22, // 82: catalog.v1.CatalogService.CreateTrip:output_type -> catalog.v1.Trip
+	22, // 83: catalog.v1.CatalogService.GetTrip:output_type -> catalog.v1.Trip
+	29, // 84: catalog.v1.CatalogService.ListTrips:output_type -> catalog.v1.ListTripsResponse
+	22, // 85: catalog.v1.CatalogService.UpdateTrip:output_type -> catalog.v1.Trip
+	22, // 86: catalog.v1.CatalogService.CancelTrip:output_type -> catalog.v1.Trip
+	33, // 87: catalog.v1.CatalogService.SearchTrips:output_type -> catalog.v1.SearchTripsResponse
+	35, // 88: catalog.v1.CatalogService.CreateSchedule:output_type -> catalog.v1.Schedule
+	35, // 89: catalog.v1.CatalogService.GetSchedule:output_type -> catalog.v1.Schedule
+	42, // 90: catalog.v1.CatalogService.ListSchedules:output_type -> catalog.v1.ListSchedulesResponse
+	35, // 91: catalog.v1.CatalogService.UpdateSchedule:output_type -> catalog.v1.Schedule
+	45, // 92: catalog.v1.CatalogService.DeleteSchedule:output_type -> catalog.v1.DeleteScheduleResponse
+	46, // 93: catalog.v1.CatalogService.AddScheduleException:output_type -> catalog.v1.ScheduleException
+	49, // 94: catalog.v1.CatalogService.ListScheduleExceptions:output_type -> catalog.v1.ListScheduleExceptionsResponse
+	51, // 95: catalog.v1.CatalogService.GenerateTripInstances:output_type -> catalog.v1.GenerateTripInstancesResponse
+	53, // 96: catalog.v1.CatalogService.ListTripInstances:output_type -> catalog.v1.ListTripInstancesResponse
+	39, // 97: catalog.v1.CatalogService.CreateSchedules:output_type -> catalog.v1.BulkCreateSchedulesResponse
+	57, // 98: catalog.v1.CatalogService.GetScheduleHistory:output_type -> catalog.v1.GetScheduleHistoryResponse
+	72, // [72:99] is the sub-list for method output_type
+	45, // [45:72] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_catalog_v1_catalog_proto_init() }
-func file_api_proto_catalog_v1_catalog_proto_init() {
-	if File_api_proto_catalog_v1_catalog_proto != nil {
+func init() { file_catalog_v1_catalog_proto_init() }
+func file_catalog_v1_catalog_proto_init() {
+	if File_catalog_v1_catalog_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_catalog_v1_catalog_proto_rawDesc), len(file_api_proto_catalog_v1_catalog_proto_rawDesc)),
-			NumEnums:      4,
-			NumMessages:   31,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_catalog_v1_catalog_proto_rawDesc), len(file_catalog_v1_catalog_proto_rawDesc)),
+			NumEnums:      5,
+			NumMessages:   57,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_catalog_v1_catalog_proto_goTypes,
-		DependencyIndexes: file_api_proto_catalog_v1_catalog_proto_depIdxs,
-		EnumInfos:         file_api_proto_catalog_v1_catalog_proto_enumTypes,
-		MessageInfos:      file_api_proto_catalog_v1_catalog_proto_msgTypes,
+		GoTypes:           file_catalog_v1_catalog_proto_goTypes,
+		DependencyIndexes: file_catalog_v1_catalog_proto_depIdxs,
+		EnumInfos:         file_catalog_v1_catalog_proto_enumTypes,
+		MessageInfos:      file_catalog_v1_catalog_proto_msgTypes,
 	}.Build()
-	File_api_proto_catalog_v1_catalog_proto = out.File
-	file_api_proto_catalog_v1_catalog_proto_goTypes = nil
-	file_api_proto_catalog_v1_catalog_proto_depIdxs = nil
+	File_catalog_v1_catalog_proto = out.File
+	file_catalog_v1_catalog_proto_goTypes = nil
+	file_catalog_v1_catalog_proto_depIdxs = nil
 }

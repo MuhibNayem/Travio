@@ -12,6 +12,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/catalog/config"
+	"github.com/MuhibNayem/Travio/server/services/catalog/internal/clients"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/service"
@@ -48,6 +49,8 @@ func main() {
 	cachedRouteRepo := repository.NewCachedRouteRepository(routeRepo, rdb)
 
 	tripRepo := repository.NewTripRepository(db)
+	scheduleRepo := repository.NewScheduleRepository(db)
+	auditRepo := repository.NewAuditRepository(db)
 
 	// Entitlement Checker Setup
 	subFetcher, err := entitlement.NewSubscriptionFetcher(cfg.SubscriptionURL)
@@ -66,7 +69,20 @@ func main() {
 	entChecker := entitlement.NewCachedChecker(rdb, subFetcher, entConfig)
 	entChecker.StartInvalidationListener(context.Background())
 
-	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, tripRepo, entChecker)
+	entChecker.StartInvalidationListener(context.Background())
+
+	// Clients Setup
+	fleetClient, err := clients.NewFleetClient(cfg.FleetURL)
+	if err != nil {
+		logger.Error("Failed to create fleet client", "error", err)
+	}
+
+	inventoryClient, err := clients.NewInventoryClient(cfg.InventoryURL)
+	if err != nil {
+		logger.Error("Failed to create inventory client", "error", err)
+	}
+
+	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, tripRepo, scheduleRepo, entChecker, fleetClient, inventoryClient, auditRepo)
 	grpcHandler := handler.NewGrpcHandler(catalogService)
 
 	// HTTP Mux (for health checks and REST fallback)

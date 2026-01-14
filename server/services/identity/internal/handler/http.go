@@ -39,12 +39,13 @@ type LogoutRequest struct {
 }
 
 type CreateOrgRequest struct {
-	Name    string `json:"name"`
-	PlanID  string `json:"plan_id"`
-	Address string `json:"address"`
-	Phone   string `json:"phone"`
-	Email   string `json:"email"`
-	Website string `json:"website"`
+	Name     string `json:"name"`
+	PlanID   string `json:"plan_id"`
+	Address  string `json:"address"`
+	Phone    string `json:"phone"`
+	Email    string `json:"email"`
+	Website  string `json:"website"`
+	Currency string `json:"currency"`
 }
 
 // --- Handlers ---
@@ -203,7 +204,7 @@ func (h *AuthHandler) CreateOrganization(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	org, err := h.authService.CreateOrganization(req.Name, req.PlanID, req.Address, req.Phone, req.Email, req.Website)
+	org, err := h.authService.CreateOrganization(req.Name, req.PlanID, req.Address, req.Phone, req.Email, req.Website, req.Currency)
 	if err != nil {
 		logger.Error("Failed to create org", "error", err)
 		http.Error(w, "Failed to create organization", http.StatusInternalServerError)
@@ -211,5 +212,5 @@ func (h *AuthHandler) CreateOrganization(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"organization_id": org.ID, "status": org.Status})
+	json.NewEncoder(w).Encode(map[string]string{"organization_id": org.ID, "status": org.Status, "currency": org.Currency})
 }

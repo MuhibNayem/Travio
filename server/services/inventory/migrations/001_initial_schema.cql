@@ -13,13 +13,14 @@ USE travio_inventory;
 -- Segments table: stores trip segment metadata
 -- Partition key: trip_id (all segments for a trip colocated)
 CREATE TABLE IF NOT EXISTS segments (
+    organization_id text,
     trip_id text,
     segment_index int,
     from_station_id text,
     to_station_id text,
     departure_time timestamp,
     arrival_time timestamp,
-    PRIMARY KEY (trip_id, segment_index)
+    PRIMARY KEY ((organization_id, trip_id), segment_index)
 ) WITH CLUSTERING ORDER BY (segment_index ASC)
   AND compaction = {'class': 'LeveledCompactionStrategy'}
   AND gc_grace_seconds = 86400;
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS segments (
 -- Partition key: (trip_id, segment_index) for quick segment lookups
 -- Each partition contains all seats for one segment of one trip
 CREATE TABLE IF NOT EXISTS seat_inventory (
+    organization_id text,
     trip_id text,
     segment_index int,
     seat_id text,
@@ -41,33 +43,36 @@ CREATE TABLE IF NOT EXISTS seat_inventory (
     booking_id text,
     price_paisa bigint,
     updated_at timestamp,
-    PRIMARY KEY ((trip_id, segment_index), seat_id)
+    PRIMARY KEY ((organization_id, trip_id, segment_index), seat_id)
 ) WITH compaction = {'class': 'LeveledCompactionStrategy'}
   AND gc_grace_seconds = 86400
   AND default_time_to_live = 0;  -- No TTL on seats
 
 -- Materialized view for finding seats by status (for admin dashboards)
 CREATE MATERIALIZED VIEW IF NOT EXISTS seats_by_status AS
-    SELECT trip_id, segment_index, status, seat_id, seat_number, seat_class
+    SELECT organization_id, trip_id, segment_index, status, seat_id, seat_number, seat_class
     FROM seat_inventory
-    WHERE trip_id IS NOT NULL
+    WHERE organization_id IS NOT NULL
+      AND trip_id IS NOT NULL
       AND segment_index IS NOT NULL
       AND seat_id IS NOT NULL
       AND status IS NOT NULL
-    PRIMARY KEY ((trip_id, status), segment_index, seat_id);
+    PRIMARY KEY ((organization_id, trip_id, status), segment_index, seat_id);
 
 -- Counter table for quick availability counts (eventual consistency acceptable for search)
 CREATE TABLE IF NOT EXISTS availability_counters (
+    organization_id text,
     trip_id text,
     segment_index int,
     seat_class text,
     available_count counter,
-    PRIMARY KEY ((trip_id, segment_index), seat_class)
+    PRIMARY KEY ((organization_id, trip_id, segment_index), seat_class)
 );
 
 -- Bookings table: stores confirmed bookings
 CREATE TABLE IF NOT EXISTS bookings (
     booking_id text PRIMARY KEY,
+    organization_id text,
     order_id text,
     trip_id text,
     user_id text,
@@ -85,6 +90,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE INDEX IF NOT EXISTS bookings_by_user ON bookings (user_id);
 CREATE INDEX IF NOT EXISTS bookings_by_trip ON bookings (trip_id);
 CREATE INDEX IF NOT EXISTS bookings_by_order ON bookings (order_id);
+CREATE INDEX IF NOT EXISTS bookings_by_org ON bookings (organization_id);
 
 -- =========================================
 -- Example Data Initialization

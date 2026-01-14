@@ -44,6 +44,7 @@ func (h *GrpcHandler) CreateOrder(ctx context.Context, req *pb.CreateOrderReques
 		PaymentMethod:  req.PaymentMethod.Type,
 		Email:          req.ContactEmail,
 		Phone:          req.ContactPhone,
+		CouponCode:     req.CouponCode,
 		IdempotencyKey: req.IdempotencyKey,
 	})
 	if err != nil {

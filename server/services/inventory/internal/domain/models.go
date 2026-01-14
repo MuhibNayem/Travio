@@ -8,6 +8,7 @@ import (
 // This is the core unit for segment-based inventory (IRCTC style)
 // For a trip A -> B -> C -> D, segments are: A-B, B-C, C-D
 type Segment struct {
+	OrganizationID string    `json:"organization_id"`
 	TripID        string    `json:"trip_id"`
 	SegmentIndex  int       `json:"segment_index"`
 	FromStationID string    `json:"from_station_id"`
@@ -19,6 +20,7 @@ type Segment struct {
 // SeatInventory represents the availability of a specific seat on a specific segment
 // Stored in ScyllaDB with partition key = (trip_id, segment_index)
 type SeatInventory struct {
+	OrganizationID string    `json:"organization_id"`
 	TripID       string    `json:"trip_id"`
 	SegmentIndex int       `json:"segment_index"`
 	SeatID       string    `json:"seat_id"`
@@ -37,6 +39,7 @@ type SeatInventory struct {
 // SeatHold represents a temporary reservation across multiple segments
 type SeatHold struct {
 	HoldID        string    `json:"hold_id"`
+	OrganizationID string    `json:"organization_id"`
 	TripID        string    `json:"trip_id"`
 	UserID        string    `json:"user_id"`
 	SessionID     string    `json:"session_id"`
@@ -54,6 +57,7 @@ type SeatHold struct {
 type Booking struct {
 	BookingID     string       `json:"booking_id"`
 	OrderID       string       `json:"order_id"`
+	OrganizationID string       `json:"organization_id"`
 	TripID        string       `json:"trip_id"`
 	UserID        string       `json:"user_id"`
 	FromStationID string       `json:"from_station_id"`

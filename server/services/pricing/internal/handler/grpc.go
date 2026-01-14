@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"net"
+	"time"
 
+	pricingv1 "github.com/MuhibNayem/Travio/server/api/proto/pricing/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/pricing/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/pricing/internal/service"
@@ -11,95 +13,90 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// GRPCHandler implements the Pricing gRPC service
+// GRPCHandler implements the PricingService gRPC server.
 type GRPCHandler struct {
+	pricingv1.UnimplementedPricingServiceServer
 	svc *service.PricingService
 }
 
-// NewGRPCHandler creates a new gRPC handler
+// NewGRPCHandler creates a new gRPC handler.
 func NewGRPCHandler(svc *service.PricingService) *GRPCHandler {
 	return &GRPCHandler{svc: svc}
 }
 
-// CalculatePriceRequest for JSON/HTTP compatibility
-type CalculatePriceRequest struct {
-	TripID         string  `json:"trip_id"`
-	SeatClass      string  `json:"seat_class"`
-	Date           string  `json:"date"`
-	Quantity       int32   `json:"quantity"`
-	BasePricePaisa int64   `json:"base_price_paisa"`
-	OccupancyRate  float64 `json:"occupancy_rate"`
-	OrganizationID string  `json:"organization_id"`
-}
-
-// CalculatePriceResponse for JSON/HTTP compatibility
-type CalculatePriceResponse struct {
-	FinalPricePaisa int64         `json:"final_price_paisa"`
-	BasePricePaisa  int64         `json:"base_price_paisa"`
-	AppliedRules    []AppliedRule `json:"applied_rules"`
-}
-
-// AppliedRule for JSON/HTTP compatibility
-type AppliedRule struct {
-	RuleID     string  `json:"rule_id"`
-	RuleName   string  `json:"rule_name"`
-	Multiplier float64 `json:"multiplier"`
-}
-
-// CalculatePrice handles price calculation via gRPC
-func (h *GRPCHandler) CalculatePrice(ctx context.Context, req *CalculatePriceRequest) (*CalculatePriceResponse, error) {
+func (h *GRPCHandler) CalculatePrice(ctx context.Context, req *pricingv1.CalculatePriceRequest) (*pricingv1.CalculatePriceResponse, error) {
 	result, err := h.svc.CalculatePrice(ctx, &service.CalculatePriceRequest{
-		TripID:         req.TripID,
+		TripID:         req.TripId,
 		SeatClass:      req.SeatClass,
+		SeatCategory:   req.SeatCategory,
 		Date:           req.Date,
 		Quantity:       int(req.Quantity),
 		BasePricePaisa: req.BasePricePaisa,
 		OccupancyRate:  req.OccupancyRate,
-		OrganizationID: req.OrganizationID,
+		OrganizationID: req.OrganizationId,
+		DepartureTime:  req.DepartureTime,
+		RouteID:        req.RouteId,
+		ScheduleID:     req.ScheduleId,
+		FromStationID:  req.FromStationId,
+		ToStationID:    req.ToStationId,
+		VehicleType:    req.VehicleType,
+		VehicleClass:   req.VehicleClass,
+		PromoCode:      req.PromoCode,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var appliedRules []AppliedRule
-	for _, r := range result.AppliedRules {
-		appliedRules = append(appliedRules, AppliedRule{
-			RuleID:     r.RuleID,
-			RuleName:   r.RuleName,
-			Multiplier: r.Multiplier,
+	var appliedRules []*pricingv1.AppliedRule
+	for _, rule := range result.AppliedRules {
+		appliedRules = append(appliedRules, &pricingv1.AppliedRule{
+			RuleId:     rule.RuleID,
+			RuleName:   rule.RuleName,
+			Multiplier: rule.Multiplier,
 		})
 	}
 
-	return &CalculatePriceResponse{
+	return &pricingv1.CalculatePriceResponse{
 		FinalPricePaisa: result.FinalPricePaisa,
 		BasePricePaisa:  result.BasePricePaisa,
 		AppliedRules:    appliedRules,
 	}, nil
 }
 
-// GetRulesResponse for JSON/HTTP compatibility
-type GetRulesResponse struct {
-	Rules []*repository.PricingRule `json:"rules"`
-}
-
-// GetRules returns all pricing rules
-func (h *GRPCHandler) GetRules(ctx context.Context, includeInactive bool, organizationID string) (*GetRulesResponse, error) {
-	rules, err := h.svc.GetRules(ctx, includeInactive, organizationID)
+func (h *GRPCHandler) GetRules(ctx context.Context, req *pricingv1.GetRulesRequest) (*pricingv1.GetRulesResponse, error) {
+	rules, err := h.svc.GetRules(ctx, req.IncludeInactive, req.OrganizationId)
 	if err != nil {
 		return nil, err
 	}
-	return &GetRulesResponse{Rules: rules}, nil
+	return &pricingv1.GetRulesResponse{Rules: pricingRulesToProto(rules)}, nil
 }
 
-// CreateRule creates a new pricing rule
-func (h *GRPCHandler) CreateRule(ctx context.Context, rule *repository.PricingRule) (*repository.PricingRule, error) {
+func (h *GRPCHandler) CreateRule(ctx context.Context, req *pricingv1.CreateRuleRequest) (*pricingv1.CreateRuleResponse, error) {
+	rule := protoToPricingRule(req.OrganizationId, req.Name, req.Description, req.Condition, req.Multiplier, req.AdjustmentType, req.AdjustmentValue, req.Priority)
 	if err := h.svc.CreateRule(ctx, rule); err != nil {
 		return nil, err
 	}
-	return rule, nil
+	return &pricingv1.CreateRuleResponse{Rule: pricingRuleToProto(rule)}, nil
 }
 
-// StartGRPCServer starts the gRPC server (simple implementation without generated proto)
+func (h *GRPCHandler) UpdateRule(ctx context.Context, req *pricingv1.UpdateRuleRequest) (*pricingv1.UpdateRuleResponse, error) {
+	rule := protoToPricingRule("", req.Name, req.Description, req.Condition, req.Multiplier, req.AdjustmentType, req.AdjustmentValue, req.Priority)
+	rule.ID = req.Id
+	rule.IsActive = req.IsActive
+	if err := h.svc.UpdateRule(ctx, rule); err != nil {
+		return nil, err
+	}
+	return &pricingv1.UpdateRuleResponse{Rule: pricingRuleToProto(rule)}, nil
+}
+
+func (h *GRPCHandler) DeleteRule(ctx context.Context, req *pricingv1.DeleteRuleRequest) (*pricingv1.DeleteRuleResponse, error) {
+	if err := h.svc.DeleteRule(ctx, req.Id); err != nil {
+		return nil, err
+	}
+	return &pricingv1.DeleteRuleResponse{Success: true}, nil
+}
+
+// StartGRPCServer starts the gRPC server.
 func StartGRPCServer(port string, svc *service.PricingService) error {
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
@@ -107,11 +104,59 @@ func StartGRPCServer(port string, svc *service.PricingService) error {
 	}
 
 	server := grpc.NewServer()
+	pricingv1.RegisterPricingServiceServer(server, NewGRPCHandler(svc))
 	reflection.Register(server)
-
-	// Note: Without generated proto code, we can't register the service properly.
-	// For now, the service is accessible via the HTTP handler or direct Go calls.
 
 	logger.Info("Pricing gRPC server starting", "port", port)
 	return server.Serve(listener)
+}
+
+func pricingRulesToProto(rules []*repository.PricingRule) []*pricingv1.PricingRule {
+	out := make([]*pricingv1.PricingRule, 0, len(rules))
+	for _, rule := range rules {
+		out = append(out, pricingRuleToProto(rule))
+	}
+	return out
+}
+
+func pricingRuleToProto(rule *repository.PricingRule) *pricingv1.PricingRule {
+	if rule == nil {
+		return nil
+	}
+	orgID := ""
+	if rule.OrganizationID != nil {
+		orgID = *rule.OrganizationID
+	}
+	return &pricingv1.PricingRule{
+		Id:              rule.ID,
+		OrganizationId:  orgID,
+		Name:            rule.Name,
+		Description:     rule.Description,
+		Condition:       rule.Condition,
+		Multiplier:      rule.Multiplier,
+		AdjustmentType:  rule.AdjustmentType,
+		AdjustmentValue: rule.AdjustmentValue,
+		Priority:        int32(rule.Priority),
+		IsActive:        rule.IsActive,
+		CreatedAt:       rule.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       rule.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func protoToPricingRule(orgID, name, description, condition string, multiplier float64, adjustmentType string, adjustmentValue float64, priority int32) *repository.PricingRule {
+	var orgPtr *string
+	if orgID != "" {
+		orgPtr = &orgID
+	}
+	return &repository.PricingRule{
+		OrganizationID:  orgPtr,
+		Name:            name,
+		Description:     description,
+		Condition:       condition,
+		Multiplier:      multiplier,
+		AdjustmentType:  adjustmentType,
+		AdjustmentValue: adjustmentValue,
+		Priority:        int(priority),
+		IsActive:        true,
+	}
 }

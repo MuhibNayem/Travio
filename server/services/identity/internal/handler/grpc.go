@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	identityv1 "github.com/MuhibNayem/Travio/server/api/proto/identity/v1"
 	"github.com/MuhibNayem/Travio/server/services/identity/internal/domain"
@@ -27,12 +28,13 @@ func (h *GrpcHandler) Register(ctx context.Context, req *identityv1.RegisterRequ
 	var newOrg *domain.Organization
 	if req.NewOrganization != nil {
 		newOrg = &domain.Organization{
-			Name:    req.NewOrganization.Name,
-			Address: req.NewOrganization.Address,
-			Phone:   req.NewOrganization.Phone,
-			Email:   req.NewOrganization.Email,
-			Website: req.NewOrganization.Website,
-			PlanID:  "plan_free", // Default plan
+			Name:     req.NewOrganization.Name,
+			Address:  req.NewOrganization.Address,
+			Phone:    req.NewOrganization.Phone,
+			Email:    req.NewOrganization.Email,
+			Website:  req.NewOrganization.Website,
+			Currency: req.NewOrganization.Currency,
+			PlanID:   "plan_free", // Default plan
 		}
 	}
 
@@ -84,14 +86,41 @@ func (h *GrpcHandler) Logout(ctx context.Context, req *identityv1.LogoutRequest)
 }
 
 func (h *GrpcHandler) CreateOrganization(ctx context.Context, req *identityv1.CreateOrgRequest) (*identityv1.CreateOrgResponse, error) {
-	org, err := h.authService.CreateOrganization(req.Name, req.PlanId, req.Address, req.Phone, req.Email, req.Website)
+	org, err := h.authService.CreateOrganization(req.Name, req.PlanId, req.Address, req.Phone, req.Email, req.Website, req.Currency)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to create organization")
 	}
 
 	return &identityv1.CreateOrgResponse{
 		OrganizationId: org.ID,
+		Currency:       org.Currency,
 	}, nil
+}
+
+func (h *GrpcHandler) GetOrganization(ctx context.Context, req *identityv1.GetOrganizationRequest) (*identityv1.Organization, error) {
+	org, err := h.authService.GetOrganization(req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "organization not found")
+	}
+	return mapOrganizationToProto(org), nil
+}
+
+func (h *GrpcHandler) UpdateOrganization(ctx context.Context, req *identityv1.UpdateOrganizationRequest) (*identityv1.Organization, error) {
+	org := &domain.Organization{
+		ID:       req.OrganizationId,
+		Name:     req.Name,
+		Address:  req.Address,
+		Phone:    req.Phone,
+		Email:    req.Email,
+		Website:  req.Website,
+		Status:   req.Status,
+		Currency: req.Currency,
+	}
+	updated, err := h.authService.UpdateOrganization(org)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to update organization")
+	}
+	return mapOrganizationToProto(updated), nil
 }
 
 // --- Member Management ---
@@ -117,6 +146,24 @@ func (h *GrpcHandler) ListMembers(ctx context.Context, req *identityv1.ListMembe
 		Members: members,
 		Total:   int32(total),
 	}, nil
+}
+
+func mapOrganizationToProto(org *domain.Organization) *identityv1.Organization {
+	if org == nil {
+		return nil
+	}
+	return &identityv1.Organization{
+		Id:        org.ID,
+		Name:      org.Name,
+		PlanId:    org.PlanID,
+		Address:   org.Address,
+		Phone:     org.Phone,
+		Email:     org.Email,
+		Website:   org.Website,
+		Status:    org.Status,
+		Currency:  org.Currency,
+		CreatedAt: org.CreatedAt.Format(time.RFC3339),
+	}
 }
 
 func (h *GrpcHandler) UpdateUserRole(ctx context.Context, req *identityv1.UpdateUserRoleRequest) (*identityv1.UpdateUserRoleResponse, error) {

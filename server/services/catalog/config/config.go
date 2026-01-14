@@ -12,6 +12,8 @@ type Config struct {
 	Database        DatabaseConfig
 	Redis           RedisConfig
 	SubscriptionURL string
+	FleetURL        string
+	InventoryURL    string
 }
 
 type DatabaseConfig struct {
@@ -52,5 +54,7 @@ func Load() *Config {
 			DB:       utils.GetEnvAsInt("REDIS_DB", 0),
 		},
 		SubscriptionURL: utils.GetEnv("SUBSCRIPTION_SERVICE_URL", "localhost:50060"),
+		FleetURL:        utils.GetEnv("FLEET_URL", "localhost:9093"),
+		InventoryURL:    utils.GetEnv("INVENTORY_URL", "localhost:9083"),
 	}
 }

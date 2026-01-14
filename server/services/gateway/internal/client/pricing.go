@@ -46,6 +46,21 @@ func (c *PricingClient) CalculatePrice(ctx context.Context, req *pricingv1.Calcu
 }
 
 // GetRules retrieves all pricing rules via gRPC
-func (c *PricingClient) GetRules(ctx context.Context, includeInactive bool) (*pricingv1.GetRulesResponse, error) {
-	return c.client.GetRules(ctx, &pricingv1.GetRulesRequest{IncludeInactive: includeInactive})
+func (c *PricingClient) GetRules(ctx context.Context, includeInactive bool, organizationID string) (*pricingv1.GetRulesResponse, error) {
+	return c.client.GetRules(ctx, &pricingv1.GetRulesRequest{
+		IncludeInactive: includeInactive,
+		OrganizationId:  organizationID,
+	})
+}
+
+func (c *PricingClient) CreateRule(ctx context.Context, req *pricingv1.CreateRuleRequest) (*pricingv1.CreateRuleResponse, error) {
+	return c.client.CreateRule(ctx, req)
+}
+
+func (c *PricingClient) UpdateRule(ctx context.Context, req *pricingv1.UpdateRuleRequest) (*pricingv1.UpdateRuleResponse, error) {
+	return c.client.UpdateRule(ctx, req)
+}
+
+func (c *PricingClient) DeleteRule(ctx context.Context, req *pricingv1.DeleteRuleRequest) (*pricingv1.DeleteRuleResponse, error) {
+	return c.client.DeleteRule(ctx, req)
 }

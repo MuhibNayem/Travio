@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	catalogpb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
 	inventorypb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
 	nidpb "github.com/MuhibNayem/Travio/server/api/proto/nid/v1"
 	paymentpb "github.com/MuhibNayem/Travio/server/api/proto/payment/v1"
+	pricingpb "github.com/MuhibNayem/Travio/server/api/proto/pricing/v1"
 	subscriptionpb "github.com/MuhibNayem/Travio/server/api/proto/subscription/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/saga"
@@ -53,8 +55,9 @@ func NewInventoryClient(addr string) (*InventoryClient, error) {
 	return &InventoryClient{client: inventorypb.NewInventoryServiceClient(conn)}, nil
 }
 
-func (c *InventoryClient) HoldSeats(ctx context.Context, tripID string, seatIDs []string, userID string) (string, error) {
+func (c *InventoryClient) HoldSeats(ctx context.Context, orgID, tripID string, seatIDs []string, userID string) (string, error) {
 	resp, err := c.client.HoldSeats(ctx, &inventorypb.HoldSeatsRequest{
+		OrganizationId:      orgID,
 		TripId:              tripID,
 		SeatIds:             seatIDs,
 		UserId:              userID,
@@ -69,15 +72,16 @@ func (c *InventoryClient) HoldSeats(ctx context.Context, tripID string, seatIDs 
 	return resp.HoldId, nil
 }
 
-func (c *InventoryClient) ReleaseSeats(ctx context.Context, holdID, userID string) error {
+func (c *InventoryClient) ReleaseSeats(ctx context.Context, orgID, holdID, userID string) error {
 	_, err := c.client.ReleaseSeats(ctx, &inventorypb.ReleaseSeatsRequest{
-		HoldId: holdID,
-		UserId: userID,
+		OrganizationId: orgID,
+		HoldId:         holdID,
+		UserId:         userID,
 	})
 	return err
 }
 
-func (c *InventoryClient) ConfirmBooking(ctx context.Context, holdID, orderID, userID string, passengers []saga.PassengerInfo) (string, error) {
+func (c *InventoryClient) ConfirmBooking(ctx context.Context, orgID, holdID, orderID, userID string, passengers []saga.PassengerInfo) (string, error) {
 	var pbPassengers []*inventorypb.PassengerSeat
 	for _, p := range passengers {
 		pbPassengers = append(pbPassengers, &inventorypb.PassengerSeat{
@@ -88,10 +92,11 @@ func (c *InventoryClient) ConfirmBooking(ctx context.Context, holdID, orderID, u
 	}
 
 	resp, err := c.client.ConfirmBooking(ctx, &inventorypb.ConfirmBookingRequest{
-		HoldId:     holdID,
-		OrderId:    orderID,
-		UserId:     userID,
-		Passengers: pbPassengers,
+		OrganizationId: orgID,
+		HoldId:         holdID,
+		OrderId:        orderID,
+		UserId:         userID,
+		Passengers:     pbPassengers,
 	})
 	if err != nil {
 		return "", err
@@ -105,6 +110,15 @@ func (c *InventoryClient) ConfirmBooking(ctx context.Context, holdID, orderID, u
 func (c *InventoryClient) CancelBooking(ctx context.Context, bookingID, orderID string) error {
 	// Inventory service would need a CancelBooking RPC - for now use release
 	return nil
+}
+
+func (c *InventoryClient) GetSeatMap(ctx context.Context, orgID, tripID, fromStationID, toStationID string) (*inventorypb.GetSeatMapResponse, error) {
+	return c.client.GetSeatMap(ctx, &inventorypb.GetSeatMapRequest{
+		OrganizationId: orgID,
+		TripId:         tripID,
+		FromStationId:  fromStationID,
+		ToStationId:    toStationID,
+	})
 }
 
 // PaymentClient implements saga.PaymentClient via gRPC
@@ -194,6 +208,43 @@ func (c *SubscriptionClient) GetEntitlement(ctx context.Context, orgID string) (
 		UsageThisPeriod: resp.UsageThisPeriod,
 		QuotaLimits:     resp.QuotaLimits,
 	}, nil
+}
+
+// CatalogClient fetches trip information for pricing.
+type CatalogClient struct {
+	client catalogpb.CatalogServiceClient
+}
+
+func NewCatalogClient(addr string) (*CatalogClient, error) {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+	return &CatalogClient{client: catalogpb.NewCatalogServiceClient(conn)}, nil
+}
+
+func (c *CatalogClient) GetTrip(ctx context.Context, orgID, tripID string) (*catalogpb.Trip, error) {
+	return c.client.GetTrip(ctx, &catalogpb.GetTripRequest{
+		Id:             tripID,
+		OrganizationId: orgID,
+	})
+}
+
+// PricingClient calculates dynamic pricing rules.
+type PricingClient struct {
+	client pricingpb.PricingServiceClient
+}
+
+func NewPricingClient(addr string) (*PricingClient, error) {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+	return &PricingClient{client: pricingpb.NewPricingServiceClient(conn)}, nil
+}
+
+func (c *PricingClient) CalculatePrice(ctx context.Context, req *pricingpb.CalculatePriceRequest) (*pricingpb.CalculatePriceResponse, error) {
+	return c.client.CalculatePrice(ctx, req)
 }
 
 // NotificationClient implements saga.NotificationClient using structured logging.

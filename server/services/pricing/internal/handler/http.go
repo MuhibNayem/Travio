@@ -38,16 +38,45 @@ func (h *HTTPHandler) handleCalculatePrice(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	grpcHandler := &GRPCHandler{svc: h.svc}
-	resp, err := grpcHandler.CalculatePrice(r.Context(), &req)
+	resp, err := h.svc.CalculatePrice(r.Context(), &service.CalculatePriceRequest{
+		TripID:         req.TripID,
+		SeatClass:      req.SeatClass,
+		SeatCategory:   req.SeatCategory,
+		Date:           req.Date,
+		Quantity:       int(req.Quantity),
+		BasePricePaisa: req.BasePricePaisa,
+		OccupancyRate:  req.OccupancyRate,
+		OrganizationID: req.OrganizationID,
+		DepartureTime:  req.DepartureTime,
+		RouteID:        req.RouteID,
+		ScheduleID:     req.ScheduleID,
+		FromStationID:  req.FromStationID,
+		ToStationID:    req.ToStationID,
+		VehicleType:    req.VehicleType,
+		VehicleClass:   req.VehicleClass,
+		PromoCode:      req.PromoCode,
+	})
 	if err != nil {
 		logger.Error("Failed to calculate price", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	var appliedRules []AppliedRule
+	for _, rule := range resp.AppliedRules {
+		appliedRules = append(appliedRules, AppliedRule{
+			RuleID:     rule.RuleID,
+			RuleName:   rule.RuleName,
+			Multiplier: rule.Multiplier,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(CalculatePriceResponse{
+		FinalPricePaisa: resp.FinalPricePaisa,
+		BasePricePaisa:  resp.BasePricePaisa,
+		AppliedRules:    appliedRules,
+	})
 }
 
 func (h *HTTPHandler) handleRules(w http.ResponseWriter, r *http.Request) {

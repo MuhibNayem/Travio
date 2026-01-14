@@ -13,7 +13,9 @@ type Organization struct {
 	Email     string    `json:"email"`
 	Website   string    `json:"website"`
 	Status    string    `json:"status"`
+	Currency  string    `json:"currency"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type User struct {

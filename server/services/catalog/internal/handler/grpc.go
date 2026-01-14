@@ -191,7 +191,7 @@ func (h *GrpcHandler) GetTrip(ctx context.Context, req *pb.GetTripRequest) (*pb.
 }
 
 func (h *GrpcHandler) ListTrips(ctx context.Context, req *pb.ListTripsRequest) (*pb.ListTripsResponse, error) {
-	trips, total, nextToken, err := h.catalogService.ListTrips(ctx, req.OrganizationId, req.RouteId, int(req.PageSize), req.PageToken)
+	trips, total, nextToken, err := h.catalogService.ListTrips(ctx, req.OrganizationId, req.RouteId, req.ScheduleId, req.ServiceDate, int(req.PageSize), req.PageToken)
 	if err != nil {
 		fmt.Printf("ListTrips error: %v\n", err)
 		return nil, status.Errorf(codes.Internal, "failed to list trips: %v", err)
@@ -239,6 +239,225 @@ func (h *GrpcHandler) CancelTrip(ctx context.Context, req *pb.CancelTripRequest)
 		return nil, status.Error(codes.Internal, "failed to cancel trip")
 	}
 	return tripToProto(trip), nil
+}
+
+// --- Schedule Handlers ---
+
+func (h *GrpcHandler) CreateSchedule(ctx context.Context, req *pb.CreateScheduleRequest) (*pb.Schedule, error) {
+	schedule := &domain.ScheduleTemplate{
+		OrganizationID:       req.OrganizationId,
+		RouteID:              req.RouteId,
+		VehicleID:            req.VehicleId,
+		VehicleType:          req.VehicleType,
+		VehicleClass:         req.VehicleClass,
+		TotalSeats:           int(req.TotalSeats),
+		Pricing:              pricingFromProto(req.Pricing),
+		DepartureMinutes:     int(req.DepartureMinutes),
+		ArrivalOffsetMinutes: int(req.ArrivalOffsetMinutes),
+		Timezone:             req.Timezone,
+		StartDate:            req.StartDate,
+		EndDate:              req.EndDate,
+		DaysOfWeek:           int(req.DaysOfWeek),
+	}
+
+	created, err := h.catalogService.CreateSchedule(ctx, schedule)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to create schedule")
+	}
+	return scheduleToProto(created), nil
+}
+
+func (h *GrpcHandler) CreateSchedules(ctx context.Context, req *pb.BulkCreateSchedulesRequest) (*pb.BulkCreateSchedulesResponse, error) {
+	var schedules []domain.ScheduleTemplate
+	for _, s := range req.Schedules {
+		schedules = append(schedules, domain.ScheduleTemplate{
+			RouteID:              s.RouteId,
+			VehicleID:            s.VehicleId,
+			VehicleType:          s.VehicleType,
+			VehicleClass:         s.VehicleClass,
+			TotalSeats:           int(s.TotalSeats),
+			Pricing:              pricingFromProto(s.Pricing),
+			DepartureMinutes:     int(s.DepartureMinutes),
+			ArrivalOffsetMinutes: int(s.ArrivalOffsetMinutes),
+			Timezone:             s.Timezone,
+			StartDate:            s.StartDate,
+			EndDate:              s.EndDate,
+			DaysOfWeek:           int(s.DaysOfWeek),
+		})
+	}
+
+	created, count, err := h.catalogService.CreateSchedules(ctx, req.OrganizationId, schedules)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to create schedules")
+	}
+
+	var protoSchedules []*pb.Schedule
+	for _, s := range created {
+		protoSchedules = append(protoSchedules, scheduleToProto(s))
+	}
+
+	return &pb.BulkCreateSchedulesResponse{
+		Schedules:    protoSchedules,
+		CreatedCount: int32(count),
+	}, nil
+}
+
+func (h *GrpcHandler) GetSchedule(ctx context.Context, req *pb.GetScheduleRequest) (*pb.Schedule, error) {
+	schedule, err := h.catalogService.GetSchedule(ctx, req.Id, req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "schedule not found")
+	}
+	return scheduleToProto(schedule), nil
+}
+
+func (h *GrpcHandler) ListSchedules(ctx context.Context, req *pb.ListSchedulesRequest) (*pb.ListSchedulesResponse, error) {
+	schedules, total, nextToken, err := h.catalogService.ListSchedules(ctx, req.OrganizationId, req.RouteId, protoScheduleStatusToString(req.Status), int(req.PageSize), req.PageToken)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list schedules: %v", err)
+	}
+
+	var protoSchedules []*pb.Schedule
+	for _, s := range schedules {
+		protoSchedules = append(protoSchedules, scheduleToProto(s))
+	}
+
+	return &pb.ListSchedulesResponse{
+		Schedules:     protoSchedules,
+		NextPageToken: nextToken,
+		TotalCount:    int32(total),
+	}, nil
+}
+
+func (h *GrpcHandler) UpdateSchedule(ctx context.Context, req *pb.UpdateScheduleRequest) (*pb.Schedule, error) {
+	schedule := &domain.ScheduleTemplate{
+		ID:                   req.Id,
+		OrganizationID:       req.OrganizationId,
+		TotalSeats:           int(req.TotalSeats),
+		Pricing:              pricingFromProto(req.Pricing),
+		DepartureMinutes:     int(req.DepartureMinutes),
+		ArrivalOffsetMinutes: int(req.ArrivalOffsetMinutes),
+		Timezone:             req.Timezone,
+		StartDate:            req.StartDate,
+		EndDate:              req.EndDate,
+		DaysOfWeek:           int(req.DaysOfWeek),
+		Status:               protoScheduleStatusToString(req.Status),
+	}
+
+	updated, err := h.catalogService.UpdateSchedule(ctx, schedule)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to update schedule")
+	}
+	return scheduleToProto(updated), nil
+}
+
+func (h *GrpcHandler) DeleteSchedule(ctx context.Context, req *pb.DeleteScheduleRequest) (*pb.DeleteScheduleResponse, error) {
+	if err := h.catalogService.DeleteSchedule(ctx, req.Id, req.OrganizationId); err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete schedule")
+	}
+	return &pb.DeleteScheduleResponse{Success: true}, nil
+}
+
+func (h *GrpcHandler) AddScheduleException(ctx context.Context, req *pb.AddScheduleExceptionRequest) (*pb.ScheduleException, error) {
+	exception := &domain.ScheduleException{
+		ScheduleID:  req.ScheduleId,
+		ServiceDate: req.ServiceDate,
+		IsAdded:     req.IsAdded,
+		Reason:      req.Reason,
+	}
+	created, err := h.catalogService.AddScheduleException(ctx, exception, req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to add schedule exception")
+	}
+	return scheduleExceptionToProto(created), nil
+}
+
+func (h *GrpcHandler) ListScheduleExceptions(ctx context.Context, req *pb.ListScheduleExceptionsRequest) (*pb.ListScheduleExceptionsResponse, error) {
+	exceptions, err := h.catalogService.ListScheduleExceptions(ctx, req.ScheduleId, req.OrganizationId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to list schedule exceptions")
+	}
+
+	var protoExceptions []*pb.ScheduleException
+	for _, ex := range exceptions {
+		protoExceptions = append(protoExceptions, scheduleExceptionToProto(ex))
+	}
+
+	return &pb.ListScheduleExceptionsResponse{Exceptions: protoExceptions}, nil
+}
+
+func (h *GrpcHandler) GenerateTripInstances(ctx context.Context, req *pb.GenerateTripInstancesRequest) (*pb.GenerateTripInstancesResponse, error) {
+	trips, count, err := h.catalogService.GenerateTripInstances(ctx, req.ScheduleId, req.OrganizationId, req.StartDate, req.EndDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to generate trips")
+	}
+
+	var protoTrips []*pb.Trip
+	for _, t := range trips {
+		protoTrips = append(protoTrips, tripToProto(t))
+	}
+
+	return &pb.GenerateTripInstancesResponse{
+		Trips:        protoTrips,
+		CreatedCount: int32(count),
+	}, nil
+}
+
+func (h *GrpcHandler) GetScheduleHistory(ctx context.Context, req *pb.GetScheduleHistoryRequest) (*pb.GetScheduleHistoryResponse, error) {
+	start := time.Now()
+	versions, err := h.catalogService.GetScheduleHistory(ctx, req.ScheduleId, req.OrganizationId)
+	if err != nil {
+		fmt.Printf("GetScheduleHistory error: %v\n", err)
+		return nil, status.Error(codes.Internal, "failed to get schedule history")
+	}
+	fmt.Printf("GetScheduleHistory took %v\n", time.Since(start))
+
+	var protoVersions []*pb.ScheduleVersion
+	for _, v := range versions {
+		protoSnapshot := scheduleToProto(&v.Snapshot)
+		protoVersions = append(protoVersions, &pb.ScheduleVersion{
+			Id:         v.ID,
+			ScheduleId: v.ScheduleID,
+			Version:    int32(v.Version),
+			Snapshot:   protoSnapshot,
+			CreatedAt:  v.CreatedAt.Unix(),
+		})
+	}
+
+	return &pb.GetScheduleHistoryResponse{Versions: protoVersions}, nil
+}
+
+func (h *GrpcHandler) ListTripInstances(ctx context.Context, req *pb.ListTripInstancesRequest) (*pb.ListTripInstancesResponse, error) {
+	results, total, nextToken, err := h.catalogService.ListTripInstances(
+		ctx,
+		req.OrganizationId,
+		req.ScheduleId,
+		req.RouteId,
+		req.StartDate,
+		req.EndDate,
+		protoTripStatusToString(req.Status),
+		int(req.PageSize),
+		req.PageToken,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to list trip instances")
+	}
+
+	var protoResults []*pb.TripSearchResult
+	for _, r := range results {
+		protoResults = append(protoResults, &pb.TripSearchResult{
+			Trip:               tripToProto(r.Trip),
+			Route:              routeToProto(r.Route),
+			OriginStation:      stationToProto(r.OriginStation),
+			DestinationStation: stationToProto(r.DestinationStation),
+			OperatorName:       r.OperatorName,
+		})
+	}
+
+	return &pb.ListTripInstancesResponse{
+		Results:       protoResults,
+		NextPageToken: nextToken,
+		TotalCount:    int32(total),
+	}, nil
 }
 
 // --- Converters ---
@@ -296,13 +515,66 @@ func routeToProto(r *domain.Route) *pb.Route {
 	}
 }
 
+func scheduleToProto(s *domain.ScheduleTemplate) *pb.Schedule {
+	if s == nil {
+		return nil
+	}
+	return &pb.Schedule{
+		Id:                   s.ID,
+		OrganizationId:       s.OrganizationID,
+		RouteId:              s.RouteID,
+		VehicleId:            s.VehicleID,
+		VehicleType:          s.VehicleType,
+		VehicleClass:         s.VehicleClass,
+		TotalSeats:           int32(s.TotalSeats),
+		Pricing:              pricingToProto(s.Pricing),
+		DepartureMinutes:     int32(s.DepartureMinutes),
+		ArrivalOffsetMinutes: int32(s.ArrivalOffsetMinutes),
+		Timezone:             s.Timezone,
+		StartDate:            s.StartDate,
+		EndDate:              s.EndDate,
+		DaysOfWeek:           int32(s.DaysOfWeek),
+		Status:               stringToProtoScheduleStatus(s.Status),
+		CreatedAt:            s.CreatedAt.Unix(),
+		UpdatedAt:            s.UpdatedAt.Unix(),
+		Version:              int32(s.Version),
+	}
+}
+
+func scheduleExceptionToProto(e *domain.ScheduleException) *pb.ScheduleException {
+	if e == nil {
+		return nil
+	}
+	return &pb.ScheduleException{
+		Id:          e.ID,
+		ScheduleId:  e.ScheduleID,
+		ServiceDate: e.ServiceDate,
+		IsAdded:     e.IsAdded,
+		Reason:      e.Reason,
+		CreatedAt:   e.CreatedAt.Unix(),
+	}
+}
+
 func tripToProto(t *domain.Trip) *pb.Trip {
 	if t == nil {
 		return nil
 	}
+	var segments []*pb.TripSegment
+	for _, seg := range t.Segments {
+		segments = append(segments, &pb.TripSegment{
+			SegmentIndex:   int32(seg.SegmentIndex),
+			FromStationId:  seg.FromStationID,
+			ToStationId:    seg.ToStationID,
+			DepartureTime:  seg.DepartureTime.Unix(),
+			ArrivalTime:    seg.ArrivalTime.Unix(),
+			AvailableSeats: int32(seg.AvailableSeats),
+		})
+	}
 	return &pb.Trip{
 		Id:             t.ID,
 		OrganizationId: t.OrganizationID,
+		ScheduleId:     t.ScheduleID,
+		ServiceDate:    t.ServiceDate,
 		RouteId:        t.RouteID,
 		VehicleId:      t.VehicleID,
 		VehicleType:    t.VehicleType,
@@ -313,18 +585,31 @@ func tripToProto(t *domain.Trip) *pb.Trip {
 		AvailableSeats: int32(t.AvailableSeats),
 		Pricing:        pricingToProto(t.Pricing),
 		Status:         stringToProtoTripStatus(t.Status),
+		Segments:       segments,
 		CreatedAt:      t.CreatedAt.Unix(),
 		UpdatedAt:      t.UpdatedAt.Unix(),
 	}
 }
 
 func pricingToProto(p domain.TripPricing) *pb.TripPricing {
+	var segmentPrices []*pb.SegmentPricing
+	for _, seg := range p.SegmentPrices {
+		segmentPrices = append(segmentPrices, &pb.SegmentPricing{
+			FromStationId:      seg.FromStationID,
+			ToStationId:        seg.ToStationID,
+			BasePricePaisa:     seg.BasePricePaisa,
+			ClassPrices:        seg.ClassPrices,
+			SeatCategoryPrices: seg.SeatCategoryPrices,
+		})
+	}
 	return &pb.TripPricing{
-		BasePricePaisa:  p.BasePricePaisa,
-		TaxPaisa:        p.TaxPaisa,
-		BookingFeePaisa: p.BookingFeePaisa,
-		Currency:        p.Currency,
-		ClassPrices:     p.ClassPrices,
+		BasePricePaisa:     p.BasePricePaisa,
+		TaxPaisa:           p.TaxPaisa,
+		BookingFeePaisa:    p.BookingFeePaisa,
+		Currency:           p.Currency,
+		ClassPrices:        p.ClassPrices,
+		SeatCategoryPrices: p.SeatCategoryPrices,
+		SegmentPrices:      segmentPrices,
 	}
 }
 
@@ -332,12 +617,27 @@ func pricingFromProto(p *pb.TripPricing) domain.TripPricing {
 	if p == nil {
 		return domain.TripPricing{}
 	}
+	segmentPrices := make([]domain.SegmentPricing, 0, len(p.SegmentPrices))
+	for _, seg := range p.SegmentPrices {
+		if seg == nil {
+			continue
+		}
+		segmentPrices = append(segmentPrices, domain.SegmentPricing{
+			FromStationID:      seg.FromStationId,
+			ToStationID:        seg.ToStationId,
+			BasePricePaisa:     seg.BasePricePaisa,
+			ClassPrices:        seg.ClassPrices,
+			SeatCategoryPrices: seg.SeatCategoryPrices,
+		})
+	}
 	return domain.TripPricing{
-		BasePricePaisa:  p.BasePricePaisa,
-		TaxPaisa:        p.TaxPaisa,
-		BookingFeePaisa: p.BookingFeePaisa,
-		Currency:        p.Currency,
-		ClassPrices:     p.ClassPrices,
+		BasePricePaisa:     p.BasePricePaisa,
+		TaxPaisa:           p.TaxPaisa,
+		BookingFeePaisa:    p.BookingFeePaisa,
+		Currency:           p.Currency,
+		ClassPrices:        p.ClassPrices,
+		SeatCategoryPrices: p.SeatCategoryPrices,
+		SegmentPrices:      segmentPrices,
 	}
 }
 
@@ -388,9 +688,58 @@ func stringToProtoTripStatus(s string) pb.TripStatus {
 		return pb.TripStatus_TRIP_STATUS_BOARDING
 	case domain.TripStatusDeparted:
 		return pb.TripStatus_TRIP_STATUS_DEPARTED
+	case domain.TripStatusInTransit:
+		return pb.TripStatus_TRIP_STATUS_IN_TRANSIT
+	case domain.TripStatusArrived:
+		return pb.TripStatus_TRIP_STATUS_ARRIVED
+	case domain.TripStatusDelayed:
+		return pb.TripStatus_TRIP_STATUS_DELAYED
 	case domain.TripStatusCancelled:
 		return pb.TripStatus_TRIP_STATUS_CANCELLED
 	default:
 		return pb.TripStatus_TRIP_STATUS_UNSPECIFIED
+	}
+}
+
+func protoTripStatusToString(s pb.TripStatus) string {
+	switch s {
+	case pb.TripStatus_TRIP_STATUS_SCHEDULED:
+		return domain.TripStatusScheduled
+	case pb.TripStatus_TRIP_STATUS_BOARDING:
+		return domain.TripStatusBoarding
+	case pb.TripStatus_TRIP_STATUS_DEPARTED:
+		return domain.TripStatusDeparted
+	case pb.TripStatus_TRIP_STATUS_CANCELLED:
+		return domain.TripStatusCancelled
+	case pb.TripStatus_TRIP_STATUS_DELAYED:
+		return domain.TripStatusDelayed
+	case pb.TripStatus_TRIP_STATUS_ARRIVED:
+		return domain.TripStatusArrived
+	case pb.TripStatus_TRIP_STATUS_IN_TRANSIT:
+		return domain.TripStatusInTransit
+	default:
+		return ""
+	}
+}
+
+func stringToProtoScheduleStatus(s string) pb.ScheduleStatus {
+	switch s {
+	case domain.ScheduleStatusActive:
+		return pb.ScheduleStatus_SCHEDULE_STATUS_ACTIVE
+	case domain.ScheduleStatusInactive:
+		return pb.ScheduleStatus_SCHEDULE_STATUS_INACTIVE
+	default:
+		return pb.ScheduleStatus_SCHEDULE_STATUS_UNSPECIFIED
+	}
+}
+
+func protoScheduleStatusToString(s pb.ScheduleStatus) string {
+	switch s {
+	case pb.ScheduleStatus_SCHEDULE_STATUS_ACTIVE:
+		return domain.ScheduleStatusActive
+	case pb.ScheduleStatus_SCHEDULE_STATUS_INACTIVE:
+		return domain.ScheduleStatusInactive
+	default:
+		return ""
 	}
 }

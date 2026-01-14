@@ -1,4 +1,5 @@
 import { api } from './index';
+import type { TripInstanceResult } from './catalog';
 
 export interface TripSearchResult {
     id: string;
@@ -48,8 +49,8 @@ export const searchApi = {
         return response;
     },
 
-    getTrip: async (id: string): Promise<TripSearchResult> => {
-        const response = await api.get<TripSearchResult>(`/v1/trips/${id}`);
+    getTripInstance: async (id: string): Promise<TripInstanceResult> => {
+        const response = await api.get<TripInstanceResult>(`/v1/trip-instances/${id}`);
         return response;
-    }
+    },
 };

@@ -14,6 +14,8 @@ type Config struct {
 	MinIO       MinIOConfig
 	QRSecretKey string
 	CompanyName string
+	CatalogAddr string
+	OrderAddr   string
 }
 
 type MinIOConfig struct {
@@ -63,6 +65,8 @@ func Load() *Config {
 		},
 		QRSecretKey: getEnv("QR_SECRET_KEY", "your-super-secret-key-for-qr-signing"),
 		CompanyName: getEnv("COMPANY_NAME", "Travio"),
+		CatalogAddr: getEnv("CATALOG_ADDR", "localhost:9081"),
+		OrderAddr:   getEnv("ORDER_ADDR", "localhost:9084"),
 	}
 }
 

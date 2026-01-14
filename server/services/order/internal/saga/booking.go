@@ -77,6 +77,7 @@ func NewBookingSaga(deps *BookingDependencies, req *BookingRequest) *Saga {
 	saga.Context.Set("user_id", req.UserID)
 	saga.Context.Set("trip_id", req.TripID)
 	saga.Context.Set("hold_id", req.HoldID)
+	saga.Context.Set("org_id", req.OrgID)
 
 	return saga
 }
@@ -122,9 +123,9 @@ type NIDVerifier interface {
 }
 
 type InventoryClient interface {
-	HoldSeats(ctx context.Context, tripID string, seatIDs []string, userID string) (string, error)
-	ReleaseSeats(ctx context.Context, holdID, userID string) error
-	ConfirmBooking(ctx context.Context, holdID, orderID, userID string, passengers []PassengerInfo) (string, error)
+	HoldSeats(ctx context.Context, orgID, tripID string, seatIDs []string, userID string) (string, error)
+	ReleaseSeats(ctx context.Context, orgID, holdID, userID string) error
+	ConfirmBooking(ctx context.Context, orgID, holdID, orderID, userID string, passengers []PassengerInfo) (string, error)
 	CancelBooking(ctx context.Context, bookingID, orderID string) error
 }
 
@@ -219,7 +220,7 @@ func (d *BookingDependencies) holdSeats(ctx context.Context, sagaCtx *SagaContex
 		seatIDs = append(seatIDs, p.SeatID)
 	}
 
-	holdID, err := d.InventoryService.HoldSeats(ctx, req.TripID, seatIDs, req.UserID)
+	holdID, err := d.InventoryService.HoldSeats(ctx, req.OrgID, req.TripID, seatIDs, req.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to hold seats: %w", err)
 	}
@@ -231,12 +232,13 @@ func (d *BookingDependencies) holdSeats(ctx context.Context, sagaCtx *SagaContex
 func (d *BookingDependencies) releaseSeats(ctx context.Context, sagaCtx *SagaContext) error {
 	holdID := sagaCtx.GetString("hold_id")
 	userID := sagaCtx.GetString("user_id")
+	orgID := sagaCtx.GetString("org_id")
 
 	if holdID == "" {
 		return nil // Nothing to release
 	}
 
-	return d.InventoryService.ReleaseSeats(ctx, holdID, userID)
+	return d.InventoryService.ReleaseSeats(ctx, orgID, holdID, userID)
 }
 
 func (d *BookingDependencies) processPayment(ctx context.Context, sagaCtx *SagaContext, req *BookingRequest) error {
@@ -284,7 +286,7 @@ func (d *BookingDependencies) confirmBooking(ctx context.Context, sagaCtx *SagaC
 	orderID := sagaCtx.GetString("order_id")
 	userID := sagaCtx.GetString("user_id")
 
-	bookingID, err := d.InventoryService.ConfirmBooking(ctx, holdID, orderID, userID, req.Passengers)
+	bookingID, err := d.InventoryService.ConfirmBooking(ctx, req.OrgID, holdID, orderID, userID, req.Passengers)
 	if err != nil {
 		return fmt.Errorf("booking confirmation failed: %w", err)
 	}

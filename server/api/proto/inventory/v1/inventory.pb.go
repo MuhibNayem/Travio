@@ -77,14 +77,15 @@ func (SeatStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type CheckAvailabilityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	FromStationId string                 `protobuf:"bytes,2,opt,name=from_station_id,json=fromStationId,proto3" json:"from_station_id,omitempty"` // Boarding station
-	ToStationId   string                 `protobuf:"bytes,3,opt,name=to_station_id,json=toStationId,proto3" json:"to_station_id,omitempty"`       // Alighting station
-	Passengers    int32                  `protobuf:"varint,4,opt,name=passengers,proto3" json:"passengers,omitempty"`
-	SeatClass     string                 `protobuf:"bytes,5,opt,name=seat_class,json=seatClass,proto3" json:"seat_class,omitempty"` // Optional: filter by class
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	FromStationId  string                 `protobuf:"bytes,2,opt,name=from_station_id,json=fromStationId,proto3" json:"from_station_id,omitempty"` // Boarding station
+	ToStationId    string                 `protobuf:"bytes,3,opt,name=to_station_id,json=toStationId,proto3" json:"to_station_id,omitempty"`       // Alighting station
+	Passengers     int32                  `protobuf:"varint,4,opt,name=passengers,proto3" json:"passengers,omitempty"`
+	SeatClass      string                 `protobuf:"bytes,5,opt,name=seat_class,json=seatClass,proto3" json:"seat_class,omitempty"` // Optional: filter by class
+	OrganizationId string                 `protobuf:"bytes,6,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CheckAvailabilityRequest) Reset() {
@@ -148,6 +149,13 @@ func (x *CheckAvailabilityRequest) GetPassengers() int32 {
 func (x *CheckAvailabilityRequest) GetSeatClass() string {
 	if x != nil {
 		return x.SeatClass
+	}
+	return ""
+}
+
+func (x *CheckAvailabilityRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
 	}
 	return ""
 }
@@ -409,6 +417,7 @@ type HoldSeatsRequest struct {
 	UserId              string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	SessionId           string                 `protobuf:"bytes,6,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	HoldDurationSeconds int32                  `protobuf:"varint,7,opt,name=hold_duration_seconds,json=holdDurationSeconds,proto3" json:"hold_duration_seconds,omitempty"` // Default: 600 (10 min)
+	OrganizationId      string                 `protobuf:"bytes,8,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -490,6 +499,13 @@ func (x *HoldSeatsRequest) GetHoldDurationSeconds() int32 {
 		return x.HoldDurationSeconds
 	}
 	return 0
+}
+
+func (x *HoldSeatsRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
 }
 
 type HoldSeatsResponse struct {
@@ -577,11 +593,12 @@ func (x *HoldSeatsResponse) GetFailureReason() string {
 }
 
 type ReleaseSeatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HoldId        string                 `protobuf:"bytes,1,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	HoldId         string                 `protobuf:"bytes,1,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,3,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReleaseSeatsRequest) Reset() {
@@ -624,6 +641,13 @@ func (x *ReleaseSeatsRequest) GetHoldId() string {
 func (x *ReleaseSeatsRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *ReleaseSeatsRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
 	}
 	return ""
 }
@@ -681,13 +705,14 @@ func (x *ReleaseSeatsResponse) GetReleasedCount() int32 {
 }
 
 type ConfirmBookingRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HoldId        string                 `protobuf:"bytes,1,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`
-	OrderId       string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Passengers    []*PassengerSeat       `protobuf:"bytes,4,rep,name=passengers,proto3" json:"passengers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	HoldId         string                 `protobuf:"bytes,1,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`
+	OrderId        string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	UserId         string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Passengers     []*PassengerSeat       `protobuf:"bytes,4,rep,name=passengers,proto3" json:"passengers,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,5,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ConfirmBookingRequest) Reset() {
@@ -746,6 +771,13 @@ func (x *ConfirmBookingRequest) GetPassengers() []*PassengerSeat {
 		return x.Passengers
 	}
 	return nil
+}
+
+func (x *ConfirmBookingRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
 }
 
 type PassengerSeat struct {
@@ -937,12 +969,13 @@ func (x *ConfirmedSeat) GetTicketId() string {
 }
 
 type GetSeatMapRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	FromStationId string                 `protobuf:"bytes,2,opt,name=from_station_id,json=fromStationId,proto3" json:"from_station_id,omitempty"`
-	ToStationId   string                 `protobuf:"bytes,3,opt,name=to_station_id,json=toStationId,proto3" json:"to_station_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	FromStationId  string                 `protobuf:"bytes,2,opt,name=from_station_id,json=fromStationId,proto3" json:"from_station_id,omitempty"`
+	ToStationId    string                 `protobuf:"bytes,3,opt,name=to_station_id,json=toStationId,proto3" json:"to_station_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetSeatMapRequest) Reset() {
@@ -992,6 +1025,13 @@ func (x *GetSeatMapRequest) GetFromStationId() string {
 func (x *GetSeatMapRequest) GetToStationId() string {
 	if x != nil {
 		return x.ToStationId
+	}
+	return ""
+}
+
+func (x *GetSeatMapRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
 	}
 	return ""
 }
@@ -1848,7 +1888,7 @@ var File_api_proto_inventory_v1_inventory_proto protoreflect.FileDescriptor
 
 const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\n" +
-	"&api/proto/inventory/v1/inventory.proto\x12\finventory.v1\"\xbe\x01\n" +
+	"&api/proto/inventory/v1/inventory.proto\x12\finventory.v1\"\xe7\x01\n" +
 	"\x18CheckAvailabilityRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12&\n" +
 	"\x0ffrom_station_id\x18\x02 \x01(\tR\rfromStationId\x12\"\n" +
@@ -1857,7 +1897,8 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"passengers\x18\x04 \x01(\x05R\n" +
 	"passengers\x12\x1d\n" +
 	"\n" +
-	"seat_class\x18\x05 \x01(\tR\tseatClass\"\xdd\x01\n" +
+	"seat_class\x18\x05 \x01(\tR\tseatClass\x12'\n" +
+	"\x0forganization_id\x18\x06 \x01(\tR\x0eorganizationId\"\xdd\x01\n" +
 	"\x19CheckAvailabilityResponse\x12!\n" +
 	"\fis_available\x18\x01 \x01(\bR\visAvailable\x12'\n" +
 	"\x0favailable_seats\x18\x02 \x01(\x05R\x0eavailableSeats\x124\n" +
@@ -1878,7 +1919,7 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\x11BatchCheckRequest\x12B\n" +
 	"\brequests\x18\x01 \x03(\v2&.inventory.v1.CheckAvailabilityRequestR\brequests\"W\n" +
 	"\x12BatchCheckResponse\x12A\n" +
-	"\aresults\x18\x01 \x03(\v2'.inventory.v1.CheckAvailabilityResponseR\aresults\"\xfe\x01\n" +
+	"\aresults\x18\x01 \x03(\v2'.inventory.v1.CheckAvailabilityResponseR\aresults\"\xa7\x02\n" +
 	"\x10HoldSeatsRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12&\n" +
 	"\x0ffrom_station_id\x18\x02 \x01(\tR\rfromStationId\x12\"\n" +
@@ -1887,7 +1928,8 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\auser_id\x18\x05 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x06 \x01(\tR\tsessionId\x122\n" +
-	"\x15hold_duration_seconds\x18\a \x01(\x05R\x13holdDurationSeconds\"\xd8\x01\n" +
+	"\x15hold_duration_seconds\x18\a \x01(\x05R\x13holdDurationSeconds\x12'\n" +
+	"\x0forganization_id\x18\b \x01(\tR\x0eorganizationId\"\xd8\x01\n" +
 	"\x11HoldSeatsResponse\x12\x17\n" +
 	"\ahold_id\x18\x01 \x01(\tR\x06holdId\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\"\n" +
@@ -1895,20 +1937,22 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\x0ffailed_seat_ids\x18\x04 \x03(\tR\rfailedSeatIds\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x05 \x01(\x03R\texpiresAt\x12%\n" +
-	"\x0efailure_reason\x18\x06 \x01(\tR\rfailureReason\"G\n" +
+	"\x0efailure_reason\x18\x06 \x01(\tR\rfailureReason\"p\n" +
 	"\x13ReleaseSeatsRequest\x12\x17\n" +
 	"\ahold_id\x18\x01 \x01(\tR\x06holdId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"W\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12'\n" +
+	"\x0forganization_id\x18\x03 \x01(\tR\x0eorganizationId\"W\n" +
 	"\x14ReleaseSeatsResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12%\n" +
-	"\x0ereleased_count\x18\x02 \x01(\x05R\rreleasedCount\"\xa1\x01\n" +
+	"\x0ereleased_count\x18\x02 \x01(\x05R\rreleasedCount\"\xca\x01\n" +
 	"\x15ConfirmBookingRequest\x12\x17\n" +
 	"\ahold_id\x18\x01 \x01(\tR\x06holdId\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12;\n" +
 	"\n" +
 	"passengers\x18\x04 \x03(\v2\x1b.inventory.v1.PassengerSeatR\n" +
-	"passengers\"t\n" +
+	"passengers\x12'\n" +
+	"\x0forganization_id\x18\x05 \x01(\tR\x0eorganizationId\"t\n" +
 	"\rPassengerSeat\x12\x17\n" +
 	"\aseat_id\x18\x01 \x01(\tR\x06seatId\x12#\n" +
 	"\rpassenger_nid\x18\x02 \x01(\tR\fpassengerNid\x12%\n" +
@@ -1923,11 +1967,12 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\aseat_id\x18\x01 \x01(\tR\x06seatId\x12\x1f\n" +
 	"\vseat_number\x18\x02 \x01(\tR\n" +
 	"seatNumber\x12\x1b\n" +
-	"\tticket_id\x18\x03 \x01(\tR\bticketId\"x\n" +
+	"\tticket_id\x18\x03 \x01(\tR\bticketId\"\xa1\x01\n" +
 	"\x11GetSeatMapRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12&\n" +
 	"\x0ffrom_station_id\x18\x02 \x01(\tR\rfromStationId\x12\"\n" +
-	"\rto_station_id\x18\x03 \x01(\tR\vtoStationId\"\xfa\x01\n" +
+	"\rto_station_id\x18\x03 \x01(\tR\vtoStationId\x12'\n" +
+	"\x0forganization_id\x18\x04 \x01(\tR\x0eorganizationId\"\xfa\x01\n" +
 	"\x12GetSeatMapResponse\x12\x1d\n" +
 	"\n" +
 	"vehicle_id\x18\x01 \x01(\tR\tvehicleId\x12!\n" +

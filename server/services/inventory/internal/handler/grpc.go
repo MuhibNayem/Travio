@@ -21,7 +21,7 @@ func NewGrpcHandler(inventoryService *service.InventoryService) *GrpcHandler {
 }
 
 func (h *GrpcHandler) CheckAvailability(ctx context.Context, req *pb.CheckAvailabilityRequest) (*pb.CheckAvailabilityResponse, error) {
-	result, err := h.inventoryService.CheckAvailability(ctx, req.TripId, req.FromStationId, req.ToStationId, int(req.Passengers), req.SeatClass)
+	result, err := h.inventoryService.CheckAvailability(ctx, req.OrganizationId, req.TripId, req.FromStationId, req.ToStationId, int(req.Passengers), req.SeatClass)
 	if err != nil {
 		if err == domain.ErrInvalidStationRange {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -56,13 +56,14 @@ func (h *GrpcHandler) HoldSeats(ctx context.Context, req *pb.HoldSeatsRequest) (
 	}
 
 	result, err := h.inventoryService.HoldSeats(ctx, &service.HoldRequest{
-		TripID:       req.TripId,
-		FromStation:  req.FromStationId,
-		ToStation:    req.ToStationId,
-		SeatIDs:      req.SeatIds,
-		UserID:       req.UserId,
-		SessionID:    req.SessionId,
-		HoldDuration: holdDuration,
+		OrganizationID: req.OrganizationId,
+		TripID:         req.TripId,
+		FromStation:    req.FromStationId,
+		ToStation:      req.ToStationId,
+		SeatIDs:        req.SeatIds,
+		UserID:         req.UserId,
+		SessionID:      req.SessionId,
+		HoldDuration:   holdDuration,
 	})
 	if err != nil {
 		return nil, status.Error(codes.Internal, "hold failed")
@@ -79,7 +80,7 @@ func (h *GrpcHandler) HoldSeats(ctx context.Context, req *pb.HoldSeatsRequest) (
 }
 
 func (h *GrpcHandler) ReleaseSeats(ctx context.Context, req *pb.ReleaseSeatsRequest) (*pb.ReleaseSeatsResponse, error) {
-	err := h.inventoryService.ReleaseSeats(ctx, req.HoldId, req.UserId)
+	err := h.inventoryService.ReleaseSeats(ctx, req.OrganizationId, req.HoldId, req.UserId)
 	if err != nil {
 		return &pb.ReleaseSeatsResponse{Success: false}, nil
 	}
@@ -95,7 +96,7 @@ func (h *GrpcHandler) ConfirmBooking(ctx context.Context, req *pb.ConfirmBooking
 		})
 	}
 
-	result, err := h.inventoryService.ConfirmBooking(ctx, req.HoldId, req.OrderId, req.UserId, passengers)
+	result, err := h.inventoryService.ConfirmBooking(ctx, req.OrganizationId, req.HoldId, req.OrderId, req.UserId, passengers)
 	if err != nil {
 		if err == domain.ErrHoldExpired || err == domain.ErrHoldNotFound {
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
@@ -121,7 +122,7 @@ func (h *GrpcHandler) ConfirmBooking(ctx context.Context, req *pb.ConfirmBooking
 }
 
 func (h *GrpcHandler) GetSeatMap(ctx context.Context, req *pb.GetSeatMapRequest) (*pb.GetSeatMapResponse, error) {
-	result, err := h.inventoryService.GetSeatMap(ctx, req.TripId, req.FromStationId, req.ToStationId)
+	result, err := h.inventoryService.GetSeatMap(ctx, req.OrganizationId, req.TripId, req.FromStationId, req.ToStationId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "seat map retrieval failed")
 	}
@@ -149,6 +150,56 @@ func (h *GrpcHandler) GetSeatMap(ctx context.Context, req *pb.GetSeatMapRequest)
 	return &pb.GetSeatMapResponse{
 		Rows:   rows,
 		Legend: &pb.SeatMapLegend{StatusColors: result.Legend},
+	}, nil
+}
+
+func (h *GrpcHandler) InitializeTripInventory(ctx context.Context, req *pb.InitializeTripInventoryRequest) (*pb.InitializeTripInventoryResponse, error) {
+	// Map Proto to Service Request
+	var segments []service.SegmentDef
+	for _, s := range req.Segments {
+		segments = append(segments, service.SegmentDef{
+			SegmentIndex:  int(s.SegmentIndex),
+			FromStationID: s.FromStationId,
+			ToStationID:   s.ToStationId,
+			DepartureTime: s.DepartureTime,
+			ArrivalTime:   s.ArrivalTime,
+		})
+	}
+
+	var seats []service.SeatDef
+	if req.SeatConfig != nil {
+		for _, s := range req.SeatConfig.Seats {
+			seats = append(seats, service.SeatDef{
+				SeatID:     s.SeatId,
+				SeatNumber: s.SeatNumber,
+				Row:        int(s.Row),
+				Column:     int(s.Column),
+				SeatType:   s.SeatType,
+				SeatClass:  s.SeatClass,
+				PricePaisa: s.PricePaisa,
+			})
+		}
+	}
+
+	res, err := h.inventoryService.InitializeTripInventory(ctx, &service.InitializeTripRequest{
+		TripID:         req.TripId,
+		OrganizationID: req.OrganizationId,
+		VehicleID:      req.VehicleId,
+		Segments:       segments,
+		SeatConfig: service.SeatConfig{
+			TotalSeats: int(req.SeatConfig.TotalSeats),
+			Seats:      seats,
+		},
+	})
+
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to initialize trip inventory")
+	}
+
+	return &pb.InitializeTripInventoryResponse{
+		Success:         res.Success,
+		SegmentsCreated: int32(res.SegmentsCreated),
+		SeatsCreated:    int32(res.SeatsCreated),
 	}, nil
 }
 

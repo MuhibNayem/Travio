@@ -175,6 +175,53 @@ func (h *IdentityHandler) CreateOrganization(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(resp)
 }
 
+// GetOrganization retrieves organization profile
+func (h *IdentityHandler) GetOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		http.Error(w, `{"error": "organization_id required"}`, http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.client.GetOrganization(r.Context(), &identityv1.GetOrganizationRequest{
+		OrganizationId: orgID,
+	})
+	if err != nil {
+		logger.Error("Failed to get organization", "error", err)
+		http.Error(w, `{"error": "identity service unavailable"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// UpdateOrganization updates organization profile
+func (h *IdentityHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		http.Error(w, `{"error": "organization_id required"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req identityv1.UpdateOrganizationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	req.OrganizationId = orgID
+
+	resp, err := h.client.UpdateOrganization(r.Context(), &req)
+	if err != nil {
+		logger.Error("Failed to update organization", "error", err)
+		http.Error(w, `{"error": "identity service unavailable"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 // AcceptInvite handles invite acceptance
 func (h *IdentityHandler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	var req identityv1.AcceptInviteRequest

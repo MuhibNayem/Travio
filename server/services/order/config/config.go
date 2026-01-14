@@ -29,6 +29,8 @@ type ServicesConfig struct {
 	NIDAddr          string
 	NotificationAddr string
 	SubscriptionAddr string
+	CatalogAddr      string
+	PricingAddr      string
 }
 
 func Load() *Config {
@@ -54,6 +56,8 @@ func Load() *Config {
 			NIDAddr:          getEnv("IDENTITY_URL", "localhost:9081"),
 			NotificationAddr: getEnv("NOTIFICATION_URL", "localhost:9090"),
 			SubscriptionAddr: getEnv("SUBSCRIPTION_URL", "localhost:50060"),
+			CatalogAddr:      getEnv("CATALOG_URL", "localhost:9082"),
+			PricingAddr:      getEnv("PRICING_URL", "localhost:9095"),
 		},
 	}
 }

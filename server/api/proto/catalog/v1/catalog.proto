@@ -29,6 +29,19 @@ service CatalogService {
   
   // Search (for frontend)
   rpc SearchTrips(SearchTripsRequest) returns (SearchTripsResponse);
+
+  // Recurring Schedules
+  rpc CreateSchedule(CreateScheduleRequest) returns (Schedule);
+  rpc GetSchedule(GetScheduleRequest) returns (Schedule);
+  rpc ListSchedules(ListSchedulesRequest) returns (ListSchedulesResponse);
+  rpc UpdateSchedule(UpdateScheduleRequest) returns (Schedule);
+  rpc DeleteSchedule(DeleteScheduleRequest) returns (DeleteScheduleResponse);
+  rpc AddScheduleException(AddScheduleExceptionRequest) returns (ScheduleException);
+  rpc ListScheduleExceptions(ListScheduleExceptionsRequest) returns (ListScheduleExceptionsResponse);
+  rpc GenerateTripInstances(GenerateTripInstancesRequest) returns (GenerateTripInstancesResponse);
+  rpc ListTripInstances(ListTripInstancesRequest) returns (ListTripInstancesResponse);
+  rpc CreateSchedules(BulkCreateSchedulesRequest) returns (BulkCreateSchedulesResponse);
+  rpc GetScheduleHistory(GetScheduleHistoryRequest) returns (GetScheduleHistoryResponse);
 }
 
 // --- Station ---
@@ -206,6 +219,8 @@ message Trip {
   repeated TripSegment segments = 13;  // For segment-based inventory
   int64 created_at = 14;
   int64 updated_at = 15;
+  string schedule_id = 16;
+  string service_date = 17;         // YYYY-MM-DD (local to schedule timezone)
 }
 
 message TripPricing {
@@ -214,6 +229,16 @@ message TripPricing {
   int64 booking_fee_paisa = 3;
   string currency = 4;             // "BDT", "INR"
   map<string, int64> class_prices = 5; // {"economy": 50000, "ac": 80000}
+  map<string, int64> seat_category_prices = 6; // {"vip": 120000, "window": 90000}
+  repeated SegmentPricing segment_prices = 7;
+}
+
+message SegmentPricing {
+  string from_station_id = 1;
+  string to_station_id = 2;
+  int64 base_price_paisa = 3;
+  map<string, int64> class_prices = 4;
+  map<string, int64> seat_category_prices = 5;
 }
 
 message TripSegment {
@@ -260,6 +285,8 @@ message ListTripsRequest {
   TripStatus status = 5;
   int32 page_size = 6;
   string page_token = 7;
+  string schedule_id = 8;
+  string service_date = 9;      // YYYY-MM-DD
 }
 
 message ListTripsResponse {
@@ -321,10 +348,194 @@ message TripSearchResult {
   string operator_name = 5;
 }
 
+// --- Schedules ---
+
+message Schedule {
+  string id = 1;
+  string organization_id = 2;
+  string route_id = 3;
+  string vehicle_id = 4;
+  string vehicle_type = 5;
+  string vehicle_class = 6;
+  int32 total_seats = 7;
+  TripPricing pricing = 8;
+  int32 departure_minutes = 9;     // Minutes since midnight
+  int32 arrival_offset_minutes = 10;
+  string timezone = 11;
+  string start_date = 12;          // YYYY-MM-DD
+  string end_date = 13;            // YYYY-MM-DD
+  int32 days_of_week = 14;         // Bitmask, Mon=1..Sun=64
+  ScheduleStatus status = 15;
+  int64 created_at = 16;
+  int64 updated_at = 17;
+  int32 version = 18;
+}
+
+enum ScheduleStatus {
+  SCHEDULE_STATUS_UNSPECIFIED = 0;
+  SCHEDULE_STATUS_ACTIVE = 1;
+  SCHEDULE_STATUS_INACTIVE = 2;
+}
+
+message CreateScheduleRequest {
+  string organization_id = 1;
+  string route_id = 2;
+  string vehicle_id = 3;
+  string vehicle_type = 4;
+  string vehicle_class = 5;
+  int32 total_seats = 6;
+  TripPricing pricing = 7;
+  int32 departure_minutes = 8;
+  int32 arrival_offset_minutes = 9;
+  string timezone = 10;
+  string start_date = 11;
+  string end_date = 12;
+  int32 days_of_week = 13;
+}
+
+message ScheduleDefinition {
+  string route_id = 1;
+  string vehicle_id = 2;
+  string vehicle_type = 3;
+  string vehicle_class = 4;
+  int32 total_seats = 5;
+  TripPricing pricing = 6;
+  int32 departure_minutes = 7;
+  int32 arrival_offset_minutes = 8;
+  string timezone = 9;
+  string start_date = 10;
+  string end_date = 11;
+  int32 days_of_week = 12;
+}
+
+message BulkCreateSchedulesRequest {
+  string organization_id = 1;
+  repeated ScheduleDefinition schedules = 2;
+}
+
+message BulkCreateSchedulesResponse {
+  repeated Schedule schedules = 1;
+  int32 created_count = 2;
+}
+
+message GetScheduleRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message ListSchedulesRequest {
+  string organization_id = 1;
+  string route_id = 2;
+  ScheduleStatus status = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListSchedulesResponse {
+  repeated Schedule schedules = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdateScheduleRequest {
+  string id = 1;
+  string organization_id = 2;
+  int32 total_seats = 3;
+  TripPricing pricing = 4;
+  int32 departure_minutes = 5;
+  int32 arrival_offset_minutes = 6;
+  string timezone = 7;
+  string start_date = 8;
+  string end_date = 9;
+  int32 days_of_week = 10;
+  ScheduleStatus status = 11;
+}
+
+message DeleteScheduleRequest {
+  string id = 1;
+  string organization_id = 2;
+}
+
+message DeleteScheduleResponse {
+  bool success = 1;
+}
+
+message ScheduleException {
+  string id = 1;
+  string schedule_id = 2;
+  string service_date = 3;   // YYYY-MM-DD
+  bool is_added = 4;
+  string reason = 5;
+  int64 created_at = 6;
+}
+
+message AddScheduleExceptionRequest {
+  string schedule_id = 1;
+  string organization_id = 2;
+  string service_date = 3;
+  bool is_added = 4;
+  string reason = 5;
+}
+
+message ListScheduleExceptionsRequest {
+  string schedule_id = 1;
+  string organization_id = 2;
+}
+
+message ListScheduleExceptionsResponse {
+  repeated ScheduleException exceptions = 1;
+}
+
+message GenerateTripInstancesRequest {
+  string schedule_id = 1;
+  string organization_id = 2;
+  string start_date = 3;   // YYYY-MM-DD
+  string end_date = 4;     // YYYY-MM-DD
+}
+
+message GenerateTripInstancesResponse {
+  repeated Trip trips = 1;
+  int32 created_count = 2;
+}
+
+message ListTripInstancesRequest {
+  string organization_id = 1;
+  string schedule_id = 2;
+  string route_id = 3;
+  string start_date = 4;   // YYYY-MM-DD
+  string end_date = 5;     // YYYY-MM-DD
+  TripStatus status = 6;
+  int32 page_size = 7;
+  string page_token = 8;
+}
+
+message ListTripInstancesResponse {
+  repeated TripSearchResult results = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
 message SearchFilters {
   repeated string vehicle_types = 1;
   repeated string vehicle_classes = 2;
   int64 min_price = 3;
   int64 max_price = 4;
   repeated string operators = 5;
+}
+
+message ScheduleVersion {
+  string id = 1;
+  string schedule_id = 2;
+  int32 version = 3;
+  Schedule snapshot = 4;
+  int64 created_at = 5;
+}
+
+message GetScheduleHistoryRequest {
+  string schedule_id = 1;
+  string organization_id = 2;
+}
+
+message GetScheduleHistoryResponse {
+  repeated ScheduleVersion versions = 1;
 }

@@ -10,24 +10,36 @@ import (
 
 // Rule represents a pricing rule
 type Rule struct {
-	ID          string
-	Name        string
-	Condition   string  // expr expression
-	Multiplier  float64 // e.g., 1.20 for 20% increase, 0.85 for 15% discount
-	Priority    int
-	compiledPrg *vm.Program
+	ID              string
+	Name            string
+	Condition       string  // expr expression
+	Multiplier      float64 // e.g., 1.20 for 20% increase, 0.85 for 15% discount
+	AdjustmentType  string  // multiplier, additive, override
+	AdjustmentValue float64
+	Priority        int
+	compiledPrg     *vm.Program
 }
 
 // Environment provides variables for rule evaluation
 type Environment struct {
 	BasePrice          int64   `expr:"base_price"`
 	SeatClass          string  `expr:"seat_class"`
+	SeatCategory       string  `expr:"seat_category"`
 	DayOfWeek          string  `expr:"day_of_week"` // "Monday", "Tuesday", etc.
 	DaysUntilDeparture int     `expr:"days_until_departure"`
 	OccupancyRate      float64 `expr:"occupancy_rate"` // 0.0 to 1.0
 	Quantity           int     `expr:"quantity"`
 	IsHoliday          bool    `expr:"is_holiday"`
 	Hour               int     `expr:"hour"`
+	Minute             int     `expr:"minute"`
+	TripID             string  `expr:"trip_id"`
+	RouteID            string  `expr:"route_id"`
+	ScheduleID         string  `expr:"schedule_id"`
+	FromStationID      string  `expr:"from_station_id"`
+	ToStationID        string  `expr:"to_station_id"`
+	VehicleType        string  `expr:"vehicle_type"`
+	VehicleClass       string  `expr:"vehicle_class"`
+	PromoCode          string  `expr:"promo_code"`
 }
 
 // AppliedRule represents a rule that was applied during calculation
@@ -72,7 +84,24 @@ func (e *RulesEngine) Evaluate(ctx context.Context, basePrice int64, env Environ
 		}
 
 		if match, ok := result.(bool); ok && match {
-			price *= rule.Multiplier
+			adjustmentType := rule.AdjustmentType
+			if adjustmentType == "" {
+				adjustmentType = "multiplier"
+			}
+			switch adjustmentType {
+			case "override":
+				if rule.AdjustmentValue > 0 {
+					price = rule.AdjustmentValue
+				}
+			case "additive":
+				price += rule.AdjustmentValue
+			default:
+				multiplier := rule.Multiplier
+				if multiplier == 0 {
+					multiplier = 1
+				}
+				price *= multiplier
+			}
 			applied = append(applied, AppliedRule{
 				RuleID:     rule.ID,
 				RuleName:   rule.Name,
@@ -85,19 +114,54 @@ func (e *RulesEngine) Evaluate(ctx context.Context, basePrice int64, env Environ
 }
 
 // CreateEnvironment creates an environment from request parameters
-func CreateEnvironment(seatClass, date string, quantity int, occupancyRate float64) Environment {
-	parsedDate, _ := time.Parse("2006-01-02", date)
+func CreateEnvironment(params EnvironmentParams) Environment {
+	parsedDate, _ := time.Parse("2006-01-02", params.Date)
 	daysUntil := int(time.Until(parsedDate).Hours() / 24)
 	if daysUntil < 0 {
 		daysUntil = 0
 	}
 
+	hour := time.Now().Hour()
+	minute := time.Now().Minute()
+	if params.DepartureTime > 0 {
+		departure := time.Unix(params.DepartureTime, 0)
+		hour = departure.Hour()
+		minute = departure.Minute()
+	}
+
 	return Environment{
-		SeatClass:          seatClass,
+		SeatClass:          params.SeatClass,
+		SeatCategory:       params.SeatCategory,
 		DayOfWeek:          parsedDate.Weekday().String(),
 		DaysUntilDeparture: daysUntil,
-		OccupancyRate:      occupancyRate,
-		Quantity:           quantity,
-		Hour:               time.Now().Hour(),
+		OccupancyRate:      params.OccupancyRate,
+		Quantity:           params.Quantity,
+		Hour:               hour,
+		Minute:             minute,
+		TripID:             params.TripID,
+		RouteID:            params.RouteID,
+		ScheduleID:         params.ScheduleID,
+		FromStationID:      params.FromStationID,
+		ToStationID:        params.ToStationID,
+		VehicleType:        params.VehicleType,
+		VehicleClass:       params.VehicleClass,
+		PromoCode:          params.PromoCode,
 	}
+}
+
+type EnvironmentParams struct {
+	SeatClass     string
+	SeatCategory  string
+	Date          string
+	Quantity      int
+	OccupancyRate float64
+	TripID        string
+	RouteID       string
+	ScheduleID    string
+	FromStationID string
+	ToStationID   string
+	VehicleType   string
+	VehicleClass  string
+	PromoCode     string
+	DepartureTime int64
 }

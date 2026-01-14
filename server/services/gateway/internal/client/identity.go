@@ -65,6 +65,14 @@ func (c *IdentityClient) CreateOrganization(ctx context.Context, req *identityv1
 	return c.client.CreateOrganization(ctx, req)
 }
 
+func (c *IdentityClient) GetOrganization(ctx context.Context, req *identityv1.GetOrganizationRequest) (*identityv1.Organization, error) {
+	return c.client.GetOrganization(ctx, req)
+}
+
+func (c *IdentityClient) UpdateOrganization(ctx context.Context, req *identityv1.UpdateOrganizationRequest) (*identityv1.Organization, error) {
+	return c.client.UpdateOrganization(ctx, req)
+}
+
 // --- Member Management ---
 
 func (c *IdentityClient) ListMembers(ctx context.Context, req *identityv1.ListMembersRequest) (*identityv1.ListMembersResponse, error) {

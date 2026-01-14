@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	ErrStationNotFound = errors.New("station not found")
-	ErrRouteNotFound   = errors.New("route not found")
-	ErrTripNotFound    = errors.New("trip not found")
-	ErrDuplicateCode   = errors.New("code already exists")
+	ErrStationNotFound  = errors.New("station not found")
+	ErrRouteNotFound    = errors.New("route not found")
+	ErrTripNotFound     = errors.New("trip not found")
+	ErrScheduleNotFound = errors.New("schedule not found")
+	ErrDuplicateCode    = errors.New("code already exists")
 )
 
 // PostgresStationRepository handles station persistence
@@ -360,47 +361,73 @@ func (r *PostgresTripRepository) Create(ctx context.Context, trip *domain.Trip) 
 
 	pricingJSON, _ := json.Marshal(trip.Pricing)
 
-	query := `INSERT INTO trips (id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
+	var scheduleID interface{} = nil
+	if trip.ScheduleID != "" {
+		scheduleID = trip.ScheduleID
+	}
+
+	var serviceDate interface{} = nil
+	if trip.ServiceDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", trip.ServiceDate)
+		if err != nil {
+			return err
+		}
+		serviceDate = parsedDate
+	}
+
+	query := `INSERT INTO trips (id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class,
 			  departure_time, arrival_time, total_seats, available_seats, pricing, status,
 			  created_at, updated_at)
-			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 
 	_, err := r.DB.ExecContext(ctx, query,
-		trip.ID, trip.OrganizationID, trip.RouteID, trip.VehicleID, trip.VehicleType, trip.VehicleClass,
-		trip.DepartureTime, trip.ArrivalTime, trip.TotalSeats, trip.AvailableSeats, pricingJSON,
-		trip.Status, trip.CreatedAt, trip.UpdatedAt,
+		trip.ID, trip.OrganizationID, scheduleID, serviceDate, trip.RouteID, trip.VehicleID, trip.VehicleType,
+		trip.VehicleClass, trip.DepartureTime, trip.ArrivalTime, trip.TotalSeats, trip.AvailableSeats,
+		pricingJSON, trip.Status, trip.CreatedAt, trip.UpdatedAt,
 	)
 	return err
 }
 
 func (r *PostgresTripRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Trip, error) {
-	query := `SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
+	query := `SELECT id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class,
 			  departure_time, arrival_time, total_seats, available_seats, pricing, status,
 			  created_at, updated_at
 			  FROM trips WHERE id = $1 AND organization_id = $2`
 
 	var trip domain.Trip
 	var pricingJSON []byte
+	var scheduleID sql.NullString
+	var serviceDate sql.NullTime
 
 	err := r.DB.QueryRowContext(ctx, query, id, orgID).Scan(
-		&trip.ID, &trip.OrganizationID, &trip.RouteID, &trip.VehicleID, &trip.VehicleType,
-		&trip.VehicleClass, &trip.DepartureTime, &trip.ArrivalTime, &trip.TotalSeats,
-		&trip.AvailableSeats, &pricingJSON, &trip.Status,
+		&trip.ID, &trip.OrganizationID, &scheduleID, &serviceDate, &trip.RouteID, &trip.VehicleID, &trip.VehicleType,
+		&trip.VehicleClass, &trip.DepartureTime, &trip.ArrivalTime, &trip.TotalSeats, &trip.AvailableSeats,
+		&pricingJSON, &trip.Status,
 		&trip.CreatedAt, &trip.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrTripNotFound
+			return nil, ErrScheduleNotFound
 		}
 		return nil, err
 	}
 
 	json.Unmarshal(pricingJSON, &trip.Pricing)
-	// Segments not in DB yet
+	if scheduleID.Valid {
+		trip.ScheduleID = scheduleID.String
+	}
+	if serviceDate.Valid {
+		trip.ServiceDate = serviceDate.Time.Format("2006-01-02")
+	}
+
+	segments, err := r.GetSegments(ctx, trip.ID)
+	if err == nil {
+		trip.Segments = segments
+	}
 	return &trip, nil
 }
 
-func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID string, limit, offset int) ([]*domain.Trip, int, error) {
+func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID, scheduleID, serviceDateFrom, serviceDateTo string, limit, offset int) ([]*domain.Trip, int, error) {
 	var args []interface{}
 	var whereClause string
 	argIdx := 1
@@ -419,6 +446,29 @@ func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID string
 		args = append(args, routeID)
 		argIdx++
 	}
+	if scheduleID != "" {
+		whereClause += fmt.Sprintf(" AND schedule_id = $%d", argIdx)
+		args = append(args, scheduleID)
+		argIdx++
+	}
+	if serviceDateFrom != "" {
+		parsedDate, err := time.Parse("2006-01-02", serviceDateFrom)
+		if err != nil {
+			return nil, 0, err
+		}
+		whereClause += fmt.Sprintf(" AND service_date >= $%d", argIdx)
+		args = append(args, parsedDate)
+		argIdx++
+	}
+	if serviceDateTo != "" {
+		parsedDate, err := time.Parse("2006-01-02", serviceDateTo)
+		if err != nil {
+			return nil, 0, err
+		}
+		whereClause += fmt.Sprintf(" AND service_date <= $%d", argIdx)
+		args = append(args, parsedDate)
+		argIdx++
+	}
 
 	// Count total
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM trips %s", whereClause)
@@ -426,7 +476,7 @@ func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID string
 	r.DB.QueryRowContext(ctx, countQuery, args...).Scan(&total)
 
 	// Fetch data
-	query := fmt.Sprintf(`SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class,
+	query := fmt.Sprintf(`SELECT id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class,
 		  departure_time, arrival_time, total_seats, available_seats, pricing, status,
 		  created_at, updated_at
 		  FROM trips %s ORDER BY departure_time DESC LIMIT $%d OFFSET $%d`,
@@ -444,18 +494,25 @@ func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID string
 		var t domain.Trip
 		var pricingJSON []byte
 		var orgID sql.NullString
+		var scheduleID sql.NullString
+		var serviceDate sql.NullTime
 		if err := rows.Scan(
-			&t.ID, &orgID, &t.RouteID, &t.VehicleID, &t.VehicleType, &t.VehicleClass,
-			&t.DepartureTime, &t.ArrivalTime, &t.TotalSeats, &t.AvailableSeats, &pricingJSON,
-			&t.Status, &t.CreatedAt, &t.UpdatedAt,
+			&t.ID, &orgID, &scheduleID, &serviceDate, &t.RouteID, &t.VehicleID, &t.VehicleType,
+			&t.VehicleClass, &t.DepartureTime, &t.ArrivalTime, &t.TotalSeats, &t.AvailableSeats,
+			&pricingJSON, &t.Status, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
 		if orgID.Valid {
 			t.OrganizationID = orgID.String
 		}
+		if scheduleID.Valid {
+			t.ScheduleID = scheduleID.String
+		}
+		if serviceDate.Valid {
+			t.ServiceDate = serviceDate.Time.Format("2006-01-02")
+		}
 		json.Unmarshal(pricingJSON, &t.Pricing)
-		// Segments not in DB
 		trips = append(trips, &t)
 	}
 
@@ -465,7 +522,7 @@ func (r *PostgresTripRepository) List(ctx context.Context, orgID, routeID string
 func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, destCity string, travelDate time.Time, limit, offset int) ([]*domain.Trip, int, error) {
 	// Complex search joining trips, routes, stations
 	query := `
-		SELECT t.id, t.organization_id, t.route_id, t.vehicle_id, t.vehicle_type, t.vehicle_class,
+		SELECT t.id, t.organization_id, t.schedule_id, t.service_date, t.route_id, t.vehicle_id, t.vehicle_type, t.vehicle_class,
 			   t.departure_time, t.arrival_time, t.total_seats, t.available_seats, t.pricing, 
 			   t.status, t.created_at, t.updated_at
 		FROM trips t
@@ -493,18 +550,25 @@ func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, 
 		var t domain.Trip
 		var pricingJSON []byte
 		var orgID sql.NullString
+		var scheduleID sql.NullString
+		var serviceDate sql.NullTime
 		if err := rows.Scan(
-			&t.ID, &orgID, &t.RouteID, &t.VehicleID, &t.VehicleType, &t.VehicleClass,
-			&t.DepartureTime, &t.ArrivalTime, &t.TotalSeats, &t.AvailableSeats, &pricingJSON,
-			&t.Status, &t.CreatedAt, &t.UpdatedAt,
+			&t.ID, &orgID, &scheduleID, &serviceDate, &t.RouteID, &t.VehicleID, &t.VehicleType,
+			&t.VehicleClass, &t.DepartureTime, &t.ArrivalTime, &t.TotalSeats, &t.AvailableSeats,
+			&pricingJSON, &t.Status, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
 		if orgID.Valid {
 			t.OrganizationID = orgID.String
 		}
+		if scheduleID.Valid {
+			t.ScheduleID = scheduleID.String
+		}
+		if serviceDate.Valid {
+			t.ServiceDate = serviceDate.Time.Format("2006-01-02")
+		}
 		json.Unmarshal(pricingJSON, &t.Pricing)
-		// Segments not yet implemented in DB
 		trips = append(trips, &t)
 	}
 
@@ -530,4 +594,386 @@ func (r *PostgresTripRepository) DecrementSeats(ctx context.Context, id string, 
 		return errors.New("not enough seats available")
 	}
 	return nil
+}
+
+func (r *PostgresTripRepository) CreateSegments(ctx context.Context, tripID string, segments []domain.TripSegment) error {
+	if len(segments) == 0 {
+		return nil
+	}
+
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO trip_segments (
+		trip_id, segment_index, from_station_id, to_station_id, departure_time, arrival_time, available_seats
+	) VALUES ($1, $2, $3, $4, $5, $6, $7)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, seg := range segments {
+		if _, err := stmt.ExecContext(ctx, tripID, seg.SegmentIndex, seg.FromStationID, seg.ToStationID, seg.DepartureTime, seg.ArrivalTime, seg.AvailableSeats); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (r *PostgresTripRepository) GetSegments(ctx context.Context, tripID string) ([]domain.TripSegment, error) {
+	query := `SELECT segment_index, from_station_id, to_station_id, departure_time, arrival_time, available_seats
+			  FROM trip_segments WHERE trip_id = $1 ORDER BY segment_index ASC`
+
+	rows, err := r.DB.QueryContext(ctx, query, tripID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var segments []domain.TripSegment
+	for rows.Next() {
+		var seg domain.TripSegment
+		if err := rows.Scan(&seg.SegmentIndex, &seg.FromStationID, &seg.ToStationID, &seg.DepartureTime, &seg.ArrivalTime, &seg.AvailableSeats); err != nil {
+			return nil, err
+		}
+		segments = append(segments, seg)
+	}
+
+	return segments, nil
+}
+
+// PostgresScheduleRepository handles schedule persistence
+type PostgresScheduleRepository struct {
+	DB *sql.DB
+}
+
+func NewScheduleRepository(db *sql.DB) *PostgresScheduleRepository {
+	return &PostgresScheduleRepository{DB: db}
+}
+
+func (r *PostgresScheduleRepository) Create(ctx context.Context, schedule *domain.ScheduleTemplate) error {
+	schedule.ID = uuid.New().String()
+	schedule.CreatedAt = time.Now()
+	schedule.UpdatedAt = time.Now()
+	schedule.Status = domain.ScheduleStatusActive
+	if schedule.Version <= 0 {
+		schedule.Version = 1
+	}
+
+	pricingJSON, _ := json.Marshal(schedule.Pricing)
+
+	query := `INSERT INTO schedule_templates (
+		id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class, total_seats, pricing,
+		departure_time, arrival_offset_minutes, timezone, start_date, end_date,
+		days_of_week, status, version, created_at, updated_at
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`
+
+	_, err := r.DB.ExecContext(ctx, query,
+		schedule.ID, schedule.OrganizationID, schedule.RouteID, schedule.VehicleID,
+		schedule.VehicleType, schedule.VehicleClass, schedule.TotalSeats, pricingJSON, minutesToTime(schedule.DepartureMinutes),
+		schedule.ArrivalOffsetMinutes, schedule.Timezone, schedule.StartDate, schedule.EndDate,
+		schedule.DaysOfWeek, schedule.Status, schedule.Version, schedule.CreatedAt, schedule.UpdatedAt,
+	)
+	return err
+}
+
+func (r *PostgresScheduleRepository) GetByID(ctx context.Context, id, orgID string) (*domain.ScheduleTemplate, error) {
+	query := `SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class, total_seats, pricing,
+		departure_time, arrival_offset_minutes, timezone, start_date, end_date, days_of_week,
+		status, version, created_at, updated_at
+		FROM schedule_templates WHERE id = $1 AND organization_id = $2`
+
+	var schedule domain.ScheduleTemplate
+	var departureTime time.Time
+	var pricingJSON []byte
+	err := r.DB.QueryRowContext(ctx, query, id, orgID).Scan(
+		&schedule.ID, &schedule.OrganizationID, &schedule.RouteID, &schedule.VehicleID,
+		&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTime, &schedule.ArrivalOffsetMinutes,
+		&schedule.Timezone, &schedule.StartDate, &schedule.EndDate, &schedule.DaysOfWeek,
+		&schedule.Status, &schedule.Version, &schedule.CreatedAt, &schedule.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrScheduleNotFound
+		}
+		return nil, err
+	}
+
+	schedule.DepartureMinutes = timeToMinutes(departureTime)
+	json.Unmarshal(pricingJSON, &schedule.Pricing)
+	return &schedule, nil
+}
+
+func (r *PostgresScheduleRepository) List(ctx context.Context, orgID, routeID, status string, limit, offset int) ([]*domain.ScheduleTemplate, int, error) {
+	var args []interface{}
+	var whereClause string
+	argIdx := 1
+
+	if orgID != "" {
+		whereClause = fmt.Sprintf("WHERE organization_id = $%d", argIdx)
+		args = append(args, orgID)
+		argIdx++
+	} else {
+		whereClause = "WHERE 1=1"
+	}
+
+	if routeID != "" {
+		whereClause += fmt.Sprintf(" AND route_id = $%d", argIdx)
+		args = append(args, routeID)
+		argIdx++
+	}
+
+	if status != "" {
+		whereClause += fmt.Sprintf(" AND status = $%d", argIdx)
+		args = append(args, status)
+		argIdx++
+	}
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM schedule_templates %s", whereClause)
+	var total int
+	r.DB.QueryRowContext(ctx, countQuery, args...).Scan(&total)
+
+	query := fmt.Sprintf(`SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class, total_seats, pricing,
+		departure_time, arrival_offset_minutes, timezone, start_date, end_date, days_of_week,
+		status, version, created_at, updated_at
+		FROM schedule_templates %s ORDER BY start_date ASC LIMIT $%d OFFSET $%d`,
+		whereClause, argIdx, argIdx+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var schedules []*domain.ScheduleTemplate
+	for rows.Next() {
+		var schedule domain.ScheduleTemplate
+		var departureTime time.Time
+		var pricingJSON []byte
+		if err := rows.Scan(
+			&schedule.ID, &schedule.OrganizationID, &schedule.RouteID, &schedule.VehicleID,
+			&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTime, &schedule.ArrivalOffsetMinutes,
+			&schedule.Timezone, &schedule.StartDate, &schedule.EndDate, &schedule.DaysOfWeek,
+			&schedule.Status, &schedule.Version, &schedule.CreatedAt, &schedule.UpdatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		schedule.DepartureMinutes = timeToMinutes(departureTime)
+		json.Unmarshal(pricingJSON, &schedule.Pricing)
+		schedules = append(schedules, &schedule)
+	}
+
+	return schedules, total, nil
+}
+
+func (r *PostgresScheduleRepository) HasVehicleConflict(ctx context.Context, schedule *domain.ScheduleTemplate, excludeID string) (bool, error) {
+	if schedule == nil {
+		return false, nil
+	}
+	newStart := schedule.DepartureMinutes
+	newEnd := schedule.DepartureMinutes + schedule.ArrivalOffsetMinutes
+	if newEnd <= newStart {
+		return false, nil
+	}
+
+	query := `
+		SELECT COUNT(*) FROM schedule_templates
+		WHERE organization_id = $1
+		  AND vehicle_id = $2
+		  AND id != $3
+		  AND status = 'active'
+		  AND start_date <= $4
+		  AND end_date >= $5
+		  AND (days_of_week & $6) != 0
+		  AND (
+				(EXTRACT(EPOCH FROM departure_time)/60) < $7
+				AND (EXTRACT(EPOCH FROM departure_time)/60 + COALESCE(arrival_offset_minutes, 0)) > $8
+		  )`
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, query,
+		schedule.OrganizationID,
+		schedule.VehicleID,
+		excludeID,
+		schedule.EndDate,
+		schedule.StartDate,
+		schedule.DaysOfWeek,
+		float64(newStart)/60.0,
+		float64(newEnd)/60.0,
+	).Scan(&count)
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *PostgresScheduleRepository) Update(ctx context.Context, schedule *domain.ScheduleTemplate) error {
+	// 1. Fetch current version within a transaction
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get current state for versioning
+	var currentVersion int
+
+	// Simply selecting all fields to store as snapshot
+	queryGet := `SELECT id, organization_id, route_id, vehicle_id, vehicle_type, vehicle_class, total_seats, pricing,
+		departure_time, arrival_offset_minutes, timezone, start_date, end_date, days_of_week, status, version 
+		FROM schedule_templates WHERE id = $1 AND organization_id = $2 FOR UPDATE`
+
+	var current domain.ScheduleTemplate
+	var pricingJSON []byte
+	var departureTime time.Time
+
+	err = tx.QueryRowContext(ctx, queryGet, schedule.ID, schedule.OrganizationID).Scan(
+		&current.ID, &current.OrganizationID, &current.RouteID, &current.VehicleID,
+		&current.VehicleType, &current.VehicleClass, &current.TotalSeats, &pricingJSON,
+		&departureTime, &current.ArrivalOffsetMinutes, &current.Timezone, &current.StartDate,
+		&current.EndDate, &current.DaysOfWeek, &current.Status, &currentVersion,
+	)
+	if err != nil {
+		return err
+	}
+	current.DepartureMinutes = timeToMinutes(departureTime)
+	json.Unmarshal(pricingJSON, &current.Pricing)
+
+	// 2. Insert into schedule_versions
+	snapshot, _ := json.Marshal(current)
+	queryVersion := `INSERT INTO schedule_versions (schedule_id, version, snapshot) VALUES ($1, $2, $3)`
+	_, err = tx.ExecContext(ctx, queryVersion, current.ID, currentVersion, snapshot)
+	if err != nil {
+		return err
+	}
+
+	// 3. Update the schedule_templates table and increment version
+	newVersion := currentVersion + 1
+	schedule.Version = newVersion
+	schedule.UpdatedAt = time.Now()
+	newPricingJSON, _ := json.Marshal(schedule.Pricing)
+
+	queryUpdate := `UPDATE schedule_templates SET 
+		route_id = $1, vehicle_id = $2, vehicle_type = $3, vehicle_class = $4, total_seats = $5, pricing = $6,
+		departure_time = $7, arrival_offset_minutes = $8, timezone = $9, start_date = $10, end_date = $11,
+		days_of_week = $12, status = $13, version = $14, updated_at = $15
+		WHERE id = $16 AND organization_id = $17`
+
+	res, err := tx.ExecContext(ctx, queryUpdate,
+		schedule.RouteID, schedule.VehicleID, schedule.VehicleType, schedule.VehicleClass, schedule.TotalSeats, newPricingJSON,
+		minutesToTime(schedule.DepartureMinutes), schedule.ArrivalOffsetMinutes, schedule.Timezone, schedule.StartDate, schedule.EndDate,
+		schedule.DaysOfWeek, schedule.Status, newVersion, schedule.UpdatedAt,
+		schedule.ID, schedule.OrganizationID,
+	)
+	if err != nil {
+		return err
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrScheduleNotFound
+	}
+
+	return tx.Commit()
+}
+
+func (r *PostgresScheduleRepository) Delete(ctx context.Context, id, orgID string) error {
+	query := `DELETE FROM schedule_templates WHERE id = $1 AND organization_id = $2`
+	res, err := r.DB.ExecContext(ctx, query, id, orgID)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrScheduleNotFound
+	}
+	return nil
+}
+
+func (r *PostgresScheduleRepository) AddException(ctx context.Context, exception *domain.ScheduleException) error {
+	exception.ID = uuid.New().String()
+	exception.CreatedAt = time.Now()
+	query := `INSERT INTO schedule_exceptions (id, schedule_id, service_date, is_added, reason, created_at)
+			  VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := r.DB.ExecContext(ctx, query,
+		exception.ID, exception.ScheduleID, exception.ServiceDate, exception.IsAdded, exception.Reason, exception.CreatedAt)
+	return err
+}
+
+func (r *PostgresScheduleRepository) ListExceptions(ctx context.Context, scheduleID, orgID string) ([]*domain.ScheduleException, error) {
+	// Verify ownership first
+	var exists bool
+	r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM schedule_templates WHERE id=$1 AND organization_id=$2)", scheduleID, orgID).Scan(&exists)
+	if !exists {
+		return nil, ErrScheduleNotFound
+	}
+
+	query := `SELECT id, schedule_id, service_date, is_added, reason, created_at FROM schedule_exceptions WHERE schedule_id = $1`
+	rows, err := r.DB.QueryContext(ctx, query, scheduleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var exceptions []*domain.ScheduleException
+	for rows.Next() {
+		var ex domain.ScheduleException
+		var serviceDate time.Time // To parse DB date format
+		if err := rows.Scan(&ex.ID, &ex.ScheduleID, &serviceDate, &ex.IsAdded, &ex.Reason, &ex.CreatedAt); err != nil {
+			return nil, err
+		}
+		ex.ServiceDate = serviceDate.Format("2006-01-02")
+		exceptions = append(exceptions, &ex)
+	}
+	return exceptions, nil
+}
+
+func (r *PostgresScheduleRepository) GetHistory(ctx context.Context, scheduleID, orgID string) ([]*domain.ScheduleVersion, error) {
+	// Verify ownership
+	var exists bool
+	err := r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM schedule_templates WHERE id=$1 AND organization_id=$2)", scheduleID, orgID).Scan(&exists)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrScheduleNotFound
+	}
+
+	query := `SELECT id, schedule_id, version, snapshot, created_at FROM schedule_versions WHERE schedule_id = $1 ORDER BY version DESC`
+	rows, err := r.DB.QueryContext(ctx, query, scheduleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var versions []*domain.ScheduleVersion
+	for rows.Next() {
+		var v domain.ScheduleVersion
+		var snapshotJSON []byte
+		if err := rows.Scan(&v.ID, &v.ScheduleID, &v.Version, &snapshotJSON, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		json.Unmarshal(snapshotJSON, &v.Snapshot)
+		versions = append(versions, &v)
+	}
+	return versions, nil
+}
+
+func minutesToTime(minutes int) time.Time {
+	if minutes < 0 {
+		minutes = 0
+	}
+	hours := minutes / 60
+	mins := minutes % 60
+	return time.Date(2000, 1, 1, hours, mins, 0, 0, time.UTC)
+}
+
+func timeToMinutes(t time.Time) int {
+	return t.Hour()*60 + t.Minute()
 }

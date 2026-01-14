@@ -3,8 +3,10 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
+	orderpb "github.com/MuhibNayem/Travio/server/api/proto/order/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/kafka"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/service"
@@ -14,10 +16,12 @@ import (
 type OrderEventConsumer struct {
 	consumer           *kafka.Consumer
 	fulfillmentService *service.FulfillmentService
+	catalogClient      CatalogClient
+	orderClient        OrderClient
 }
 
 // NewOrderEventConsumer creates a new consumer for order events
-func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.FulfillmentService) (*OrderEventConsumer, error) {
+func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.FulfillmentService, catalogClient CatalogClient, orderClient OrderClient) (*OrderEventConsumer, error) {
 	consumer, err := kafka.NewConsumer(brokers, "fulfillment-service", []string{kafka.TopicOrders})
 	if err != nil {
 		return nil, err
@@ -26,6 +30,8 @@ func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.Fulfillment
 	c := &OrderEventConsumer{
 		consumer:           consumer,
 		fulfillmentService: fulfillmentSvc,
+		catalogClient:      catalogClient,
+		orderClient:        orderClient,
 	}
 
 	// Register handlers
@@ -67,30 +73,55 @@ func (c *OrderEventConsumer) handleOrderConfirmed(ctx context.Context, event *ka
 		return err
 	}
 
-	// In a real implementation, we would fetch trip/passenger details from catalog
-	// For now, create a placeholder request
+    order, err := c.orderClient.GetOrder(ctx, payload.OrderID, payload.UserID)
+	if err != nil {
+		logger.Error("failed to fetch order", "error", err)
+		return err
+	}
+
+	trip, err := c.catalogClient.GetTrip(ctx, payload.OrganizationID, payload.TripID)
+	if err != nil {
+		logger.Error("failed to fetch trip", "error", err)
+		return err
+	}
+
+	route, err := c.catalogClient.GetRoute(ctx, payload.OrganizationID, trip.RouteId)
+	if err != nil {
+		logger.Error("failed to fetch route", "error", err)
+		return err
+	}
+
+	origin, err := c.catalogClient.GetStation(ctx, payload.OrganizationID, order.FromStationId)
+	if err != nil {
+		logger.Error("failed to fetch origin station", "error", err)
+		return err
+	}
+
+	destination, err := c.catalogClient.GetStation(ctx, payload.OrganizationID, order.ToStationId)
+	if err != nil {
+		logger.Error("failed to fetch destination station", "error", err)
+		return err
+	}
+
+	passengers := buildPassengerSeats(order, payload.TotalPaisa)
+	if len(passengers) == 0 {
+		logger.Error("no passengers found for order", "order_id", payload.OrderID)
+		return fmt.Errorf("no passengers found for order %s", payload.OrderID)
+	}
+
 	req := &service.GenerateTicketsReq{
 		BookingID:      payload.BookingID,
 		OrderID:        payload.OrderID,
 		OrganizationID: payload.OrganizationID,
 		TripID:         payload.TripID,
-		RouteName:      "Express Route", // Would come from catalog
-		FromStation:    "Origin",        // Would come from catalog
-		ToStation:      "Destination",   // Would come from catalog
-		DepartureTime:  time.Now().Add(24 * time.Hour),
-		ArrivalTime:    time.Now().Add(28 * time.Hour),
-		Passengers: []service.PassengerSeat{
-			{
-				NID:        "PLACEHOLDER",
-				Name:       "Passenger",
-				SeatID:     "seat-1",
-				SeatNumber: "A1",
-				SeatClass:  "AC",
-				PricePaisa: payload.TotalPaisa,
-			},
-		},
-		ContactEmail: payload.ContactEmail,
-		ContactPhone: payload.ContactPhone,
+		RouteName:      route.Name,
+		FromStation:    origin.Name,
+		ToStation:      destination.Name,
+		DepartureTime:  time.Unix(trip.DepartureTime, 0),
+		ArrivalTime:    time.Unix(trip.ArrivalTime, 0),
+		Passengers:     passengers,
+		ContactEmail:   order.ContactEmail,
+		ContactPhone:   order.ContactPhone,
 	}
 
 	// Generate tickets
@@ -109,6 +140,69 @@ func (c *OrderEventConsumer) handleOrderConfirmed(ctx context.Context, event *ka
 	)
 
 	return nil
+}
+
+func buildPassengerSeats(order *orderpb.Order, totalPaisa int64) []service.PassengerSeat {
+	if order == nil {
+		return nil
+	}
+
+	seatPrices := make(map[string]int64)
+	seatClass := make(map[string]string)
+	seatNumber := make(map[string]string)
+	for _, seat := range order.Seats {
+		seatPrices[seat.SeatId] = seat.PricePaisa
+		seatClass[seat.SeatId] = seat.SeatClass
+		seatNumber[seat.SeatId] = seat.SeatNumber
+	}
+
+	var passengers []service.PassengerSeat
+	for _, p := range order.Passengers {
+		price := seatPrices[p.SeatId]
+		if price == 0 && totalPaisa > 0 {
+			price = totalPaisa / int64(max(1, len(order.Passengers)))
+		}
+		seatNum := p.SeatNumber
+		if seatNum == "" {
+			seatNum = seatNumber[p.SeatId]
+		}
+		seatCls := p.SeatClass
+		if seatCls == "" {
+			seatCls = seatClass[p.SeatId]
+		}
+		passengers = append(passengers, service.PassengerSeat{
+			NID:        p.Nid,
+			Name:       p.Name,
+			SeatID:     p.SeatId,
+			SeatNumber: seatNum,
+			SeatClass:  seatCls,
+			PricePaisa: price,
+		})
+	}
+
+	if len(passengers) == 0 && len(order.Seats) > 0 {
+		for _, seat := range order.Seats {
+			price := seat.PricePaisa
+			if price == 0 && totalPaisa > 0 {
+				price = totalPaisa / int64(max(1, len(order.Seats)))
+			}
+			passengers = append(passengers, service.PassengerSeat{
+				SeatID:     seat.SeatId,
+				SeatNumber: seat.SeatNumber,
+				SeatClass:  seat.SeatClass,
+				PricePaisa: price,
+			})
+		}
+	}
+
+	return passengers
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // Start begins consuming events

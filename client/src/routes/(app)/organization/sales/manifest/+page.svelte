@@ -57,10 +57,10 @@
 
     async function loadTrips() {
         try {
-            const res = await catalogApi.getTrips();
-            trips = res.map((t) => ({
-                id: t.id,
-                label: `${t.vehicle_class || "Trip"} - ${new Date(t.departure_time * 1000).toLocaleDateString()}`,
+            const res = await catalogApi.listTripInstances();
+            trips = res.map((r) => ({
+                id: r.trip.id,
+                label: `${r.route?.name || r.trip.vehicle_class || "Trip"} - ${new Date(r.trip.departure_time * 1000).toLocaleDateString()}`,
             }));
         } catch (e) {
             console.error(e);

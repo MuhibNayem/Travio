@@ -42,6 +42,11 @@ func (h *InventoryHandler) CheckAvailability(w http.ResponseWriter, r *http.Requ
 	tripID := chi.URLParam(r, "tripId")
 	fromStation := r.URL.Query().Get("from")
 	toStation := r.URL.Query().Get("to")
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
+		return
+	}
 	passengers, _ := strconv.Atoi(r.URL.Query().Get("passengers"))
 	if passengers == 0 {
 		passengers = 1
@@ -49,10 +54,11 @@ func (h *InventoryHandler) CheckAvailability(w http.ResponseWriter, r *http.Requ
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.CheckAvailability(ctx, &inventorypb.CheckAvailabilityRequest{
-			TripId:        tripID,
-			FromStationId: fromStation,
-			ToStationId:   toStation,
-			Passengers:    int32(passengers),
+			OrganizationId: orgID,
+			TripId:         tripID,
+			FromStationId:  fromStation,
+			ToStationId:    toStation,
+			Passengers:     int32(passengers),
 		})
 	})
 	if err != nil {
@@ -89,12 +95,18 @@ func (h *InventoryHandler) GetSeatMap(w http.ResponseWriter, r *http.Request) {
 	tripID := chi.URLParam(r, "tripId")
 	fromStation := r.URL.Query().Get("from")
 	toStation := r.URL.Query().Get("to")
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
+		return
+	}
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.GetSeatMap(ctx, &inventorypb.GetSeatMapRequest{
-			TripId:        tripID,
-			FromStationId: fromStation,
-			ToStationId:   toStation,
+			OrganizationId: orgID,
+			TripId:         tripID,
+			FromStationId:  fromStation,
+			ToStationId:    toStation,
 		})
 	})
 	if err != nil {
@@ -155,9 +167,15 @@ func (h *InventoryHandler) HoldSeats(w http.ResponseWriter, r *http.Request) {
 	if userID == "" {
 		userID = "anonymous"
 	}
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
+		return
+	}
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.HoldSeats(ctx, &inventorypb.HoldSeatsRequest{
+			OrganizationId:      orgID,
 			TripId:              req.TripID,
 			FromStationId:       req.FromStationID,
 			ToStationId:         req.ToStationID,
@@ -197,11 +215,17 @@ func (h *InventoryHandler) ReleaseHold(w http.ResponseWriter, r *http.Request) {
 
 	holdID := chi.URLParam(r, "holdId")
 	userID := middleware.GetUserID(r.Context())
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
+		return
+	}
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.ReleaseSeats(ctx, &inventorypb.ReleaseSeatsRequest{
-			HoldId: holdID,
-			UserId: userID,
+			OrganizationId: orgID,
+			HoldId:         holdID,
+			UserId:         userID,
 		})
 	})
 	if err != nil {

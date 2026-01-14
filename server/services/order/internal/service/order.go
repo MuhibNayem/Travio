@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	catalogpb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
+	inventorypb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
+	pricingpb "github.com/MuhibNayem/Travio/server/api/proto/pricing/v1"
+	"github.com/MuhibNayem/Travio/server/services/order/internal/clients"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/events"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/messaging"
@@ -16,16 +20,17 @@ import (
 
 const (
 	DefaultCurrency = "BDT"
-	TaxRate         = 0.05 // 5% VAT
-	BookingFeePaisa = 2000 // 20 BDT per passenger
 )
 
 type OrderService struct {
-	db           *sql.DB
-	orderRepo    *repository.OrderRepository
-	sagaDeps     *saga.BookingDependencies
-	orchestrator *saga.Orchestrator
-	publisher    *events.Publisher
+	db              *sql.DB
+	orderRepo       *repository.OrderRepository
+	sagaDeps        *saga.BookingDependencies
+	orchestrator    *saga.Orchestrator
+	publisher       *events.Publisher
+	catalogClient   *clients.CatalogClient
+	pricingClient   *clients.PricingClient
+	inventoryClient *clients.InventoryClient
 }
 
 func NewOrderService(
@@ -34,13 +39,19 @@ func NewOrderService(
 	dlq messaging.DLQProducer,
 	orderRepo *repository.OrderRepository,
 	sagaDeps *saga.BookingDependencies,
+	catalogClient *clients.CatalogClient,
+	pricingClient *clients.PricingClient,
+	inventoryClient *clients.InventoryClient,
 ) *OrderService {
 	return &OrderService{
-		db:           db,
-		orderRepo:    orderRepo,
-		sagaDeps:     sagaDeps,
-		orchestrator: saga.NewOrchestrator(gormDB, dlq),
-		publisher:    events.NewPublisher(db),
+		db:              db,
+		orderRepo:       orderRepo,
+		sagaDeps:        sagaDeps,
+		orchestrator:    saga.NewOrchestrator(gormDB, dlq),
+		publisher:       events.NewPublisher(db),
+		catalogClient:   catalogClient,
+		pricingClient:   pricingClient,
+		inventoryClient: inventoryClient,
 	}
 }
 
@@ -64,6 +75,20 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 	}
 	defer tx.Rollback()
 
+	if s.catalogClient == nil || s.pricingClient == nil || s.inventoryClient == nil {
+		return nil, fmt.Errorf("pricing dependencies unavailable")
+	}
+
+	trip, err := s.catalogClient.GetTrip(ctx, req.OrgID, req.TripID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch trip: %w", err)
+	}
+	seatMap, err := s.inventoryClient.GetSeatMap(ctx, req.OrgID, req.TripID, req.FromStation, req.ToStation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch seat map: %w", err)
+	}
+	seatInfoMap := buildSeatInfoMap(seatMap)
+
 	// Create order record
 	order := &domain.Order{
 		OrganizationID: req.OrgID,
@@ -83,12 +108,77 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		IdempotencyKey: req.IdempotencyKey,
 	}
 
-	// Calculate totals (in production, fetch prices from catalog)
-	basePrices := make(map[string]int64)
-	for _, p := range req.Passengers {
-		basePrices[p.SeatID] = 80000 // 800 BDT placeholder
+	serviceDate := trip.ServiceDate
+	if serviceDate == "" && trip.DepartureTime > 0 {
+		serviceDate = time.Unix(trip.DepartureTime, 0).Format("2006-01-02")
 	}
-	order.CalculateTotals(basePrices, TaxRate, BookingFeePaisa)
+	occupancyRate := calculateOccupancyRate(trip.TotalSeats, trip.AvailableSeats)
+
+	seatPrices := make(map[string]int64)
+	var baseSubtotal int64
+	for i, passenger := range order.Passengers {
+		seatDetail, ok := seatInfoMap[passenger.SeatID]
+		if !ok {
+			return nil, fmt.Errorf("seat %s not found in seat map", passenger.SeatID)
+		}
+		seatClass := seatDetail.SeatClass
+		if seatClass == "" {
+			seatClass = trip.VehicleClass
+		}
+		seatCategory := seatDetail.SeatType
+		if seatCategory == "" {
+			seatCategory = seatClass
+		}
+		order.Passengers[i].SeatClass = seatClass
+		order.Passengers[i].SeatNumber = seatDetail.SeatNumber
+
+		basePrice := resolveBasePrice(trip.Pricing, req.FromStation, req.ToStation, seatClass, seatCategory)
+		if basePrice <= 0 {
+			return nil, fmt.Errorf("invalid base price for seat %s", passenger.SeatID)
+		}
+		baseSubtotal += basePrice
+		priceResp, err := s.pricingClient.CalculatePrice(ctx, &pricingpb.CalculatePriceRequest{
+			TripId:         trip.Id,
+			SeatClass:      seatClass,
+			SeatCategory:   seatCategory,
+			Date:           serviceDate,
+			Quantity:       1,
+			BasePricePaisa: basePrice,
+			OccupancyRate:  occupancyRate,
+			OrganizationId: req.OrgID,
+			DepartureTime:  trip.DepartureTime,
+			RouteId:        trip.RouteId,
+			ScheduleId:     trip.ScheduleId,
+			FromStationId:  req.FromStation,
+			ToStationId:    req.ToStation,
+			VehicleType:    trip.VehicleType,
+			VehicleClass:   trip.VehicleClass,
+			PromoCode:      req.CouponCode,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("pricing calculation failed: %w", err)
+		}
+		seatPrices[passenger.SeatID] = priceResp.FinalPricePaisa
+	}
+
+	order.SubtotalPaisa = 0
+	for _, price := range seatPrices {
+		order.SubtotalPaisa += price
+	}
+	if baseSubtotal > order.SubtotalPaisa {
+		order.DiscountPaisa = baseSubtotal - order.SubtotalPaisa
+	}
+	if trip.Pricing != nil {
+		order.TaxPaisa = trip.Pricing.TaxPaisa * int64(len(order.Passengers))
+		order.BookingFeePaisa = trip.Pricing.BookingFeePaisa * int64(len(order.Passengers))
+		if trip.Pricing.Currency != "" {
+			order.Currency = trip.Pricing.Currency
+		}
+	}
+	order.TotalPaisa = order.SubtotalPaisa + order.TaxPaisa + order.BookingFeePaisa - order.DiscountPaisa
+	if order.TotalPaisa < 0 {
+		order.TotalPaisa = 0
+	}
 
 	// Create order in transaction
 	txRepo := repository.NewTxOrderRepository(tx)
@@ -355,6 +445,80 @@ func convertToSagaPassengers(reqs []PassengerRequest) []saga.PassengerInfo {
 		})
 	}
 	return passengers
+}
+
+type seatInfo struct {
+	SeatNumber string
+	SeatClass  string
+	SeatType   string
+}
+
+func buildSeatInfoMap(seatMap *inventorypb.GetSeatMapResponse) map[string]seatInfo {
+	result := make(map[string]seatInfo)
+	if seatMap == nil {
+		return result
+	}
+	for _, row := range seatMap.Rows {
+		for _, seat := range row.Seats {
+			result[seat.SeatId] = seatInfo{
+				SeatNumber: seat.SeatNumber,
+				SeatClass:  seat.SeatClass,
+				SeatType:   seat.SeatType,
+			}
+		}
+	}
+	return result
+}
+
+func calculateOccupancyRate(totalSeats int32, availableSeats int32) float64 {
+	if totalSeats <= 0 {
+		return 0
+	}
+	used := totalSeats - availableSeats
+	if used < 0 {
+		used = 0
+	}
+	return float64(used) / float64(totalSeats)
+}
+
+func resolveBasePrice(pricing *catalogpb.TripPricing, fromStationID, toStationID, seatClass, seatCategory string) int64 {
+	if pricing == nil {
+		return 0
+	}
+	var segmentPricing *catalogpb.SegmentPricing
+	for _, segment := range pricing.SegmentPrices {
+		if segment != nil && segment.FromStationId == fromStationID && segment.ToStationId == toStationID {
+			segmentPricing = segment
+			break
+		}
+	}
+
+	basePrice := pricing.BasePricePaisa
+	classPrices := pricing.ClassPrices
+	categoryPrices := pricing.SeatCategoryPrices
+	if segmentPricing != nil {
+		if segmentPricing.BasePricePaisa > 0 {
+			basePrice = segmentPricing.BasePricePaisa
+		}
+		if len(segmentPricing.ClassPrices) > 0 {
+			classPrices = segmentPricing.ClassPrices
+		}
+		if len(segmentPricing.SeatCategoryPrices) > 0 {
+			categoryPrices = segmentPricing.SeatCategoryPrices
+		}
+	}
+
+	if seatCategory != "" {
+		if price, ok := categoryPrices[seatCategory]; ok && price > 0 {
+			return price
+		}
+	}
+	if seatClass != "" {
+		if price, ok := classPrices[seatClass]; ok && price > 0 {
+			return price
+		}
+	}
+	return basePrice
 }
 
 func parsePageToken(token string) int {

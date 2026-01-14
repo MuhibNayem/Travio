@@ -101,11 +101,20 @@ func (s *PricingService) RefreshRules(ctx context.Context) error {
 type CalculatePriceRequest struct {
 	TripID         string
 	SeatClass      string
+	SeatCategory   string
 	Date           string
 	Quantity       int
 	BasePricePaisa int64
 	OccupancyRate  float64
 	OrganizationID string // New field
+	DepartureTime  int64
+	RouteID        string
+	ScheduleID     string
+	FromStationID  string
+	ToStationID    string
+	VehicleType    string
+	VehicleClass   string
+	PromoCode      string
 }
 
 // CalculatePriceResponse represents a pricing calculation response
@@ -139,7 +148,22 @@ func (s *PricingService) CalculatePrice(ctx context.Context, req *CalculatePrice
 		}, nil
 	}
 
-	env := engine.CreateEnvironment(req.SeatClass, req.Date, req.Quantity, req.OccupancyRate)
+	env := engine.CreateEnvironment(engine.EnvironmentParams{
+		SeatClass:     req.SeatClass,
+		SeatCategory:  req.SeatCategory,
+		Date:          req.Date,
+		Quantity:      req.Quantity,
+		OccupancyRate: req.OccupancyRate,
+		TripID:        req.TripID,
+		RouteID:       req.RouteID,
+		ScheduleID:    req.ScheduleID,
+		FromStationID: req.FromStationID,
+		ToStationID:   req.ToStationID,
+		VehicleType:   req.VehicleType,
+		VehicleClass:  req.VehicleClass,
+		PromoCode:     req.PromoCode,
+		DepartureTime: req.DepartureTime,
+	})
 	finalPrice, appliedRules, err := eng.Evaluate(ctx, req.BasePricePaisa, env)
 	if err != nil {
 		return nil, err
@@ -160,6 +184,9 @@ func (s *PricingService) GetRules(ctx context.Context, includeInactive bool, org
 // CreateRule creates a new pricing rule
 func (s *PricingService) CreateRule(ctx context.Context, rule *repository.PricingRule) error {
 	rule.IsActive = true
+	if rule.AdjustmentType == "" {
+		rule.AdjustmentType = "multiplier"
+	}
 	if err := s.repo.CreateRule(ctx, rule); err != nil {
 		return err
 	}
@@ -168,6 +195,9 @@ func (s *PricingService) CreateRule(ctx context.Context, rule *repository.Pricin
 
 // UpdateRule updates a pricing rule
 func (s *PricingService) UpdateRule(ctx context.Context, rule *repository.PricingRule) error {
+	if rule.AdjustmentType == "" {
+		rule.AdjustmentType = "multiplier"
+	}
 	if err := s.repo.UpdateRule(ctx, rule); err != nil {
 		return err
 	}

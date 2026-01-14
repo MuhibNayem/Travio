@@ -12,16 +12,18 @@ import (
 
 // PricingRule represents a pricing rule in the database
 type PricingRule struct {
-	ID             string
-	OrganizationID *string // Nullable
-	Name           string
-	Description    string
-	Condition      string
-	Multiplier     float64
-	Priority       int
-	IsActive       bool
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID              string
+	OrganizationID  *string // Nullable
+	Name            string
+	Description     string
+	Condition       string
+	Multiplier      float64
+	AdjustmentType  string
+	AdjustmentValue float64
+	Priority        int
+	IsActive        bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // Repository interface for pricing rules
@@ -53,6 +55,8 @@ func (r *PostgresRepository) InitSchema(ctx context.Context) error {
 			description TEXT,
 			condition TEXT NOT NULL,
 			multiplier DECIMAL(5,4) NOT NULL,
+			adjustment_type VARCHAR(20) DEFAULT 'multiplier',
+			adjustment_value DECIMAL(10,2) DEFAULT 0,
 			priority INT DEFAULT 0,
 			is_active BOOLEAN DEFAULT true,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -81,6 +85,7 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 			Description:    "20% increase on weekends",
 			Condition:      `day_of_week == "Saturday" || day_of_week == "Sunday"`,
 			Multiplier:     1.20,
+			AdjustmentType: "multiplier",
 			Priority:       10,
 			IsActive:       true,
 		},
@@ -91,6 +96,7 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 			Description:    "15% off for bookings 30+ days in advance",
 			Condition:      `days_until_departure > 30`,
 			Multiplier:     0.85,
+			AdjustmentType: "multiplier",
 			Priority:       20,
 			IsActive:       true,
 		},
@@ -101,6 +107,7 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 			Description:    "50% increase for bookings within 3 days",
 			Condition:      `days_until_departure < 3`,
 			Multiplier:     1.50,
+			AdjustmentType: "multiplier",
 			Priority:       5,
 			IsActive:       true,
 		},
@@ -111,6 +118,7 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 			Description:    "25% increase when occupancy > 80%",
 			Condition:      `occupancy_rate > 0.8`,
 			Multiplier:     1.25,
+			AdjustmentType: "multiplier",
 			Priority:       15,
 			IsActive:       true,
 		},
@@ -121,6 +129,7 @@ func (r *PostgresRepository) SeedDefaultRules(ctx context.Context) error {
 			Description:    "40% premium for business class",
 			Condition:      `seat_class == "business"`,
 			Multiplier:     1.40,
+			AdjustmentType: "multiplier",
 			Priority:       1,
 			IsActive:       true,
 		},
@@ -140,7 +149,7 @@ func (r *PostgresRepository) GetActiveRules(ctx context.Context) ([]*PricingRule
 }
 
 func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bool, organizationID string) ([]*PricingRule, error) {
-	query := `SELECT id, organization_id, name, description, condition, multiplier, priority, is_active, created_at, updated_at 
+	query := `SELECT id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active, created_at, updated_at 
 	          FROM pricing_rules WHERE 1=1`
 
 	args := []interface{}{}
@@ -167,7 +176,7 @@ func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bo
 	var rules []*PricingRule
 	for rows.Next() {
 		var rule PricingRule
-		if err := rows.Scan(&rule.ID, &rule.OrganizationID, &rule.Name, &rule.Description, &rule.Condition, &rule.Multiplier, &rule.Priority, &rule.IsActive, &rule.CreatedAt, &rule.UpdatedAt); err != nil {
+		if err := rows.Scan(&rule.ID, &rule.OrganizationID, &rule.Name, &rule.Description, &rule.Condition, &rule.Multiplier, &rule.AdjustmentType, &rule.AdjustmentValue, &rule.Priority, &rule.IsActive, &rule.CreatedAt, &rule.UpdatedAt); err != nil {
 			return nil, err
 		}
 		rules = append(rules, &rule)
@@ -182,16 +191,16 @@ func (r *PostgresRepository) CreateRule(ctx context.Context, rule *PricingRule) 
 	rule.CreatedAt = time.Now()
 	rule.UpdatedAt = time.Now()
 
-	query := `INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, priority, is_active, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.OrganizationID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.Priority, rule.IsActive, rule.CreatedAt, rule.UpdatedAt)
+	query := `INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
+	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.OrganizationID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.AdjustmentType, rule.AdjustmentValue, rule.Priority, rule.IsActive, rule.CreatedAt, rule.UpdatedAt)
 	return err
 }
 
 func (r *PostgresRepository) UpdateRule(ctx context.Context, rule *PricingRule) error {
 	rule.UpdatedAt = time.Now()
-	query := `UPDATE pricing_rules SET name=$2, description=$3, condition=$4, multiplier=$5, priority=$6, is_active=$7, updated_at=$8 WHERE id=$1`
-	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.Priority, rule.IsActive, rule.UpdatedAt)
+	query := `UPDATE pricing_rules SET name=$2, description=$3, condition=$4, multiplier=$5, adjustment_type=$6, adjustment_value=$7, priority=$8, is_active=$9, updated_at=$10 WHERE id=$1`
+	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.AdjustmentType, rule.AdjustmentValue, rule.Priority, rule.IsActive, rule.UpdatedAt)
 	return err
 }
 
@@ -205,11 +214,13 @@ func ToEngineRules(rules []*PricingRule) []*engine.Rule {
 	var engineRules []*engine.Rule
 	for _, r := range rules {
 		engineRules = append(engineRules, &engine.Rule{
-			ID:         r.ID,
-			Name:       r.Name,
-			Condition:  r.Condition,
-			Multiplier: r.Multiplier,
-			Priority:   r.Priority,
+			ID:              r.ID,
+			Name:            r.Name,
+			Condition:       r.Condition,
+			Multiplier:      r.Multiplier,
+			AdjustmentType:  r.AdjustmentType,
+			AdjustmentValue: r.AdjustmentValue,
+			Priority:        r.Priority,
 		})
 	}
 	return engineRules

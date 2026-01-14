@@ -2,7 +2,10 @@ module github.com/MuhibNayem/Travio/server/services/notification
 
 go 1.25.3
 
-require github.com/MuhibNayem/Travio/server/pkg v0.0.0
+require (
+	github.com/MuhibNayem/Travio/server/pkg v0.0.0
+	golang.org/x/time v0.14.0
+)
 
 require (
 	github.com/IBM/sarama v1.43.0 // indirect
@@ -25,7 +28,9 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
 )
 
-replace github.com/MuhibNayem/Travio/server/pkg => ../../pkg
+replace (
+	github.com/MuhibNayem/Travio/server/api => ../../api
+	github.com/MuhibNayem/Travio/server/pkg => ../../pkg
+)

@@ -21,14 +21,14 @@ func NewHoldRepository(client *redis.Client) *HoldRepository {
 }
 
 // CreateHold stores a hold record with automatic expiration
-func (r *HoldRepository) CreateHold(ctx context.Context, hold *domain.SeatHold) error {
+func (r *HoldRepository) CreateHold(ctx context.Context, orgID string, hold *domain.SeatHold) error {
 	data, err := json.Marshal(hold)
 	if err != nil {
 		return err
 	}
 
 	// Key by hold_id
-	holdKey := fmt.Sprintf("hold:%s", hold.HoldID)
+	holdKey := fmt.Sprintf("hold:%s:%s", orgID, hold.HoldID)
 	ttl := time.Until(hold.ExpiresAt)
 
 	pipe := r.client.Pipeline()
@@ -37,12 +37,12 @@ func (r *HoldRepository) CreateHold(ctx context.Context, hold *domain.SeatHold) 
 	pipe.Set(ctx, holdKey, data, ttl)
 
 	// Index by user for lookup
-	userHoldsKey := fmt.Sprintf("user_holds:%s", hold.UserID)
+	userHoldsKey := fmt.Sprintf("user_holds:%s:%s", orgID, hold.UserID)
 	pipe.SAdd(ctx, userHoldsKey, hold.HoldID)
 	pipe.Expire(ctx, userHoldsKey, 24*time.Hour)
 
 	// Index by trip for admin lookup
-	tripHoldsKey := fmt.Sprintf("trip_holds:%s", hold.TripID)
+	tripHoldsKey := fmt.Sprintf("trip_holds:%s:%s", orgID, hold.TripID)
 	pipe.SAdd(ctx, tripHoldsKey, hold.HoldID)
 	pipe.Expire(ctx, tripHoldsKey, 24*time.Hour)
 
@@ -51,8 +51,8 @@ func (r *HoldRepository) CreateHold(ctx context.Context, hold *domain.SeatHold) 
 }
 
 // GetHold retrieves a hold by ID
-func (r *HoldRepository) GetHold(ctx context.Context, holdID string) (*domain.SeatHold, error) {
-	key := fmt.Sprintf("hold:%s", holdID)
+func (r *HoldRepository) GetHold(ctx context.Context, orgID, holdID string) (*domain.SeatHold, error) {
+	key := fmt.Sprintf("hold:%s:%s", orgID, holdID)
 	data, err := r.client.Get(ctx, key).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -75,8 +75,8 @@ func (r *HoldRepository) GetHold(ctx context.Context, holdID string) (*domain.Se
 }
 
 // UpdateHoldStatus updates the status of a hold
-func (r *HoldRepository) UpdateHoldStatus(ctx context.Context, holdID, status string) error {
-	hold, err := r.GetHold(ctx, holdID)
+func (r *HoldRepository) UpdateHoldStatus(ctx context.Context, orgID, holdID, status string) error {
+	hold, err := r.GetHold(ctx, orgID, holdID)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (r *HoldRepository) UpdateHoldStatus(ctx context.Context, holdID, status st
 	hold.Status = status
 	data, _ := json.Marshal(hold)
 
-	key := fmt.Sprintf("hold:%s", holdID)
+	key := fmt.Sprintf("hold:%s:%s", orgID, holdID)
 	ttl := time.Until(hold.ExpiresAt)
 	if ttl < 0 {
 		ttl = time.Minute // Grace period for cleanup
@@ -94,12 +94,12 @@ func (r *HoldRepository) UpdateHoldStatus(ctx context.Context, holdID, status st
 }
 
 // DeleteHold removes a hold
-func (r *HoldRepository) DeleteHold(ctx context.Context, holdID, userID, tripID string) error {
+func (r *HoldRepository) DeleteHold(ctx context.Context, orgID, holdID, userID, tripID string) error {
 	pipe := r.client.Pipeline()
 
-	holdKey := fmt.Sprintf("hold:%s", holdID)
-	userHoldsKey := fmt.Sprintf("user_holds:%s", userID)
-	tripHoldsKey := fmt.Sprintf("trip_holds:%s", tripID)
+	holdKey := fmt.Sprintf("hold:%s:%s", orgID, holdID)
+	userHoldsKey := fmt.Sprintf("user_holds:%s:%s", orgID, userID)
+	tripHoldsKey := fmt.Sprintf("trip_holds:%s:%s", orgID, tripID)
 
 	pipe.Del(ctx, holdKey)
 	pipe.SRem(ctx, userHoldsKey, holdID)
@@ -110,8 +110,8 @@ func (r *HoldRepository) DeleteHold(ctx context.Context, holdID, userID, tripID 
 }
 
 // GetUserHolds returns all active holds for a user
-func (r *HoldRepository) GetUserHolds(ctx context.Context, userID string) ([]*domain.SeatHold, error) {
-	key := fmt.Sprintf("user_holds:%s", userID)
+func (r *HoldRepository) GetUserHolds(ctx context.Context, orgID, userID string) ([]*domain.SeatHold, error) {
+	key := fmt.Sprintf("user_holds:%s:%s", orgID, userID)
 	holdIDs, err := r.client.SMembers(ctx, key).Result()
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (r *HoldRepository) GetUserHolds(ctx context.Context, userID string) ([]*do
 
 	var holds []*domain.SeatHold
 	for _, holdID := range holdIDs {
-		hold, err := r.GetHold(ctx, holdID)
+		hold, err := r.GetHold(ctx, orgID, holdID)
 		if err != nil {
 			continue // Skip expired/invalid holds
 		}
@@ -130,8 +130,8 @@ func (r *HoldRepository) GetUserHolds(ctx context.Context, userID string) ([]*do
 }
 
 // CountUserActiveHolds returns the number of active holds for a user
-func (r *HoldRepository) CountUserActiveHolds(ctx context.Context, userID string) (int, error) {
-	holds, err := r.GetUserHolds(ctx, userID)
+func (r *HoldRepository) CountUserActiveHolds(ctx context.Context, orgID, userID string) (int, error) {
+	holds, err := r.GetUserHolds(ctx, orgID, userID)
 	if err != nil {
 		return 0, err
 	}

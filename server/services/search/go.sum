@@ -1,7 +1,5 @@
 github.com/IBM/sarama v1.43.0 h1:YFFDn8mMI2QL0wOrG0J2sFoVIAFl7hS9JQi2YZsXtJc=
 github.com/IBM/sarama v1.43.0/go.mod h1:zlE6HEbC/SMQ9mhEYaF7nNLYOUyrs0obySKCckWP9BM=
-github.com/MuhibNayem/Travio/server/api v0.0.0-20260107213724-9e1bd5afa1a6 h1:FF6ygjaC7X2AsXWl2CCLHb5m+abt3CIdyAe6GT7KHeM=
-github.com/MuhibNayem/Travio/server/api v0.0.0-20260107213724-9e1bd5afa1a6/go.mod h1:IvcE81orwBHdiJG+AEz3dkdVrJHTUwAj39cVnl58TYM=
 github.com/aws/aws-sdk-go v1.44.263/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/aws/aws-sdk-go-v2 v1.18.0/go.mod h1:uzbQtefpm44goOPmdKyAlXSNcwlRgF3ePWVW6EtJvvw=
 github.com/aws/aws-sdk-go-v2/config v1.18.25/go.mod h1:dZnYpD5wTW/dQF0rRNLVypB396zWCcPiBIvdvSWHEg4=

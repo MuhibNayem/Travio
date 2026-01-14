@@ -280,6 +280,8 @@ func main() {
 			// Organization routes - gRPC to Identity
 			r.Route("/orgs", func(r chi.Router) {
 				r.Post("/", identityHandler.CreateOrganization)
+				r.Get("/me", identityHandler.GetOrganization)
+				r.Put("/me", identityHandler.UpdateOrganization)
 				r.Post("/invites", identityHandler.CreateInvite)
 				r.Get("/invites", identityHandler.ListInvites)
 				r.Get("/members", identityHandler.ListMembers)
@@ -295,7 +297,6 @@ func main() {
 			r.Get("/routes", catalogHandler.ListRoutes)
 			r.Get("/routes/{routeId}", catalogHandler.GetRoute)
 			r.Get("/trips/search", catalogHandler.SearchTrips)
-			r.Get("/trips/{tripId}", catalogHandler.GetTrip)
 		}
 
 		// Search routes (public)
@@ -313,6 +314,12 @@ func main() {
 		if pricingHandler != nil {
 			r.Post("/pricing/calculate", pricingHandler.CalculatePrice)
 			r.Get("/pricing/rules", pricingHandler.GetPricingRules)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireRole("admin"))
+				r.Post("/pricing/rules", pricingHandler.CreatePricingRule)
+				r.Put("/pricing/rules/{ruleId}", pricingHandler.UpdatePricingRule)
+				r.Delete("/pricing/rules/{ruleId}", pricingHandler.DeletePricingRule)
+			})
 		}
 
 		// Operator/Vendor routes (protected + admin only)
@@ -365,8 +372,17 @@ func main() {
 		// Catalog Routes (Protected - Operator Actions)
 		if catalogHandler != nil {
 			r.Post("/routes", catalogHandler.CreateRoute)
-			r.Post("/trips", catalogHandler.CreateTrip)
-			r.Get("/trips", catalogHandler.ListTrips)
+			r.Get("/trip-instances", catalogHandler.ListTripInstances)
+			r.Post("/schedules", catalogHandler.CreateSchedule)
+			r.Post("/schedules/bulk", catalogHandler.BulkCreateSchedules)
+			r.Get("/schedules", catalogHandler.ListSchedules)
+			r.Get("/schedules/{scheduleId}", catalogHandler.GetSchedule)
+			r.Patch("/schedules/{scheduleId}", catalogHandler.UpdateSchedule)
+			r.Delete("/schedules/{scheduleId}", catalogHandler.DeleteSchedule)
+			r.Post("/schedules/{scheduleId}/exceptions", catalogHandler.AddScheduleException)
+			r.Get("/schedules/{scheduleId}/exceptions", catalogHandler.ListScheduleExceptions)
+			r.Post("/schedules/{scheduleId}/generate", catalogHandler.GenerateTripInstances)
+			r.Get("/trip-instances/{tripId}", catalogHandler.GetTripInstance)
 		}
 
 		// Inventory routes (protected)

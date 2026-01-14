@@ -5,6 +5,7 @@ go 1.25.3
 require (
 	github.com/MuhibNayem/Travio/server/api v0.0.0
 	github.com/MuhibNayem/Travio/server/pkg v0.0.0
+	github.com/MuhibNayem/Travio/server/pkg/entitlement v0.0.0-20260112130744-9a8bbd5c5e84
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.8.0
