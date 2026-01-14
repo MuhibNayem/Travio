@@ -350,7 +350,7 @@
             </Dialog.Description>
         </Dialog.Header>
 
-        <div class="grid gap-4 py-4">
+        <div class="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
             <div class="grid gap-2">
                 <Label>Route</Label>
                 <Combobox
