@@ -30,6 +30,10 @@ service InventoryService {
   
   // Admin: Bulk update inventory (cancellations, adjustments)
   rpc UpdateInventory(UpdateInventoryRequest) returns (UpdateInventoryResponse);
+
+  // Waitlist
+  rpc JoinWaitlist(JoinWaitlistRequest) returns (JoinWaitlistResponse);
+  rpc GetUserWaitlist(GetUserWaitlistRequest) returns (GetUserWaitlistResponse);
 }
 
 // --- Availability Check ---
@@ -239,4 +243,37 @@ message SeatUpdate {
 message UpdateInventoryResponse {
   bool success = 1;
   int32 updated_count = 2;
+}
+
+// --- Waitlist ---
+
+message JoinWaitlistRequest {
+  string trip_id = 1;
+  string user_id = 2;
+  string seat_class = 3;
+  int32 requested_seats = 4;
+  string organization_id = 5;
+}
+
+message JoinWaitlistResponse {
+  bool success = 1;
+  string message = 2;
+  int32 position = 3;
+}
+
+message GetUserWaitlistRequest {
+  string user_id = 1;
+}
+
+message WaitlistEntry {
+  string trip_id = 1;
+  string organization_id = 2;
+  string seat_class = 3;
+  int32 requested_seats = 4;
+  string status = 5;
+  string created_at = 6;
+}
+
+message GetUserWaitlistResponse {
+  repeated WaitlistEntry entries = 1;
 }

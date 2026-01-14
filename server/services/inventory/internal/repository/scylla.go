@@ -280,3 +280,54 @@ func (r *ScyllaRepository) CountAvailableSeats(ctx context.Context, orgID, tripI
 
 	return available, nil
 }
+
+// AddToWaitlist adds a user to the waitlist
+func (r *ScyllaRepository) AddToWaitlist(ctx context.Context, entry domain.WaitlistEntry) error {
+	query := `INSERT INTO waitlist (organization_id, trip_id, user_id, seat_class, requested_seats, created_at, status)
+	          VALUES (?, ?, ?, ?, ?, ?, ?)`
+	return r.session.Query(query, entry.OrganizationID, entry.TripID, entry.UserID, entry.SeatClass, entry.RequestedSeats, entry.CreatedAt, entry.Status).WithContext(ctx).Exec()
+}
+
+// GetNextWaitlistEntries returns pending waitlist entries ordered by FIFO
+func (r *ScyllaRepository) GetNextWaitlistEntries(ctx context.Context, orgID, tripID string, limit int) ([]domain.WaitlistEntry, error) {
+	query := `SELECT organization_id, trip_id, user_id, seat_class, requested_seats, created_at, status 
+	          FROM waitlist WHERE organization_id = ? AND trip_id = ? ORDER BY created_at ASC LIMIT ?`
+
+	iter := r.session.Query(query, orgID, tripID, limit).WithContext(ctx).Iter()
+
+	var entries []domain.WaitlistEntry
+	var entry domain.WaitlistEntry
+	for iter.Scan(&entry.OrganizationID, &entry.TripID, &entry.UserID, &entry.SeatClass, &entry.RequestedSeats, &entry.CreatedAt, &entry.Status) {
+		entries = append(entries, entry)
+	}
+
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+// GetUserWaitlist return waitlist entries for a user
+func (r *ScyllaRepository) GetUserWaitlist(ctx context.Context, userID string) ([]domain.WaitlistEntry, error) {
+	query := `SELECT organization_id, trip_id, user_id, seat_class, requested_seats, created_at, status 
+	          FROM waitlist_by_user WHERE user_id = ?`
+
+	iter := r.session.Query(query, userID).WithContext(ctx).Iter()
+
+	var entries []domain.WaitlistEntry
+	var entry domain.WaitlistEntry
+	for iter.Scan(&entry.OrganizationID, &entry.TripID, &entry.UserID, &entry.SeatClass, &entry.RequestedSeats, &entry.CreatedAt, &entry.Status) {
+		entries = append(entries, entry)
+	}
+
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+// UpdateWaitlistStatus updates the status of a waitlist entry
+func (r *ScyllaRepository) UpdateWaitlistStatus(ctx context.Context, orgID, tripID, userID string, createdAt time.Time, status string) error {
+	query := `UPDATE waitlist SET status = ? WHERE organization_id = ? AND trip_id = ? AND created_at = ? AND user_id = ?`
+	return r.session.Query(query, status, orgID, tripID, createdAt, userID).WithContext(ctx).Exec()
+}

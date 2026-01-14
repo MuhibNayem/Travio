@@ -127,12 +127,93 @@ func (c *Consumer) consumeTopic(ctx context.Context, reader *kafka.Reader, topic
 			continue
 		}
 
-		// Parse event
-		var event domain.Event
-		if err := json.Unmarshal(msg.Value, &event); err != nil {
-			logger.Warn("Failed to parse event", "topic", topic, "error", err)
+		// Parse event envelope
+		var envelope struct {
+			ID          string          `json:"id"`
+			Type        string          `json:"type"`
+			AggregateID string          `json:"aggregate_id"`
+			Timestamp   time.Time       `json:"timestamp"`
+			Version     int             `json:"version"`
+			Payload     json.RawMessage `json:"payload"`
+		}
+
+		if err := json.Unmarshal(msg.Value, &envelope); err != nil {
+			logger.Warn("Failed to parse event envelope", "topic", topic, "error", err)
 			_ = reader.CommitMessages(ctx, msg)
 			continue
+		}
+
+		// Map to domain.Event
+		event := domain.Event{
+			EventID:        envelope.ID,
+			EventType:      envelope.Type,
+			Timestamp:      envelope.Timestamp,
+			Metadata:       string(envelope.Payload), // Store raw payload as metadata
+			OrganizationID: "",                       // Extracted below
+		}
+
+		// Extract fields based on type
+		switch envelope.Type {
+		case domain.EventOrderCreated:
+			var p struct {
+				OrganizationID string `json:"organization_id"`
+				UserID         string `json:"user_id"`
+				OrderID        string `json:"order_id"`
+				TripID         string `json:"trip_id"`
+				RouteID        string `json:"route_id"`
+				TotalPaisa     int64  `json:"total_paisa"`
+			}
+			if err := json.Unmarshal(envelope.Payload, &p); err == nil {
+				event.OrganizationID = p.OrganizationID
+				event.UserID = p.UserID
+				event.OrderID = p.OrderID
+				event.TripID = p.TripID
+				event.RouteID = p.RouteID
+				event.AmountPaisa = p.TotalPaisa
+				event.Status = "created"
+			}
+
+		case domain.EventOrderCompleted:
+			var p struct {
+				OrganizationID string `json:"organization_id"`
+				OrderID        string `json:"order_id"`
+				TripID         string `json:"trip_id"`
+				TotalPaisa     int64  `json:"total_paisa"`
+			}
+			if err := json.Unmarshal(envelope.Payload, &p); err == nil {
+				event.OrganizationID = p.OrganizationID
+				event.OrderID = p.OrderID
+				event.TripID = p.TripID
+				event.AmountPaisa = p.TotalPaisa
+				event.Status = "completed"
+			}
+
+		case domain.EventOrderCancelled:
+			var p struct {
+				OrganizationID string `json:"organization_id"`
+				OrderID        string `json:"order_id"`
+				TripID         string `json:"trip_id"`
+			}
+			if err := json.Unmarshal(envelope.Payload, &p); err == nil {
+				event.OrganizationID = p.OrganizationID
+				event.OrderID = p.OrderID
+				event.TripID = p.TripID
+				event.Status = "cancelled"
+			}
+			// Ideally event should contain OrgID.
+			// I'll skip OrgID extraction for others if missing, but TripCreated is vital.
+
+		case domain.EventTripCreated:
+			var p struct {
+				OrganizationID string `json:"organization_id"`
+				TripID         string `json:"trip_id"`
+				Status         string `json:"status"`
+			}
+			if err := json.Unmarshal(envelope.Payload, &p); err == nil {
+				event.OrganizationID = p.OrganizationID
+				event.TripID = p.TripID
+				event.Status = p.Status
+			}
 		}
 
 		// Deduplicate by event ID
@@ -147,7 +228,6 @@ func (c *Consumer) consumeTopic(ctx context.Context, reader *kafka.Reader, topic
 		// Insert to ClickHouse
 		if err := c.chClient.InsertEvent(ctx, event); err != nil {
 			logger.Error("Failed to insert event", "event_id", event.EventID, "error", err)
-			// Don't commit - will retry
 			continue
 		}
 

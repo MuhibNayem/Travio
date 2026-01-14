@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/domain"
+	"github.com/MuhibNayem/Travio/server/services/catalog/internal/events"
 	"github.com/google/uuid"
 )
 
@@ -345,11 +347,12 @@ func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, des
 
 // PostgresTripRepository handles trip persistence
 type PostgresTripRepository struct {
-	DB *sql.DB
+	DB        *sql.DB
+	publisher *events.Publisher
 }
 
-func NewTripRepository(db *sql.DB) *PostgresTripRepository {
-	return &PostgresTripRepository{DB: db}
+func NewTripRepository(db *sql.DB, publisher *events.Publisher) *PostgresTripRepository {
+	return &PostgresTripRepository{DB: db, publisher: publisher}
 }
 
 func (r *PostgresTripRepository) Create(ctx context.Context, trip *domain.Trip) error {
@@ -644,6 +647,165 @@ func (r *PostgresTripRepository) GetSegments(ctx context.Context, tripID string)
 	}
 
 	return segments, nil
+}
+
+func (r *PostgresTripRepository) BatchCreate(ctx context.Context, trips []*domain.Trip) error {
+	if len(trips) == 0 {
+		return nil
+	}
+
+	// Assign IDs if missing
+	for _, t := range trips {
+		if t.ID == "" {
+			t.ID = uuid.New().String()
+		}
+		if t.Status == "" {
+			t.Status = domain.TripStatusScheduled
+		}
+		if t.CreatedAt.IsZero() {
+			t.CreatedAt = time.Now()
+		}
+		if t.UpdatedAt.IsZero() {
+			t.UpdatedAt = time.Now()
+		}
+		if t.AvailableSeats == 0 {
+			t.AvailableSeats = t.TotalSeats
+		}
+	}
+
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// 1. Insert Trips
+	chunkSize := 50
+	for i := 0; i < len(trips); i += chunkSize {
+		end := i + chunkSize
+		if end > len(trips) {
+			end = len(trips)
+		}
+		batchTrips := trips[i:end]
+
+		if err := r.batchInsertTrips(ctx, tx, batchTrips); err != nil {
+			return err
+		}
+
+		// Publish events for these trips
+		if r.publisher != nil {
+			for _, t := range batchTrips {
+				if err := r.publisher.PublishTripCreated(ctx, tx, t); err != nil {
+					return fmt.Errorf("failed to publish trip created event: %w", err)
+				}
+			}
+		}
+	}
+
+	// 2. Insert Segments
+	var allSegments []struct {
+		TripID string
+		Seg    domain.TripSegment
+	}
+	for _, t := range trips {
+		for _, s := range t.Segments {
+			allSegments = append(allSegments, struct {
+				TripID string
+				Seg    domain.TripSegment
+			}{t.ID, s})
+		}
+	}
+
+	chunkSizeSeg := 100
+	for i := 0; i < len(allSegments); i += chunkSizeSeg {
+		end := i + chunkSizeSeg
+		if end > len(allSegments) {
+			end = len(allSegments)
+		}
+		batchSegs := allSegments[i:end]
+		if err := r.batchInsertSegments(ctx, tx, batchSegs); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (r *PostgresTripRepository) batchInsertTrips(ctx context.Context, tx *sql.Tx, trips []*domain.Trip) error {
+	placeholders := 16
+	valueStrings := make([]string, 0, len(trips))
+	valueArgs := make([]interface{}, 0, len(trips)*placeholders)
+
+	for i, t := range trips {
+		n := i * placeholders
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			n+1, n+2, n+3, n+4, n+5, n+6, n+7, n+8, n+9, n+10, n+11, n+12, n+13, n+14, n+15, n+16))
+
+		pricingJSON, _ := json.Marshal(t.Pricing)
+		var scheduleID interface{} = nil
+		if t.ScheduleID != "" {
+			scheduleID = t.ScheduleID
+		}
+		var serviceDate interface{} = nil
+		if t.ServiceDate != "" {
+			if parsed, err := time.Parse("2006-01-02", t.ServiceDate); err == nil {
+				serviceDate = parsed
+			}
+		}
+
+		valueArgs = append(valueArgs,
+			t.ID, t.OrganizationID, scheduleID, serviceDate, t.RouteID, t.VehicleID, t.VehicleType,
+			t.VehicleClass, t.DepartureTime, t.ArrivalTime, t.TotalSeats, t.AvailableSeats,
+			pricingJSON, t.Status, t.CreatedAt, t.UpdatedAt)
+	}
+
+	query := fmt.Sprintf("INSERT INTO trips (id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class, departure_time, arrival_time, total_seats, available_seats, pricing, status, created_at, updated_at) VALUES %s", strings.Join(valueStrings, ","))
+
+	_, err := tx.ExecContext(ctx, query, valueArgs...)
+	return err
+}
+
+func (r *PostgresTripRepository) batchInsertSegments(ctx context.Context, tx *sql.Tx, segments []struct {
+	TripID string
+	Seg    domain.TripSegment
+}) error {
+	if len(segments) == 0 {
+		return nil
+	}
+	placeholders := 7
+	valueStrings := make([]string, 0, len(segments))
+	valueArgs := make([]interface{}, 0, len(segments)*placeholders)
+
+	for i, entry := range segments {
+		n := i * placeholders
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			n+1, n+2, n+3, n+4, n+5, n+6, n+7))
+
+		valueArgs = append(valueArgs,
+			entry.TripID, entry.Seg.SegmentIndex, entry.Seg.FromStationID, entry.Seg.ToStationID,
+			entry.Seg.DepartureTime, entry.Seg.ArrivalTime, entry.Seg.AvailableSeats)
+	}
+
+	query := fmt.Sprintf("INSERT INTO trip_segments (trip_id, segment_index, from_station_id, to_station_id, departure_time, arrival_time, available_seats) VALUES %s", strings.Join(valueStrings, ","))
+
+	_, err := tx.ExecContext(ctx, query, valueArgs...)
+	return err
+}
+
+func (r *PostgresTripRepository) CheckVehicleAvailability(ctx context.Context, vehicleID string, startTime, endTime time.Time) (bool, error) {
+	// Check for any non-cancelled trip that overlaps with the requested time window
+	// Overlap logic: (StartA < EndB) AND (EndA > StartB)
+	query := `SELECT COUNT(*) FROM trips 
+			  WHERE vehicle_id = $1 
+			  AND status != $2 
+			  AND (departure_time < $3 AND arrival_time > $4)`
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, query, vehicleID, domain.TripStatusCancelled, endTime, startTime).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // PostgresScheduleRepository handles schedule persistence

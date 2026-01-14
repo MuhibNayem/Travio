@@ -17,7 +17,14 @@ type Rule struct {
 	AdjustmentType  string  // multiplier, additive, override
 	AdjustmentValue float64
 	Priority        int
-	compiledPrg     *vm.Program
+	ValidFrom       *time.Time
+	ValidTo         *time.Time
+	SurgeFactor     float64 // If > 1.0, and rule matches, this factor is applied as an additional multiplier?
+	// Or is this the main effect?
+	// In the plan, we said "If condition met, apply SurgeFactor".
+	// The `Multiplier` field already does this.
+	// Let's assume SurgeFactor is a specific field for dynamic pricing to be explicit.
+	compiledPrg *vm.Program
 }
 
 // Environment provides variables for rule evaluation
@@ -78,6 +85,15 @@ func (e *RulesEngine) Evaluate(ctx context.Context, basePrice int64, env Environ
 			continue
 		}
 
+		// Effective Date Check
+		now := time.Now()
+		if rule.ValidFrom != nil && now.Before(*rule.ValidFrom) {
+			continue
+		}
+		if rule.ValidTo != nil && now.After(*rule.ValidTo) {
+			continue
+		}
+
 		result, err := expr.Run(rule.compiledPrg, env)
 		if err != nil {
 			continue // Skip rule on error
@@ -102,10 +118,16 @@ func (e *RulesEngine) Evaluate(ctx context.Context, basePrice int64, env Environ
 				}
 				price *= multiplier
 			}
+
+			// Apply SurgeFactor if defined (Dynamic Pricing)
+			if rule.SurgeFactor > 1.0 {
+				price *= rule.SurgeFactor
+			}
+
 			applied = append(applied, AppliedRule{
 				RuleID:     rule.ID,
 				RuleName:   rule.Name,
-				Multiplier: rule.Multiplier,
+				Multiplier: rule.Multiplier * rule.SurgeFactor, // Combined effect for logging
 			})
 		}
 	}

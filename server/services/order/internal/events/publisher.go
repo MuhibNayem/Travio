@@ -27,6 +27,7 @@ type OrderCreatedPayload struct {
 	UserID         string `json:"user_id"`
 	OrganizationID string `json:"organization_id"`
 	TripID         string `json:"trip_id"`
+	RouteID        string `json:"route_id"`
 	FromStationID  string `json:"from_station_id"`
 	ToStationID    string `json:"to_station_id"`
 	HoldID         string `json:"hold_id"`
@@ -52,13 +53,14 @@ type OrderConfirmedPayload struct {
 
 // OrderCancelledPayload is the event payload for order cancelled
 type OrderCancelledPayload struct {
-	OrderID      string `json:"order_id"`
-	UserID       string `json:"user_id"`
-	BookingID    string `json:"booking_id"`
-	PaymentID    string `json:"payment_id"`
-	RefundID     string `json:"refund_id"`
-	RefundAmount int64  `json:"refund_amount"`
-	Reason       string `json:"reason"`
+	OrderID        string `json:"order_id"`
+	UserID         string `json:"user_id"`
+	OrganizationID string `json:"organization_id"`
+	BookingID      string `json:"booking_id"`
+	PaymentID      string `json:"payment_id"`
+	RefundID       string `json:"refund_id"`
+	RefundAmount   int64  `json:"refund_amount"`
+	Reason         string `json:"reason"`
 }
 
 // OrderFailedPayload is the event payload for order failed
@@ -76,6 +78,7 @@ func (p *Publisher) PublishOrderCreated(ctx context.Context, tx *sql.Tx, order *
 		UserID:         order.UserID,
 		OrganizationID: order.OrganizationID,
 		TripID:         order.TripID,
+		RouteID:        order.RouteID,
 		FromStationID:  order.FromStationID,
 		ToStationID:    order.ToStationID,
 		HoldID:         order.HoldID,
@@ -107,13 +110,14 @@ func (p *Publisher) PublishOrderConfirmed(ctx context.Context, tx *sql.Tx, order
 // PublishOrderCancelled publishes order cancelled event within a transaction
 func (p *Publisher) PublishOrderCancelled(ctx context.Context, tx *sql.Tx, order *domain.Order, refundID string, refundAmount int64, reason string) error {
 	payload := OrderCancelledPayload{
-		OrderID:      order.ID,
-		UserID:       order.UserID,
-		BookingID:    order.BookingID,
-		PaymentID:    order.PaymentID,
-		RefundID:     refundID,
-		RefundAmount: refundAmount,
-		Reason:       reason,
+		OrderID:        order.ID,
+		UserID:         order.UserID,
+		OrganizationID: order.OrganizationID,
+		BookingID:      order.BookingID,
+		PaymentID:      order.PaymentID,
+		RefundID:       refundID,
+		RefundAmount:   refundAmount,
+		Reason:         reason,
 	}
 	return p.outbox.Publish(ctx, tx, kafka.TopicOrders, kafka.EventOrderCancelled, order.ID, payload)
 }

@@ -22,6 +22,9 @@ type PricingRule struct {
 	AdjustmentValue float64
 	Priority        int
 	IsActive        bool
+	ValidFrom       *time.Time
+	ValidTo         *time.Time
+	SurgeFactor     float64
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -60,13 +63,36 @@ func (r *PostgresRepository) InitSchema(ctx context.Context) error {
 			priority INT DEFAULT 0,
 			is_active BOOLEAN DEFAULT true,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			valid_from TIMESTAMP,
+			valid_to TIMESTAMP,
+			surge_factor DECIMAL(5,4) DEFAULT 1.0
 		);
 		CREATE INDEX IF NOT EXISTS idx_pricing_rules_active ON pricing_rules(is_active, priority);
 		CREATE INDEX IF NOT EXISTS idx_pricing_rules_org ON pricing_rules(organization_id);
+		CREATE INDEX IF NOT EXISTS idx_pricing_rules_dates ON pricing_rules(valid_from, valid_to);
 	`
-	_, err := r.db.ExecContext(ctx, query)
-	return err
+	if _, err := r.db.ExecContext(ctx, query); err != nil {
+		return err
+	}
+
+	// Add columns if they don't exist (migrations for existing table)
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE pricing_rules ADD COLUMN IF NOT EXISTS valid_from TIMESTAMP;`); err != nil {
+		return err
+	}
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE pricing_rules ADD COLUMN IF NOT EXISTS valid_to TIMESTAMP;`); err != nil {
+		return err
+	}
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE pricing_rules ADD COLUMN IF NOT EXISTS surge_factor DECIMAL(5,4) DEFAULT 1.0;`); err != nil {
+		return err
+	}
+
+	// Initialize Promotions Table
+	if err := r.InitPromotionsSchema(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SeedDefaultRules inserts sample rules if none exist
@@ -149,7 +175,7 @@ func (r *PostgresRepository) GetActiveRules(ctx context.Context) ([]*PricingRule
 }
 
 func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bool, organizationID string) ([]*PricingRule, error) {
-	query := `SELECT id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active, created_at, updated_at 
+	query := `SELECT id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active, valid_from, valid_to, surge_factor, created_at, updated_at 
 	          FROM pricing_rules WHERE 1=1`
 
 	args := []interface{}{}
@@ -176,7 +202,7 @@ func (r *PostgresRepository) GetAllRules(ctx context.Context, includeInactive bo
 	var rules []*PricingRule
 	for rows.Next() {
 		var rule PricingRule
-		if err := rows.Scan(&rule.ID, &rule.OrganizationID, &rule.Name, &rule.Description, &rule.Condition, &rule.Multiplier, &rule.AdjustmentType, &rule.AdjustmentValue, &rule.Priority, &rule.IsActive, &rule.CreatedAt, &rule.UpdatedAt); err != nil {
+		if err := rows.Scan(&rule.ID, &rule.OrganizationID, &rule.Name, &rule.Description, &rule.Condition, &rule.Multiplier, &rule.AdjustmentType, &rule.AdjustmentValue, &rule.Priority, &rule.IsActive, &rule.ValidFrom, &rule.ValidTo, &rule.SurgeFactor, &rule.CreatedAt, &rule.UpdatedAt); err != nil {
 			return nil, err
 		}
 		rules = append(rules, &rule)
@@ -191,16 +217,16 @@ func (r *PostgresRepository) CreateRule(ctx context.Context, rule *PricingRule) 
 	rule.CreatedAt = time.Now()
 	rule.UpdatedAt = time.Now()
 
-	query := `INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.OrganizationID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.AdjustmentType, rule.AdjustmentValue, rule.Priority, rule.IsActive, rule.CreatedAt, rule.UpdatedAt)
+	query := `INSERT INTO pricing_rules (id, organization_id, name, description, condition, multiplier, adjustment_type, adjustment_value, priority, is_active, valid_from, valid_to, surge_factor, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
+	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.OrganizationID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.AdjustmentType, rule.AdjustmentValue, rule.Priority, rule.IsActive, rule.ValidFrom, rule.ValidTo, rule.SurgeFactor, rule.CreatedAt, rule.UpdatedAt)
 	return err
 }
 
 func (r *PostgresRepository) UpdateRule(ctx context.Context, rule *PricingRule) error {
 	rule.UpdatedAt = time.Now()
-	query := `UPDATE pricing_rules SET name=$2, description=$3, condition=$4, multiplier=$5, adjustment_type=$6, adjustment_value=$7, priority=$8, is_active=$9, updated_at=$10 WHERE id=$1`
-	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.AdjustmentType, rule.AdjustmentValue, rule.Priority, rule.IsActive, rule.UpdatedAt)
+	query := `UPDATE pricing_rules SET name=$2, description=$3, condition=$4, multiplier=$5, adjustment_type=$6, adjustment_value=$7, priority=$8, is_active=$9, valid_from=$10, valid_to=$11, surge_factor=$12, updated_at=$13 WHERE id=$1`
+	_, err := r.db.ExecContext(ctx, query, rule.ID, rule.Name, rule.Description, rule.Condition, rule.Multiplier, rule.AdjustmentType, rule.AdjustmentValue, rule.Priority, rule.IsActive, rule.ValidFrom, rule.ValidTo, rule.SurgeFactor, rule.UpdatedAt)
 	return err
 }
 
@@ -221,6 +247,9 @@ func ToEngineRules(rules []*PricingRule) []*engine.Rule {
 			AdjustmentType:  r.AdjustmentType,
 			AdjustmentValue: r.AdjustmentValue,
 			Priority:        r.Priority,
+			ValidFrom:       r.ValidFrom,
+			ValidTo:         r.ValidTo,
+			SurgeFactor:     r.SurgeFactor,
 		})
 	}
 	return engineRules

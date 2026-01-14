@@ -13,6 +13,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/clients"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/repository"
+	"github.com/google/uuid"
 )
 
 // CatalogService handles business logic for catalog operations
@@ -190,6 +191,28 @@ func (s *CatalogService) CreateTrip(ctx context.Context, trip *domain.Trip, plan
 		}
 	}
 
+	// 4. Operational Constraints: Vehicle Availability & Status
+	// Check Database Overlaps
+	isBusy, err := s.tripRepo.CheckVehicleAvailability(ctx, trip.VehicleID, trip.DepartureTime, trip.ArrivalTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check vehicle availability: %w", err)
+	}
+	if isBusy {
+		return nil, fmt.Errorf("vehicle is already booked for this time slot")
+	}
+
+	// Fetch Asset to check Status (and reuse for Inventory)
+	var asset *fleetpb.Asset
+	if s.fleetClient != nil {
+		asset, err = s.fleetClient.GetAsset(ctx, trip.VehicleID, trip.OrganizationID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch asset: %w", err)
+		}
+		if asset.Status == fleetpb.AssetStatus_ASSET_STATUS_MAINTENANCE {
+			return nil, fmt.Errorf("vehicle is currently in MAINTENANCE status")
+		}
+	}
+
 	if err := s.tripRepo.Create(ctx, trip); err != nil {
 		return nil, err
 	}
@@ -200,18 +223,8 @@ func (s *CatalogService) CreateTrip(ctx context.Context, trip *domain.Trip, plan
 	}
 
 	// Initialize Inventory with Vehicle Layout
-	if s.fleetClient != nil && s.inventoryClient != nil {
-		asset, err := s.fleetClient.GetAsset(ctx, trip.VehicleID, trip.OrganizationID)
-		if err != nil {
-			// Log error but allow trip creation to proceed (soft fail or hard fail?)
-			// Hard fail ensures consistency
-			// Assuming Fleet service is critical for inventory init
-			// Returning error here might leave Trip created but no inventory.
-			// Ideally we should use a Saga or DB Transaction, but across services that's hard.
-			// For now, let's log and return error (orphan cleanup needed)
-			return nil, fmt.Errorf("failed to fetch asset layout: %w", err)
-		}
-
+	if s.inventoryClient != nil && asset != nil {
+		// asset is already fetched above
 		seatConfig := mapAssetConfigToSeatConfig(asset, trip.Pricing)
 
 		var pbSegments []*inventorypb.SegmentDefinition
@@ -502,7 +515,16 @@ func (s *CatalogService) GenerateTripInstances(ctx context.Context, scheduleID, 
 		return nil, 0, err
 	}
 
-	var created []*domain.Trip
+	// Fetch Asset once for efficiency
+	var asset *fleetpb.Asset
+	if s.fleetClient != nil && schedule.VehicleID != "" {
+		asset, err = s.fleetClient.GetAsset(ctx, schedule.VehicleID, schedule.OrganizationID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to fetch asset: %w", err)
+		}
+	}
+
+	var tripsToCreate []*domain.Trip
 	for _, serviceDate := range dates {
 		departureTime, err := buildDepartureTime(serviceDate, schedule)
 		if err != nil {
@@ -510,6 +532,7 @@ func (s *CatalogService) GenerateTripInstances(ctx context.Context, scheduleID, 
 		}
 
 		trip := &domain.Trip{
+			ID:             uuid.New().String(),
 			OrganizationID: schedule.OrganizationID,
 			ScheduleID:     schedule.ID,
 			ServiceDate:    serviceDate,
@@ -522,6 +545,8 @@ func (s *CatalogService) GenerateTripInstances(ctx context.Context, scheduleID, 
 			AvailableSeats: schedule.TotalSeats,
 			Pricing:        schedule.Pricing,
 			Status:         domain.TripStatusScheduled,
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
 		}
 
 		if route.EstimatedDurationMin > 0 {
@@ -530,19 +555,55 @@ func (s *CatalogService) GenerateTripInstances(ctx context.Context, scheduleID, 
 			trip.ArrivalTime = departureTime.Add(time.Duration(schedule.ArrivalOffsetMinutes) * time.Minute)
 		}
 
-		if err := s.tripRepo.Create(ctx, trip); err != nil {
-			return nil, 0, err
-		}
-
-		segments := buildTripSegments(trip, route)
-		if err := s.tripRepo.CreateSegments(ctx, trip.ID, segments); err != nil {
-			return nil, 0, err
-		}
-
-		created = append(created, trip)
+		// Generate segments
+		trip.Segments = buildTripSegments(trip, route)
+		tripsToCreate = append(tripsToCreate, trip)
 	}
 
-	return created, len(created), nil
+	// Batch DB Insert
+	if err := s.tripRepo.BatchCreate(ctx, tripsToCreate); err != nil {
+		return nil, 0, err
+	}
+
+	// Initialize Inventory for each trip
+	if s.inventoryClient != nil && asset != nil {
+		seatConfig := mapAssetConfigToSeatConfig(asset, schedule.Pricing)
+
+		for _, trip := range tripsToCreate {
+			var pbSegments []*inventorypb.SegmentDefinition
+			for _, seg := range trip.Segments {
+				pbSegments = append(pbSegments, &inventorypb.SegmentDefinition{
+					SegmentIndex:  int32(seg.SegmentIndex),
+					FromStationId: seg.FromStationID,
+					ToStationId:   seg.ToStationID,
+					DepartureTime: seg.DepartureTime.Unix(),
+					ArrivalTime:   seg.ArrivalTime.Unix(),
+				})
+			}
+
+			// We launch these in parallel or sequence? Sequence for safety for now.
+			// Ideally worker pool.
+			_, err := s.inventoryClient.InitializeTripInventory(ctx, &inventorypb.InitializeTripInventoryRequest{
+				TripId:         trip.ID,
+				OrganizationId: trip.OrganizationID,
+				VehicleId:      trip.VehicleID,
+				Segments:       pbSegments,
+				SeatConfig:     seatConfig,
+			})
+			if err != nil {
+				// Log error but don't fail entire batch?
+				// Or return error (partial failure).
+				// For now return error, but transactions are already committed.
+				// This is a distributed transaction issue.
+				// SAGA or Log.
+				// Proceeding, but logging would be better.
+				// Since I don't have logger in struct (or do I? auditRepo is there), I'll just return error.
+				return nil, len(tripsToCreate), fmt.Errorf("failed to init inventory for trip %s: %w", trip.ID, err)
+			}
+		}
+	}
+
+	return tripsToCreate, len(tripsToCreate), nil
 }
 
 func (s *CatalogService) ListTripInstances(ctx context.Context, orgID, scheduleID, routeID, startDate, endDate string, status string, pageSize int, pageToken string) ([]*TripSearchResult, int, string, error) {

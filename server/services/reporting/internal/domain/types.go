@@ -15,6 +15,7 @@ type Event struct {
 	OrderID   string `json:"order_id,omitempty"`
 	PaymentID string `json:"payment_id,omitempty"`
 	TripID    string `json:"trip_id,omitempty"`
+	RouteID   string `json:"route_id,omitempty"`
 
 	AmountPaisa int64  `json:"amount_paisa"`
 	Status      string `json:"status"`
@@ -23,18 +24,20 @@ type Event struct {
 
 // EventType constants
 const (
-	EventOrderCreated     = "order_created"
-	EventOrderCompleted   = "order_completed"
-	EventOrderCancelled   = "order_cancelled"
-	EventPaymentInitiated = "payment_initiated"
-	EventPaymentCompleted = "payment_completed"
-	EventPaymentFailed    = "payment_failed"
-	EventPaymentRefunded  = "payment_refunded"
-	EventTicketGenerated  = "ticket_generated"
-	EventTicketScanned    = "ticket_scanned"
-	EventSeatHeld         = "seat_held"
-	EventSeatReleased     = "seat_released"
-	EventSeatBooked       = "seat_booked"
+	EventOrderCreated     = "order.created"
+	EventOrderCompleted   = "order.confirmed" // Mapped from order.confirmed
+	EventOrderCancelled   = "order.cancelled"
+	EventPaymentInitiated = "payment.authorized"
+	EventPaymentCompleted = "payment.captured"
+	EventPaymentFailed    = "payment.failed"
+	EventPaymentRefunded  = "payment.refunded"
+	EventTripCreated      = "trip.created" // Added
+	// Legacy or Internal ?
+	EventTicketGenerated = "fulfillment.ticket_generated"
+	EventTicketScanned   = "ticket_scanned"
+	EventSeatHeld        = "inventory.seats_held"
+	EventSeatReleased    = "inventory.seats_released"
+	EventSeatBooked      = "inventory.seats_booked"
 )
 
 // RevenueReport represents aggregated revenue data.

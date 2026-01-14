@@ -590,3 +590,45 @@ func aggregateSeatMap(seats []domain.SeatInventory, segmentRange []int) *SeatMap
 		},
 	}
 }
+
+// JoinWaitlist adds a user to the waitlist
+func (s *InventoryService) JoinWaitlist(ctx context.Context, req *WaitlistRequest) (*WaitlistResult, error) {
+	entry := domain.WaitlistEntry{
+		OrganizationID: req.OrganizationID,
+		TripID:         req.TripID,
+		UserID:         req.UserID,
+		SeatClass:      req.SeatClass,
+		RequestedSeats: req.RequestedSeats,
+		CreatedAt:      time.Now(),
+		Status:         domain.WaitlistStatusPending,
+	}
+
+	if err := s.scyllaRepo.AddToWaitlist(ctx, entry); err != nil {
+		return nil, err
+	}
+
+	return &WaitlistResult{
+		Success:  true,
+		Message:  "added to waitlist",
+		Position: 0, // Placeholder
+	}, nil
+}
+
+// GetUserWaitlist returns user's waitlist
+func (s *InventoryService) GetUserWaitlist(ctx context.Context, userID string) ([]domain.WaitlistEntry, error) {
+	return s.scyllaRepo.GetUserWaitlist(ctx, userID)
+}
+
+type WaitlistRequest struct {
+	OrganizationID string
+	TripID         string
+	UserID         string
+	SeatClass      string
+	RequestedSeats int
+}
+
+type WaitlistResult struct {
+	Success  bool
+	Message  string
+	Position int
+}

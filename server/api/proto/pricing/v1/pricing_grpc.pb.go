@@ -19,11 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PricingService_CalculatePrice_FullMethodName = "/pricing.v1.PricingService/CalculatePrice"
-	PricingService_GetRules_FullMethodName       = "/pricing.v1.PricingService/GetRules"
-	PricingService_CreateRule_FullMethodName     = "/pricing.v1.PricingService/CreateRule"
-	PricingService_UpdateRule_FullMethodName     = "/pricing.v1.PricingService/UpdateRule"
-	PricingService_DeleteRule_FullMethodName     = "/pricing.v1.PricingService/DeleteRule"
+	PricingService_CalculatePrice_FullMethodName  = "/pricing.v1.PricingService/CalculatePrice"
+	PricingService_GetRules_FullMethodName        = "/pricing.v1.PricingService/GetRules"
+	PricingService_CreateRule_FullMethodName      = "/pricing.v1.PricingService/CreateRule"
+	PricingService_UpdateRule_FullMethodName      = "/pricing.v1.PricingService/UpdateRule"
+	PricingService_DeleteRule_FullMethodName      = "/pricing.v1.PricingService/DeleteRule"
+	PricingService_CreatePromotion_FullMethodName = "/pricing.v1.PricingService/CreatePromotion"
+	PricingService_GetPromotions_FullMethodName   = "/pricing.v1.PricingService/GetPromotions"
 )
 
 // PricingServiceClient is the client API for PricingService service.
@@ -40,6 +42,9 @@ type PricingServiceClient interface {
 	UpdateRule(ctx context.Context, in *UpdateRuleRequest, opts ...grpc.CallOption) (*UpdateRuleResponse, error)
 	// Admin: Delete a pricing rule
 	DeleteRule(ctx context.Context, in *DeleteRuleRequest, opts ...grpc.CallOption) (*DeleteRuleResponse, error)
+	// Promotions
+	CreatePromotion(ctx context.Context, in *CreatePromotionRequest, opts ...grpc.CallOption) (*CreatePromotionResponse, error)
+	GetPromotions(ctx context.Context, in *GetPromotionsRequest, opts ...grpc.CallOption) (*GetPromotionsResponse, error)
 }
 
 type pricingServiceClient struct {
@@ -100,6 +105,26 @@ func (c *pricingServiceClient) DeleteRule(ctx context.Context, in *DeleteRuleReq
 	return out, nil
 }
 
+func (c *pricingServiceClient) CreatePromotion(ctx context.Context, in *CreatePromotionRequest, opts ...grpc.CallOption) (*CreatePromotionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePromotionResponse)
+	err := c.cc.Invoke(ctx, PricingService_CreatePromotion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pricingServiceClient) GetPromotions(ctx context.Context, in *GetPromotionsRequest, opts ...grpc.CallOption) (*GetPromotionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPromotionsResponse)
+	err := c.cc.Invoke(ctx, PricingService_GetPromotions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PricingServiceServer is the server API for PricingService service.
 // All implementations must embed UnimplementedPricingServiceServer
 // for forward compatibility.
@@ -114,6 +139,9 @@ type PricingServiceServer interface {
 	UpdateRule(context.Context, *UpdateRuleRequest) (*UpdateRuleResponse, error)
 	// Admin: Delete a pricing rule
 	DeleteRule(context.Context, *DeleteRuleRequest) (*DeleteRuleResponse, error)
+	// Promotions
+	CreatePromotion(context.Context, *CreatePromotionRequest) (*CreatePromotionResponse, error)
+	GetPromotions(context.Context, *GetPromotionsRequest) (*GetPromotionsResponse, error)
 	mustEmbedUnimplementedPricingServiceServer()
 }
 
@@ -138,6 +166,12 @@ func (UnimplementedPricingServiceServer) UpdateRule(context.Context, *UpdateRule
 }
 func (UnimplementedPricingServiceServer) DeleteRule(context.Context, *DeleteRuleRequest) (*DeleteRuleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteRule not implemented")
+}
+func (UnimplementedPricingServiceServer) CreatePromotion(context.Context, *CreatePromotionRequest) (*CreatePromotionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreatePromotion not implemented")
+}
+func (UnimplementedPricingServiceServer) GetPromotions(context.Context, *GetPromotionsRequest) (*GetPromotionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPromotions not implemented")
 }
 func (UnimplementedPricingServiceServer) mustEmbedUnimplementedPricingServiceServer() {}
 func (UnimplementedPricingServiceServer) testEmbeddedByValue()                        {}
@@ -250,6 +284,42 @@ func _PricingService_DeleteRule_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PricingService_CreatePromotion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePromotionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PricingServiceServer).CreatePromotion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PricingService_CreatePromotion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PricingServiceServer).CreatePromotion(ctx, req.(*CreatePromotionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PricingService_GetPromotions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPromotionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PricingServiceServer).GetPromotions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PricingService_GetPromotions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PricingServiceServer).GetPromotions(ctx, req.(*GetPromotionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PricingService_ServiceDesc is the grpc.ServiceDesc for PricingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -276,6 +346,14 @@ var PricingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteRule",
 			Handler:    _PricingService_DeleteRule_Handler,
+		},
+		{
+			MethodName: "CreatePromotion",
+			Handler:    _PricingService_CreatePromotion_Handler,
+		},
+		{
+			MethodName: "GetPromotions",
+			Handler:    _PricingService_GetPromotions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

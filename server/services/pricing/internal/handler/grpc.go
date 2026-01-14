@@ -56,10 +56,19 @@ func (h *GRPCHandler) CalculatePrice(ctx context.Context, req *pricingv1.Calcula
 		})
 	}
 
+	var promoApplied *pricingv1.PromotionApplied
+	if result.PromotionApplied != nil {
+		promoApplied = &pricingv1.PromotionApplied{
+			PromoCode:           result.PromotionApplied.Code,
+			DiscountAmountPaisa: result.PromotionApplied.DiscountAmountPaisa,
+		}
+	}
+
 	return &pricingv1.CalculatePriceResponse{
-		FinalPricePaisa: result.FinalPricePaisa,
-		BasePricePaisa:  result.BasePricePaisa,
-		AppliedRules:    appliedRules,
+		FinalPricePaisa:  result.FinalPricePaisa,
+		BasePricePaisa:   result.BasePricePaisa,
+		AppliedRules:     appliedRules,
+		PromotionApplied: promoApplied,
 	}, nil
 }
 
@@ -158,5 +167,97 @@ func protoToPricingRule(orgID, name, description, condition string, multiplier f
 		AdjustmentValue: adjustmentValue,
 		Priority:        int(priority),
 		IsActive:        true,
+	}
+}
+
+// --- Promotion Handlers ---
+
+func (h *GRPCHandler) CreatePromotion(ctx context.Context, req *pricingv1.CreatePromotionRequest) (*pricingv1.CreatePromotionResponse, error) {
+	var validFrom, validUntil *time.Time
+	if req.ValidFrom != "" {
+		t, err := time.Parse("2006-01-02", req.ValidFrom)
+		if err == nil {
+			validFrom = &t
+		}
+	}
+	if req.ValidUntil != "" {
+		t, err := time.Parse("2006-01-02", req.ValidUntil)
+		if err == nil {
+			validUntil = &t
+		}
+	}
+
+	var orgPtr *string
+	if req.OrganizationId != "" {
+		org := req.OrganizationId
+		orgPtr = &org
+	}
+
+	promo := &repository.Promotion{
+		Code:                req.Code,
+		Description:         req.Description,
+		DiscountType:        req.DiscountType,
+		DiscountValue:       req.DiscountValue,
+		MaxUsage:            req.MaxUsage,
+		OrganizationID:      orgPtr,
+		ValidFrom:           validFrom,
+		ValidUntil:          validUntil,
+		MinOrderAmountPaisa: req.MinOrderAmountPaisa,
+		IsActive:            true,
+	}
+
+	if err := h.svc.CreatePromotion(ctx, promo); err != nil {
+		return nil, err
+	}
+
+	return &pricingv1.CreatePromotionResponse{
+		Promotion: promotionToProto(promo),
+	}, nil
+}
+
+func (h *GRPCHandler) GetPromotions(ctx context.Context, req *pricingv1.GetPromotionsRequest) (*pricingv1.GetPromotionsResponse, error) {
+	promos, err := h.svc.GetPromotions(ctx, req.OrganizationId, req.ActiveOnly)
+	if err != nil {
+		return nil, err
+	}
+
+	var pbPromos []*pricingv1.Promotion
+	for _, p := range promos {
+		pbPromos = append(pbPromos, promotionToProto(p))
+	}
+
+	return &pricingv1.GetPromotionsResponse{
+		Promotions: pbPromos,
+	}, nil
+}
+
+func promotionToProto(p *repository.Promotion) *pricingv1.Promotion {
+	if p == nil {
+		return nil
+	}
+	var validFrom, validUntil string
+	if p.ValidFrom != nil {
+		validFrom = p.ValidFrom.Format("2006-01-02")
+	}
+	if p.ValidUntil != nil {
+		validUntil = p.ValidUntil.Format("2006-01-02")
+	}
+	orgID := ""
+	if p.OrganizationID != nil {
+		orgID = *p.OrganizationID
+	}
+	return &pricingv1.Promotion{
+		Id:                  p.ID,
+		Code:                p.Code,
+		Description:         p.Description,
+		DiscountType:        p.DiscountType,
+		DiscountValue:       p.DiscountValue,
+		MaxUsage:            p.MaxUsage,
+		CurrentUsage:        p.CurrentUsage,
+		ValidFrom:           validFrom,
+		ValidUntil:          validUntil,
+		MinOrderAmountPaisa: p.MinOrderAmountPaisa,
+		IsActive:            p.IsActive,
+		OrganizationId:      orgID,
 	}
 }

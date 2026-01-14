@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/pricing/config"
@@ -42,8 +43,14 @@ func main() {
 		logger.Error("Failed to seed default rules", "error", err)
 	}
 
+	// Initialize Redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr,
+	})
+	redisRepo := repository.NewRedisRepository(redisClient)
+
 	// Initialize service
-	svc, err := service.NewPricingService(repo)
+	svc, err := service.NewPricingService(repo, redisRepo)
 	if err != nil {
 		logger.Error("Failed to create pricing service", "error", err)
 		os.Exit(1)

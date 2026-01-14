@@ -35,14 +35,14 @@ func (r *TxOrderRepository) CreateTx(ctx context.Context, order *domain.Order) e
 	seatsJSON, _ := json.Marshal(order.Seats)
 
 	query := `INSERT INTO orders (
-		id, organization_id, user_id, trip_id, from_station_id, to_station_id,
+		id, organization_id, user_id, trip_id, route_id, from_station_id, to_station_id,
 		passengers, subtotal_paisa, tax_paisa, booking_fee_paisa, discount_paisa, total_paisa, currency,
 		payment_id, payment_status, payment_method, booking_id, hold_id, seats,
 		status, saga_id, contact_email, contact_phone, created_at, updated_at, expires_at, idempotency_key
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`
 
 	_, err := r.tx.ExecContext(ctx, query,
-		order.ID, order.OrganizationID, order.UserID, order.TripID, order.FromStationID, order.ToStationID,
+		order.ID, order.OrganizationID, order.UserID, order.TripID, order.RouteID, order.FromStationID, order.ToStationID,
 		passengersJSON, order.SubtotalPaisa, order.TaxPaisa, order.BookingFeePaisa, order.DiscountPaisa, order.TotalPaisa, order.Currency,
 		order.PaymentID, order.PaymentStatus, order.PaymentMethod, order.BookingID, order.HoldID, seatsJSON,
 		order.Status, order.SagaID, order.ContactEmail, order.ContactPhone, order.CreatedAt, order.UpdatedAt, order.ExpiresAt, order.IdempotencyKey,

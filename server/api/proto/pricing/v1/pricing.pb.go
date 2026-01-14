@@ -186,12 +186,13 @@ func (x *CalculatePriceRequest) GetPromoCode() string {
 }
 
 type CalculatePriceResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	FinalPricePaisa int64                  `protobuf:"varint,1,opt,name=final_price_paisa,json=finalPricePaisa,proto3" json:"final_price_paisa,omitempty"`
-	BasePricePaisa  int64                  `protobuf:"varint,2,opt,name=base_price_paisa,json=basePricePaisa,proto3" json:"base_price_paisa,omitempty"`
-	AppliedRules    []*AppliedRule         `protobuf:"bytes,3,rep,name=applied_rules,json=appliedRules,proto3" json:"applied_rules,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	FinalPricePaisa  int64                  `protobuf:"varint,1,opt,name=final_price_paisa,json=finalPricePaisa,proto3" json:"final_price_paisa,omitempty"`
+	BasePricePaisa   int64                  `protobuf:"varint,2,opt,name=base_price_paisa,json=basePricePaisa,proto3" json:"base_price_paisa,omitempty"`
+	AppliedRules     []*AppliedRule         `protobuf:"bytes,3,rep,name=applied_rules,json=appliedRules,proto3" json:"applied_rules,omitempty"`
+	PromotionApplied *PromotionApplied      `protobuf:"bytes,4,opt,name=promotion_applied,json=promotionApplied,proto3" json:"promotion_applied,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *CalculatePriceResponse) Reset() {
@@ -245,6 +246,65 @@ func (x *CalculatePriceResponse) GetAppliedRules() []*AppliedRule {
 	return nil
 }
 
+func (x *CalculatePriceResponse) GetPromotionApplied() *PromotionApplied {
+	if x != nil {
+		return x.PromotionApplied
+	}
+	return nil
+}
+
+type PromotionApplied struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	PromoCode           string                 `protobuf:"bytes,1,opt,name=promo_code,json=promoCode,proto3" json:"promo_code,omitempty"`
+	DiscountAmountPaisa int64                  `protobuf:"varint,2,opt,name=discount_amount_paisa,json=discountAmountPaisa,proto3" json:"discount_amount_paisa,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *PromotionApplied) Reset() {
+	*x = PromotionApplied{}
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromotionApplied) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromotionApplied) ProtoMessage() {}
+
+func (x *PromotionApplied) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromotionApplied.ProtoReflect.Descriptor instead.
+func (*PromotionApplied) Descriptor() ([]byte, []int) {
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PromotionApplied) GetPromoCode() string {
+	if x != nil {
+		return x.PromoCode
+	}
+	return ""
+}
+
+func (x *PromotionApplied) GetDiscountAmountPaisa() int64 {
+	if x != nil {
+		return x.DiscountAmountPaisa
+	}
+	return 0
+}
+
 type AppliedRule struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
@@ -256,7 +316,7 @@ type AppliedRule struct {
 
 func (x *AppliedRule) Reset() {
 	*x = AppliedRule{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[2]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -268,7 +328,7 @@ func (x *AppliedRule) String() string {
 func (*AppliedRule) ProtoMessage() {}
 
 func (x *AppliedRule) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[2]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -281,7 +341,7 @@ func (x *AppliedRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppliedRule.ProtoReflect.Descriptor instead.
 func (*AppliedRule) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AppliedRule) GetRuleId() string {
@@ -325,7 +385,7 @@ type PricingRule struct {
 
 func (x *PricingRule) Reset() {
 	*x = PricingRule{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[3]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +397,7 @@ func (x *PricingRule) String() string {
 func (*PricingRule) ProtoMessage() {}
 
 func (x *PricingRule) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[3]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,7 +410,7 @@ func (x *PricingRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PricingRule.ProtoReflect.Descriptor instead.
 func (*PricingRule) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PricingRule) GetId() string {
@@ -447,7 +507,7 @@ type GetRulesRequest struct {
 
 func (x *GetRulesRequest) Reset() {
 	*x = GetRulesRequest{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[4]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -459,7 +519,7 @@ func (x *GetRulesRequest) String() string {
 func (*GetRulesRequest) ProtoMessage() {}
 
 func (x *GetRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[4]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -472,7 +532,7 @@ func (x *GetRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRulesRequest.ProtoReflect.Descriptor instead.
 func (*GetRulesRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetRulesRequest) GetIncludeInactive() bool {
@@ -498,7 +558,7 @@ type GetRulesResponse struct {
 
 func (x *GetRulesResponse) Reset() {
 	*x = GetRulesResponse{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[5]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -510,7 +570,7 @@ func (x *GetRulesResponse) String() string {
 func (*GetRulesResponse) ProtoMessage() {}
 
 func (x *GetRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[5]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +583,7 @@ func (x *GetRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRulesResponse.ProtoReflect.Descriptor instead.
 func (*GetRulesResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetRulesResponse) GetRules() []*PricingRule {
@@ -549,7 +609,7 @@ type CreateRuleRequest struct {
 
 func (x *CreateRuleRequest) Reset() {
 	*x = CreateRuleRequest{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[6]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -561,7 +621,7 @@ func (x *CreateRuleRequest) String() string {
 func (*CreateRuleRequest) ProtoMessage() {}
 
 func (x *CreateRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[6]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -574,7 +634,7 @@ func (x *CreateRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRuleRequest.ProtoReflect.Descriptor instead.
 func (*CreateRuleRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateRuleRequest) GetOrganizationId() string {
@@ -642,7 +702,7 @@ type CreateRuleResponse struct {
 
 func (x *CreateRuleResponse) Reset() {
 	*x = CreateRuleResponse{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[7]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -654,7 +714,7 @@ func (x *CreateRuleResponse) String() string {
 func (*CreateRuleResponse) ProtoMessage() {}
 
 func (x *CreateRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[7]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,7 +727,7 @@ func (x *CreateRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRuleResponse.ProtoReflect.Descriptor instead.
 func (*CreateRuleResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateRuleResponse) GetRule() *PricingRule {
@@ -694,7 +754,7 @@ type UpdateRuleRequest struct {
 
 func (x *UpdateRuleRequest) Reset() {
 	*x = UpdateRuleRequest{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[8]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +766,7 @@ func (x *UpdateRuleRequest) String() string {
 func (*UpdateRuleRequest) ProtoMessage() {}
 
 func (x *UpdateRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[8]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +779,7 @@ func (x *UpdateRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRuleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRuleRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateRuleRequest) GetId() string {
@@ -794,7 +854,7 @@ type UpdateRuleResponse struct {
 
 func (x *UpdateRuleResponse) Reset() {
 	*x = UpdateRuleResponse{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[9]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -806,7 +866,7 @@ func (x *UpdateRuleResponse) String() string {
 func (*UpdateRuleResponse) ProtoMessage() {}
 
 func (x *UpdateRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[9]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -819,7 +879,7 @@ func (x *UpdateRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRuleResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRuleResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateRuleResponse) GetRule() *PricingRule {
@@ -838,7 +898,7 @@ type DeleteRuleRequest struct {
 
 func (x *DeleteRuleRequest) Reset() {
 	*x = DeleteRuleRequest{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[10]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -850,7 +910,7 @@ func (x *DeleteRuleRequest) String() string {
 func (*DeleteRuleRequest) ProtoMessage() {}
 
 func (x *DeleteRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[10]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -863,7 +923,7 @@ func (x *DeleteRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRuleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRuleRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteRuleRequest) GetId() string {
@@ -882,7 +942,7 @@ type DeleteRuleResponse struct {
 
 func (x *DeleteRuleResponse) Reset() {
 	*x = DeleteRuleResponse{}
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[11]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +954,7 @@ func (x *DeleteRuleResponse) String() string {
 func (*DeleteRuleResponse) ProtoMessage() {}
 
 func (x *DeleteRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[11]
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +967,7 @@ func (x *DeleteRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRuleResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRuleResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteRuleResponse) GetSuccess() bool {
@@ -915,6 +975,386 @@ func (x *DeleteRuleResponse) GetSuccess() bool {
 		return x.Success
 	}
 	return false
+}
+
+type Promotion struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Code                string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Description         string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	DiscountType        string                 `protobuf:"bytes,4,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"` // PERCENT, FIXED_AMOUNT
+	DiscountValue       float64                `protobuf:"fixed64,5,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`
+	MaxUsage            int64                  `protobuf:"varint,6,opt,name=max_usage,json=maxUsage,proto3" json:"max_usage,omitempty"`
+	CurrentUsage        int64                  `protobuf:"varint,7,opt,name=current_usage,json=currentUsage,proto3" json:"current_usage,omitempty"`
+	ValidFrom           string                 `protobuf:"bytes,8,opt,name=valid_from,json=validFrom,proto3" json:"valid_from,omitempty"`    // ISO8601
+	ValidUntil          string                 `protobuf:"bytes,9,opt,name=valid_until,json=validUntil,proto3" json:"valid_until,omitempty"` // ISO8601
+	MinOrderAmountPaisa int64                  `protobuf:"varint,10,opt,name=min_order_amount_paisa,json=minOrderAmountPaisa,proto3" json:"min_order_amount_paisa,omitempty"`
+	IsActive            bool                   `protobuf:"varint,11,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	OrganizationId      string                 `protobuf:"bytes,12,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *Promotion) Reset() {
+	*x = Promotion{}
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Promotion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Promotion) ProtoMessage() {}
+
+func (x *Promotion) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Promotion.ProtoReflect.Descriptor instead.
+func (*Promotion) Descriptor() ([]byte, []int) {
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *Promotion) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Promotion) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *Promotion) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Promotion) GetDiscountType() string {
+	if x != nil {
+		return x.DiscountType
+	}
+	return ""
+}
+
+func (x *Promotion) GetDiscountValue() float64 {
+	if x != nil {
+		return x.DiscountValue
+	}
+	return 0
+}
+
+func (x *Promotion) GetMaxUsage() int64 {
+	if x != nil {
+		return x.MaxUsage
+	}
+	return 0
+}
+
+func (x *Promotion) GetCurrentUsage() int64 {
+	if x != nil {
+		return x.CurrentUsage
+	}
+	return 0
+}
+
+func (x *Promotion) GetValidFrom() string {
+	if x != nil {
+		return x.ValidFrom
+	}
+	return ""
+}
+
+func (x *Promotion) GetValidUntil() string {
+	if x != nil {
+		return x.ValidUntil
+	}
+	return ""
+}
+
+func (x *Promotion) GetMinOrderAmountPaisa() int64 {
+	if x != nil {
+		return x.MinOrderAmountPaisa
+	}
+	return 0
+}
+
+func (x *Promotion) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+func (x *Promotion) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type CreatePromotionRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Code                string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Description         string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	DiscountType        string                 `protobuf:"bytes,3,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"`
+	DiscountValue       float64                `protobuf:"fixed64,4,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"` // e.g., 10.0 for 10% or 500 for 500 paisa
+	MaxUsage            int64                  `protobuf:"varint,5,opt,name=max_usage,json=maxUsage,proto3" json:"max_usage,omitempty"`
+	ValidFrom           string                 `protobuf:"bytes,6,opt,name=valid_from,json=validFrom,proto3" json:"valid_from,omitempty"`
+	ValidUntil          string                 `protobuf:"bytes,7,opt,name=valid_until,json=validUntil,proto3" json:"valid_until,omitempty"`
+	MinOrderAmountPaisa int64                  `protobuf:"varint,8,opt,name=min_order_amount_paisa,json=minOrderAmountPaisa,proto3" json:"min_order_amount_paisa,omitempty"`
+	OrganizationId      string                 `protobuf:"bytes,9,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *CreatePromotionRequest) Reset() {
+	*x = CreatePromotionRequest{}
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePromotionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePromotionRequest) ProtoMessage() {}
+
+func (x *CreatePromotionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePromotionRequest.ProtoReflect.Descriptor instead.
+func (*CreatePromotionRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreatePromotionRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *CreatePromotionRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *CreatePromotionRequest) GetDiscountType() string {
+	if x != nil {
+		return x.DiscountType
+	}
+	return ""
+}
+
+func (x *CreatePromotionRequest) GetDiscountValue() float64 {
+	if x != nil {
+		return x.DiscountValue
+	}
+	return 0
+}
+
+func (x *CreatePromotionRequest) GetMaxUsage() int64 {
+	if x != nil {
+		return x.MaxUsage
+	}
+	return 0
+}
+
+func (x *CreatePromotionRequest) GetValidFrom() string {
+	if x != nil {
+		return x.ValidFrom
+	}
+	return ""
+}
+
+func (x *CreatePromotionRequest) GetValidUntil() string {
+	if x != nil {
+		return x.ValidUntil
+	}
+	return ""
+}
+
+func (x *CreatePromotionRequest) GetMinOrderAmountPaisa() int64 {
+	if x != nil {
+		return x.MinOrderAmountPaisa
+	}
+	return 0
+}
+
+func (x *CreatePromotionRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type CreatePromotionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Promotion     *Promotion             `protobuf:"bytes,1,opt,name=promotion,proto3" json:"promotion,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePromotionResponse) Reset() {
+	*x = CreatePromotionResponse{}
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePromotionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePromotionResponse) ProtoMessage() {}
+
+func (x *CreatePromotionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePromotionResponse.ProtoReflect.Descriptor instead.
+func (*CreatePromotionResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *CreatePromotionResponse) GetPromotion() *Promotion {
+	if x != nil {
+		return x.Promotion
+	}
+	return nil
+}
+
+type GetPromotionsRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	ActiveOnly     bool                   `protobuf:"varint,2,opt,name=active_only,json=activeOnly,proto3" json:"active_only,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetPromotionsRequest) Reset() {
+	*x = GetPromotionsRequest{}
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPromotionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPromotionsRequest) ProtoMessage() {}
+
+func (x *GetPromotionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPromotionsRequest.ProtoReflect.Descriptor instead.
+func (*GetPromotionsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetPromotionsRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *GetPromotionsRequest) GetActiveOnly() bool {
+	if x != nil {
+		return x.ActiveOnly
+	}
+	return false
+}
+
+type GetPromotionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Promotions    []*Promotion           `protobuf:"bytes,1,rep,name=promotions,proto3" json:"promotions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPromotionsResponse) Reset() {
+	*x = GetPromotionsResponse{}
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPromotionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPromotionsResponse) ProtoMessage() {}
+
+func (x *GetPromotionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_pricing_v1_pricing_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPromotionsResponse.ProtoReflect.Descriptor instead.
+func (*GetPromotionsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_pricing_v1_pricing_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetPromotionsResponse) GetPromotions() []*Promotion {
+	if x != nil {
+		return x.Promotions
+	}
+	return nil
 }
 
 var File_api_proto_pricing_v1_pricing_proto protoreflect.FileDescriptor
@@ -943,11 +1383,16 @@ const file_api_proto_pricing_v1_pricing_proto_rawDesc = "" +
 	"\fvehicle_type\x18\x0e \x01(\tR\vvehicleType\x12#\n" +
 	"\rvehicle_class\x18\x0f \x01(\tR\fvehicleClass\x12\x1d\n" +
 	"\n" +
-	"promo_code\x18\x10 \x01(\tR\tpromoCode\"\xac\x01\n" +
+	"promo_code\x18\x10 \x01(\tR\tpromoCode\"\xf7\x01\n" +
 	"\x16CalculatePriceResponse\x12*\n" +
 	"\x11final_price_paisa\x18\x01 \x01(\x03R\x0ffinalPricePaisa\x12(\n" +
 	"\x10base_price_paisa\x18\x02 \x01(\x03R\x0ebasePricePaisa\x12<\n" +
-	"\rapplied_rules\x18\x03 \x03(\v2\x17.pricing.v1.AppliedRuleR\fappliedRules\"c\n" +
+	"\rapplied_rules\x18\x03 \x03(\v2\x17.pricing.v1.AppliedRuleR\fappliedRules\x12I\n" +
+	"\x11promotion_applied\x18\x04 \x01(\v2\x1c.pricing.v1.PromotionAppliedR\x10promotionApplied\"e\n" +
+	"\x10PromotionApplied\x12\x1d\n" +
+	"\n" +
+	"promo_code\x18\x01 \x01(\tR\tpromoCode\x122\n" +
+	"\x15discount_amount_paisa\x18\x02 \x01(\x03R\x13discountAmountPaisa\"c\n" +
 	"\vAppliedRule\x12\x17\n" +
 	"\arule_id\x18\x01 \x01(\tR\x06ruleId\x12\x1b\n" +
 	"\trule_name\x18\x02 \x01(\tR\bruleName\x12\x1e\n" +
@@ -1007,7 +1452,45 @@ const file_api_proto_pricing_v1_pricing_proto_rawDesc = "" +
 	"\x11DeleteRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\".\n" +
 	"\x12DeleteRuleResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\x97\x03\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x9a\x03\n" +
+	"\tPromotion\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12#\n" +
+	"\rdiscount_type\x18\x04 \x01(\tR\fdiscountType\x12%\n" +
+	"\x0ediscount_value\x18\x05 \x01(\x01R\rdiscountValue\x12\x1b\n" +
+	"\tmax_usage\x18\x06 \x01(\x03R\bmaxUsage\x12#\n" +
+	"\rcurrent_usage\x18\a \x01(\x03R\fcurrentUsage\x12\x1d\n" +
+	"\n" +
+	"valid_from\x18\b \x01(\tR\tvalidFrom\x12\x1f\n" +
+	"\vvalid_until\x18\t \x01(\tR\n" +
+	"validUntil\x123\n" +
+	"\x16min_order_amount_paisa\x18\n" +
+	" \x01(\x03R\x13minOrderAmountPaisa\x12\x1b\n" +
+	"\tis_active\x18\v \x01(\bR\bisActive\x12'\n" +
+	"\x0forganization_id\x18\f \x01(\tR\x0eorganizationId\"\xd5\x02\n" +
+	"\x16CreatePromotionRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12#\n" +
+	"\rdiscount_type\x18\x03 \x01(\tR\fdiscountType\x12%\n" +
+	"\x0ediscount_value\x18\x04 \x01(\x01R\rdiscountValue\x12\x1b\n" +
+	"\tmax_usage\x18\x05 \x01(\x03R\bmaxUsage\x12\x1d\n" +
+	"\n" +
+	"valid_from\x18\x06 \x01(\tR\tvalidFrom\x12\x1f\n" +
+	"\vvalid_until\x18\a \x01(\tR\n" +
+	"validUntil\x123\n" +
+	"\x16min_order_amount_paisa\x18\b \x01(\x03R\x13minOrderAmountPaisa\x12'\n" +
+	"\x0forganization_id\x18\t \x01(\tR\x0eorganizationId\"N\n" +
+	"\x17CreatePromotionResponse\x123\n" +
+	"\tpromotion\x18\x01 \x01(\v2\x15.pricing.v1.PromotionR\tpromotion\"`\n" +
+	"\x14GetPromotionsRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x1f\n" +
+	"\vactive_only\x18\x02 \x01(\bR\n" +
+	"activeOnly\"N\n" +
+	"\x15GetPromotionsResponse\x125\n" +
+	"\n" +
+	"promotions\x18\x01 \x03(\v2\x15.pricing.v1.PromotionR\n" +
+	"promotions2\xc9\x04\n" +
 	"\x0ePricingService\x12W\n" +
 	"\x0eCalculatePrice\x12!.pricing.v1.CalculatePriceRequest\x1a\".pricing.v1.CalculatePriceResponse\x12E\n" +
 	"\bGetRules\x12\x1b.pricing.v1.GetRulesRequest\x1a\x1c.pricing.v1.GetRulesResponse\x12K\n" +
@@ -1016,7 +1499,9 @@ const file_api_proto_pricing_v1_pricing_proto_rawDesc = "" +
 	"\n" +
 	"UpdateRule\x12\x1d.pricing.v1.UpdateRuleRequest\x1a\x1e.pricing.v1.UpdateRuleResponse\x12K\n" +
 	"\n" +
-	"DeleteRule\x12\x1d.pricing.v1.DeleteRuleRequest\x1a\x1e.pricing.v1.DeleteRuleResponseBDZBgithub.com/MuhibNayem/Travio/server/api/proto/pricing/v1;pricingv1b\x06proto3"
+	"DeleteRule\x12\x1d.pricing.v1.DeleteRuleRequest\x1a\x1e.pricing.v1.DeleteRuleResponse\x12Z\n" +
+	"\x0fCreatePromotion\x12\".pricing.v1.CreatePromotionRequest\x1a#.pricing.v1.CreatePromotionResponse\x12T\n" +
+	"\rGetPromotions\x12 .pricing.v1.GetPromotionsRequest\x1a!.pricing.v1.GetPromotionsResponseBDZBgithub.com/MuhibNayem/Travio/server/api/proto/pricing/v1;pricingv1b\x06proto3"
 
 var (
 	file_api_proto_pricing_v1_pricing_proto_rawDescOnce sync.Once
@@ -1030,41 +1515,54 @@ func file_api_proto_pricing_v1_pricing_proto_rawDescGZIP() []byte {
 	return file_api_proto_pricing_v1_pricing_proto_rawDescData
 }
 
-var file_api_proto_pricing_v1_pricing_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_api_proto_pricing_v1_pricing_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_api_proto_pricing_v1_pricing_proto_goTypes = []any{
-	(*CalculatePriceRequest)(nil),  // 0: pricing.v1.CalculatePriceRequest
-	(*CalculatePriceResponse)(nil), // 1: pricing.v1.CalculatePriceResponse
-	(*AppliedRule)(nil),            // 2: pricing.v1.AppliedRule
-	(*PricingRule)(nil),            // 3: pricing.v1.PricingRule
-	(*GetRulesRequest)(nil),        // 4: pricing.v1.GetRulesRequest
-	(*GetRulesResponse)(nil),       // 5: pricing.v1.GetRulesResponse
-	(*CreateRuleRequest)(nil),      // 6: pricing.v1.CreateRuleRequest
-	(*CreateRuleResponse)(nil),     // 7: pricing.v1.CreateRuleResponse
-	(*UpdateRuleRequest)(nil),      // 8: pricing.v1.UpdateRuleRequest
-	(*UpdateRuleResponse)(nil),     // 9: pricing.v1.UpdateRuleResponse
-	(*DeleteRuleRequest)(nil),      // 10: pricing.v1.DeleteRuleRequest
-	(*DeleteRuleResponse)(nil),     // 11: pricing.v1.DeleteRuleResponse
+	(*CalculatePriceRequest)(nil),   // 0: pricing.v1.CalculatePriceRequest
+	(*CalculatePriceResponse)(nil),  // 1: pricing.v1.CalculatePriceResponse
+	(*PromotionApplied)(nil),        // 2: pricing.v1.PromotionApplied
+	(*AppliedRule)(nil),             // 3: pricing.v1.AppliedRule
+	(*PricingRule)(nil),             // 4: pricing.v1.PricingRule
+	(*GetRulesRequest)(nil),         // 5: pricing.v1.GetRulesRequest
+	(*GetRulesResponse)(nil),        // 6: pricing.v1.GetRulesResponse
+	(*CreateRuleRequest)(nil),       // 7: pricing.v1.CreateRuleRequest
+	(*CreateRuleResponse)(nil),      // 8: pricing.v1.CreateRuleResponse
+	(*UpdateRuleRequest)(nil),       // 9: pricing.v1.UpdateRuleRequest
+	(*UpdateRuleResponse)(nil),      // 10: pricing.v1.UpdateRuleResponse
+	(*DeleteRuleRequest)(nil),       // 11: pricing.v1.DeleteRuleRequest
+	(*DeleteRuleResponse)(nil),      // 12: pricing.v1.DeleteRuleResponse
+	(*Promotion)(nil),               // 13: pricing.v1.Promotion
+	(*CreatePromotionRequest)(nil),  // 14: pricing.v1.CreatePromotionRequest
+	(*CreatePromotionResponse)(nil), // 15: pricing.v1.CreatePromotionResponse
+	(*GetPromotionsRequest)(nil),    // 16: pricing.v1.GetPromotionsRequest
+	(*GetPromotionsResponse)(nil),   // 17: pricing.v1.GetPromotionsResponse
 }
 var file_api_proto_pricing_v1_pricing_proto_depIdxs = []int32{
-	2,  // 0: pricing.v1.CalculatePriceResponse.applied_rules:type_name -> pricing.v1.AppliedRule
-	3,  // 1: pricing.v1.GetRulesResponse.rules:type_name -> pricing.v1.PricingRule
-	3,  // 2: pricing.v1.CreateRuleResponse.rule:type_name -> pricing.v1.PricingRule
-	3,  // 3: pricing.v1.UpdateRuleResponse.rule:type_name -> pricing.v1.PricingRule
-	0,  // 4: pricing.v1.PricingService.CalculatePrice:input_type -> pricing.v1.CalculatePriceRequest
-	4,  // 5: pricing.v1.PricingService.GetRules:input_type -> pricing.v1.GetRulesRequest
-	6,  // 6: pricing.v1.PricingService.CreateRule:input_type -> pricing.v1.CreateRuleRequest
-	8,  // 7: pricing.v1.PricingService.UpdateRule:input_type -> pricing.v1.UpdateRuleRequest
-	10, // 8: pricing.v1.PricingService.DeleteRule:input_type -> pricing.v1.DeleteRuleRequest
-	1,  // 9: pricing.v1.PricingService.CalculatePrice:output_type -> pricing.v1.CalculatePriceResponse
-	5,  // 10: pricing.v1.PricingService.GetRules:output_type -> pricing.v1.GetRulesResponse
-	7,  // 11: pricing.v1.PricingService.CreateRule:output_type -> pricing.v1.CreateRuleResponse
-	9,  // 12: pricing.v1.PricingService.UpdateRule:output_type -> pricing.v1.UpdateRuleResponse
-	11, // 13: pricing.v1.PricingService.DeleteRule:output_type -> pricing.v1.DeleteRuleResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	3,  // 0: pricing.v1.CalculatePriceResponse.applied_rules:type_name -> pricing.v1.AppliedRule
+	2,  // 1: pricing.v1.CalculatePriceResponse.promotion_applied:type_name -> pricing.v1.PromotionApplied
+	4,  // 2: pricing.v1.GetRulesResponse.rules:type_name -> pricing.v1.PricingRule
+	4,  // 3: pricing.v1.CreateRuleResponse.rule:type_name -> pricing.v1.PricingRule
+	4,  // 4: pricing.v1.UpdateRuleResponse.rule:type_name -> pricing.v1.PricingRule
+	13, // 5: pricing.v1.CreatePromotionResponse.promotion:type_name -> pricing.v1.Promotion
+	13, // 6: pricing.v1.GetPromotionsResponse.promotions:type_name -> pricing.v1.Promotion
+	0,  // 7: pricing.v1.PricingService.CalculatePrice:input_type -> pricing.v1.CalculatePriceRequest
+	5,  // 8: pricing.v1.PricingService.GetRules:input_type -> pricing.v1.GetRulesRequest
+	7,  // 9: pricing.v1.PricingService.CreateRule:input_type -> pricing.v1.CreateRuleRequest
+	9,  // 10: pricing.v1.PricingService.UpdateRule:input_type -> pricing.v1.UpdateRuleRequest
+	11, // 11: pricing.v1.PricingService.DeleteRule:input_type -> pricing.v1.DeleteRuleRequest
+	14, // 12: pricing.v1.PricingService.CreatePromotion:input_type -> pricing.v1.CreatePromotionRequest
+	16, // 13: pricing.v1.PricingService.GetPromotions:input_type -> pricing.v1.GetPromotionsRequest
+	1,  // 14: pricing.v1.PricingService.CalculatePrice:output_type -> pricing.v1.CalculatePriceResponse
+	6,  // 15: pricing.v1.PricingService.GetRules:output_type -> pricing.v1.GetRulesResponse
+	8,  // 16: pricing.v1.PricingService.CreateRule:output_type -> pricing.v1.CreateRuleResponse
+	10, // 17: pricing.v1.PricingService.UpdateRule:output_type -> pricing.v1.UpdateRuleResponse
+	12, // 18: pricing.v1.PricingService.DeleteRule:output_type -> pricing.v1.DeleteRuleResponse
+	15, // 19: pricing.v1.PricingService.CreatePromotion:output_type -> pricing.v1.CreatePromotionResponse
+	17, // 20: pricing.v1.PricingService.GetPromotions:output_type -> pricing.v1.GetPromotionsResponse
+	14, // [14:21] is the sub-list for method output_type
+	7,  // [7:14] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_pricing_v1_pricing_proto_init() }
@@ -1078,7 +1576,7 @@ func file_api_proto_pricing_v1_pricing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_pricing_v1_pricing_proto_rawDesc), len(file_api_proto_pricing_v1_pricing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

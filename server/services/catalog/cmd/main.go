@@ -13,6 +13,7 @@ import (
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/catalog/config"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/clients"
+	"github.com/MuhibNayem/Travio/server/services/catalog/internal/events"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/service"
@@ -48,7 +49,9 @@ func main() {
 	routeRepo := repository.NewRouteRepository(db)
 	cachedRouteRepo := repository.NewCachedRouteRepository(routeRepo, rdb)
 
-	tripRepo := repository.NewTripRepository(db)
+	publisher := events.NewPublisher(db)
+	tripRepo := repository.NewTripRepository(db, publisher)
+	cachedTripRepo := repository.NewCachedTripRepository(tripRepo, rdb)
 	scheduleRepo := repository.NewScheduleRepository(db)
 	auditRepo := repository.NewAuditRepository(db)
 
@@ -82,7 +85,7 @@ func main() {
 		logger.Error("Failed to create inventory client", "error", err)
 	}
 
-	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, tripRepo, scheduleRepo, entChecker, fleetClient, inventoryClient, auditRepo)
+	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, cachedTripRepo, scheduleRepo, entChecker, fleetClient, inventoryClient, auditRepo)
 	grpcHandler := handler.NewGrpcHandler(catalogService)
 
 	// HTTP Mux (for health checks and REST fallback)

@@ -27,6 +27,8 @@ const (
 	InventoryService_GetSeatMap_FullMethodName              = "/inventory.v1.InventoryService/GetSeatMap"
 	InventoryService_InitializeTripInventory_FullMethodName = "/inventory.v1.InventoryService/InitializeTripInventory"
 	InventoryService_UpdateInventory_FullMethodName         = "/inventory.v1.InventoryService/UpdateInventory"
+	InventoryService_JoinWaitlist_FullMethodName            = "/inventory.v1.InventoryService/JoinWaitlist"
+	InventoryService_GetUserWaitlist_FullMethodName         = "/inventory.v1.InventoryService/GetUserWaitlist"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -52,6 +54,9 @@ type InventoryServiceClient interface {
 	InitializeTripInventory(ctx context.Context, in *InitializeTripInventoryRequest, opts ...grpc.CallOption) (*InitializeTripInventoryResponse, error)
 	// Admin: Bulk update inventory (cancellations, adjustments)
 	UpdateInventory(ctx context.Context, in *UpdateInventoryRequest, opts ...grpc.CallOption) (*UpdateInventoryResponse, error)
+	// Waitlist
+	JoinWaitlist(ctx context.Context, in *JoinWaitlistRequest, opts ...grpc.CallOption) (*JoinWaitlistResponse, error)
+	GetUserWaitlist(ctx context.Context, in *GetUserWaitlistRequest, opts ...grpc.CallOption) (*GetUserWaitlistResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -142,6 +147,26 @@ func (c *inventoryServiceClient) UpdateInventory(ctx context.Context, in *Update
 	return out, nil
 }
 
+func (c *inventoryServiceClient) JoinWaitlist(ctx context.Context, in *JoinWaitlistRequest, opts ...grpc.CallOption) (*JoinWaitlistResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JoinWaitlistResponse)
+	err := c.cc.Invoke(ctx, InventoryService_JoinWaitlist_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) GetUserWaitlist(ctx context.Context, in *GetUserWaitlistRequest, opts ...grpc.CallOption) (*GetUserWaitlistResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserWaitlistResponse)
+	err := c.cc.Invoke(ctx, InventoryService_GetUserWaitlist_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility.
@@ -165,6 +190,9 @@ type InventoryServiceServer interface {
 	InitializeTripInventory(context.Context, *InitializeTripInventoryRequest) (*InitializeTripInventoryResponse, error)
 	// Admin: Bulk update inventory (cancellations, adjustments)
 	UpdateInventory(context.Context, *UpdateInventoryRequest) (*UpdateInventoryResponse, error)
+	// Waitlist
+	JoinWaitlist(context.Context, *JoinWaitlistRequest) (*JoinWaitlistResponse, error)
+	GetUserWaitlist(context.Context, *GetUserWaitlistRequest) (*GetUserWaitlistResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -198,6 +226,12 @@ func (UnimplementedInventoryServiceServer) InitializeTripInventory(context.Conte
 }
 func (UnimplementedInventoryServiceServer) UpdateInventory(context.Context, *UpdateInventoryRequest) (*UpdateInventoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateInventory not implemented")
+}
+func (UnimplementedInventoryServiceServer) JoinWaitlist(context.Context, *JoinWaitlistRequest) (*JoinWaitlistResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method JoinWaitlist not implemented")
+}
+func (UnimplementedInventoryServiceServer) GetUserWaitlist(context.Context, *GetUserWaitlistRequest) (*GetUserWaitlistResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserWaitlist not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 func (UnimplementedInventoryServiceServer) testEmbeddedByValue()                          {}
@@ -364,6 +398,42 @@ func _InventoryService_UpdateInventory_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_JoinWaitlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinWaitlistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).JoinWaitlist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_JoinWaitlist_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).JoinWaitlist(ctx, req.(*JoinWaitlistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_GetUserWaitlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserWaitlistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).GetUserWaitlist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_GetUserWaitlist_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).GetUserWaitlist(ctx, req.(*GetUserWaitlistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -402,6 +472,14 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateInventory",
 			Handler:    _InventoryService_UpdateInventory_Handler,
+		},
+		{
+			MethodName: "JoinWaitlist",
+			Handler:    _InventoryService_JoinWaitlist_Handler,
+		},
+		{
+			MethodName: "GetUserWaitlist",
+			Handler:    _InventoryService_GetUserWaitlist_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

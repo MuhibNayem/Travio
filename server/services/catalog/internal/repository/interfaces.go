@@ -30,6 +30,8 @@ type TripRepository interface {
 	DecrementSeats(ctx context.Context, id string, count int) error
 	CreateSegments(ctx context.Context, tripID string, segments []domain.TripSegment) error
 	GetSegments(ctx context.Context, tripID string) ([]domain.TripSegment, error)
+	CheckVehicleAvailability(ctx context.Context, vehicleID string, startTime, endTime time.Time) (bool, error)
+	BatchCreate(ctx context.Context, trips []*domain.Trip) error
 }
 
 type ScheduleRepository interface {

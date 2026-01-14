@@ -170,6 +170,7 @@ func (c *Client) InitSchema(ctx context.Context) error {
 			order_id Nullable(UUID),
 			payment_id Nullable(UUID),
 			trip_id Nullable(UUID),
+			route_id Nullable(UUID),
 			amount_paisa Int64,
 			status LowCardinality(String),
 			metadata String,
@@ -178,6 +179,9 @@ func (c *Client) InitSchema(ctx context.Context) error {
 		PARTITION BY toYYYYMM(event_date)
 		ORDER BY (organization_id, event_type, timestamp)
 		TTL event_date + INTERVAL 2 YEAR`,
+
+		// Migration: Add route_id if not exists
+		`ALTER TABLE events ADD COLUMN IF NOT EXISTS route_id Nullable(UUID) AFTER trip_id`,
 
 		// Daily revenue materialized view
 		`CREATE MATERIALIZED VIEW IF NOT EXISTS daily_revenue_mv
@@ -208,7 +212,7 @@ func (c *Client) InitSchema(ctx context.Context) error {
 		WHERE event_type IN ('order_created', 'order_completed', 'order_cancelled')
 		GROUP BY organization_id, hour`,
 
-		// Top routes materialized view
+		// Top routes (Trips) materialized view (Legacy naming, kept for backward compat)
 		`CREATE MATERIALIZED VIEW IF NOT EXISTS top_routes_mv
 		ENGINE = SummingMergeTree()
 		ORDER BY (organization_id, trip_id)
@@ -220,6 +224,19 @@ func (c *Client) InitSchema(ctx context.Context) error {
 		FROM events
 		WHERE event_type = 'order_completed' AND trip_id IS NOT NULL
 		GROUP BY organization_id, trip_id`,
+
+		// Top Routes (Actual Routes) materialized view
+		`CREATE MATERIALIZED VIEW IF NOT EXISTS top_routes_by_route_mv
+		ENGINE = SummingMergeTree()
+		ORDER BY (organization_id, route_id)
+		AS SELECT
+			organization_id,
+			route_id,
+			count() AS booking_count,
+			sum(amount_paisa) AS revenue
+		FROM events
+		WHERE event_type = 'order_completed' AND route_id IS NOT NULL
+		GROUP BY organization_id, route_id`,
 	}
 
 	for _, schema := range schemas {
@@ -268,7 +285,7 @@ func (c *Client) Flush(ctx context.Context) error {
 
 	batch, err := c.conn.PrepareBatch(ctx, `INSERT INTO events (
 		event_id, event_type, organization_id, user_id, timestamp,
-		order_id, payment_id, trip_id, amount_paisa, status, metadata
+		order_id, payment_id, trip_id, route_id, amount_paisa, status, metadata
 	)`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare batch: %w", err)
@@ -284,6 +301,7 @@ func (c *Client) Flush(ctx context.Context) error {
 			nullableString(e.OrderID),
 			nullableString(e.PaymentID),
 			nullableString(e.TripID),
+			nullableString(e.RouteID),
 			e.AmountPaisa,
 			e.Status,
 			e.Metadata,

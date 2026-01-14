@@ -10,6 +10,7 @@ type Order struct {
 	OrganizationID string `json:"organization_id"`
 	UserID         string `json:"user_id"`
 	TripID         string `json:"trip_id"`
+	RouteID        string `json:"route_id"`
 	FromStationID  string `json:"from_station_id"`
 	ToStationID    string `json:"to_station_id"`
 

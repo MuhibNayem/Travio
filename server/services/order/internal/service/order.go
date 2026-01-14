@@ -94,6 +94,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		OrganizationID: req.OrgID,
 		UserID:         req.UserID,
 		TripID:         req.TripID,
+		RouteID:        trip.RouteId,
 		FromStationID:  req.FromStation,
 		ToStationID:    req.ToStation,
 		HoldID:         req.HoldID,

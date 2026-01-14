@@ -82,3 +82,14 @@ func (r *TransactionRepository) GetByOrderID(ctx context.Context, orderID string
 	}
 	return &tx, nil
 }
+
+func (r *TransactionRepository) GetTransactionsByDateRange(ctx context.Context, orgID string, startDate, endDate time.Time) ([]model.Transaction, error) {
+	var txs []model.Transaction
+	query := r.db.WithContext(ctx).Where("status = ?", "SUCCESS")
+	if orgID != "" {
+		query = query.Where("organization_id = ?", orgID)
+	}
+	query = query.Where("created_at >= ? AND created_at < ?", startDate, endDate)
+	err := query.Find(&txs).Error
+	return txs, err
+}

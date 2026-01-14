@@ -217,3 +217,45 @@ func stringToProtoSeatStatus(s string) pb.SeatStatus {
 		return pb.SeatStatus_SEAT_STATUS_UNSPECIFIED
 	}
 }
+
+func (h *GrpcHandler) JoinWaitlist(ctx context.Context, req *pb.JoinWaitlistRequest) (*pb.JoinWaitlistResponse, error) {
+	result, err := h.inventoryService.JoinWaitlist(ctx, &service.WaitlistRequest{
+		OrganizationID: req.OrganizationId,
+		TripID:         req.TripId,
+		UserID:         req.UserId,
+		SeatClass:      req.SeatClass,
+		RequestedSeats: int(req.RequestedSeats),
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to join waitlist")
+	}
+
+	return &pb.JoinWaitlistResponse{
+		Success:  result.Success,
+		Message:  result.Message,
+		Position: int32(result.Position),
+	}, nil
+}
+
+func (h *GrpcHandler) GetUserWaitlist(ctx context.Context, req *pb.GetUserWaitlistRequest) (*pb.GetUserWaitlistResponse, error) {
+	entries, err := h.inventoryService.GetUserWaitlist(ctx, req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get user waitlist")
+	}
+
+	var pbEntries []*pb.WaitlistEntry
+	for _, e := range entries {
+		pbEntries = append(pbEntries, &pb.WaitlistEntry{
+			TripId:         e.TripID,
+			OrganizationId: e.OrganizationID,
+			SeatClass:      e.SeatClass,
+			RequestedSeats: int32(e.RequestedSeats),
+			Status:         e.Status,
+			CreatedAt:      e.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	return &pb.GetUserWaitlistResponse{
+		Entries: pbEntries,
+	}, nil
+}

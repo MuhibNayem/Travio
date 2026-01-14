@@ -19,6 +19,10 @@ service PricingService {
   
   // Admin: Delete a pricing rule
   rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+
+  // Promotions
+  rpc CreatePromotion(CreatePromotionRequest) returns (CreatePromotionResponse);
+  rpc GetPromotions(GetPromotionsRequest) returns (GetPromotionsResponse);
 }
 
 message CalculatePriceRequest {
@@ -44,6 +48,12 @@ message CalculatePriceResponse {
   int64 final_price_paisa = 1;
   int64 base_price_paisa = 2;
   repeated AppliedRule applied_rules = 3;
+  PromotionApplied promotion_applied = 4;
+}
+
+message PromotionApplied {
+  string promo_code = 1;
+  int64 discount_amount_paisa = 2;
 }
 
 message AppliedRule {
@@ -113,4 +123,44 @@ message DeleteRuleRequest {
 
 message DeleteRuleResponse {
   bool success = 1;
+}
+
+message Promotion {
+  string id = 1;
+  string code = 2;
+  string description = 3;
+  string discount_type = 4; // PERCENT, FIXED_AMOUNT
+  double discount_value = 5; 
+  int64 max_usage = 6;
+  int64 current_usage = 7;
+  string valid_from = 8; // ISO8601
+  string valid_until = 9; // ISO8601
+  int64 min_order_amount_paisa = 10;
+  bool is_active = 11;
+  string organization_id = 12;
+}
+
+message CreatePromotionRequest {
+  string code = 1;
+  string description = 2;
+  string discount_type = 3; 
+  double discount_value = 4; // e.g., 10.0 for 10% or 500 for 500 paisa
+  int64 max_usage = 5;
+  string valid_from = 6;
+  string valid_until = 7;
+  int64 min_order_amount_paisa = 8;
+  string organization_id = 9;
+}
+
+message CreatePromotionResponse {
+  Promotion promotion = 1;
+}
+
+message GetPromotionsRequest {
+  string organization_id = 1;
+  bool active_only = 2;
+}
+
+message GetPromotionsResponse {
+  repeated Promotion promotions = 1;
 }

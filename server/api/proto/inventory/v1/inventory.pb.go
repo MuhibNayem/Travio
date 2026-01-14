@@ -1884,6 +1884,314 @@ func (x *UpdateInventoryResponse) GetUpdatedCount() int32 {
 	return 0
 }
 
+type JoinWaitlistRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	SeatClass      string                 `protobuf:"bytes,3,opt,name=seat_class,json=seatClass,proto3" json:"seat_class,omitempty"`
+	RequestedSeats int32                  `protobuf:"varint,4,opt,name=requested_seats,json=requestedSeats,proto3" json:"requested_seats,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,5,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *JoinWaitlistRequest) Reset() {
+	*x = JoinWaitlistRequest{}
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinWaitlistRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinWaitlistRequest) ProtoMessage() {}
+
+func (x *JoinWaitlistRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinWaitlistRequest.ProtoReflect.Descriptor instead.
+func (*JoinWaitlistRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_inventory_v1_inventory_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *JoinWaitlistRequest) GetTripId() string {
+	if x != nil {
+		return x.TripId
+	}
+	return ""
+}
+
+func (x *JoinWaitlistRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *JoinWaitlistRequest) GetSeatClass() string {
+	if x != nil {
+		return x.SeatClass
+	}
+	return ""
+}
+
+func (x *JoinWaitlistRequest) GetRequestedSeats() int32 {
+	if x != nil {
+		return x.RequestedSeats
+	}
+	return 0
+}
+
+func (x *JoinWaitlistRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type JoinWaitlistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Position      int32                  `protobuf:"varint,3,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinWaitlistResponse) Reset() {
+	*x = JoinWaitlistResponse{}
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinWaitlistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinWaitlistResponse) ProtoMessage() {}
+
+func (x *JoinWaitlistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinWaitlistResponse.ProtoReflect.Descriptor instead.
+func (*JoinWaitlistResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_inventory_v1_inventory_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *JoinWaitlistResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *JoinWaitlistResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *JoinWaitlistResponse) GetPosition() int32 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
+type GetUserWaitlistRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserWaitlistRequest) Reset() {
+	*x = GetUserWaitlistRequest{}
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserWaitlistRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserWaitlistRequest) ProtoMessage() {}
+
+func (x *GetUserWaitlistRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserWaitlistRequest.ProtoReflect.Descriptor instead.
+func (*GetUserWaitlistRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_inventory_v1_inventory_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *GetUserWaitlistRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type WaitlistEntry struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	SeatClass      string                 `protobuf:"bytes,3,opt,name=seat_class,json=seatClass,proto3" json:"seat_class,omitempty"`
+	RequestedSeats int32                  `protobuf:"varint,4,opt,name=requested_seats,json=requestedSeats,proto3" json:"requested_seats,omitempty"`
+	Status         string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt      string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WaitlistEntry) Reset() {
+	*x = WaitlistEntry{}
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WaitlistEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WaitlistEntry) ProtoMessage() {}
+
+func (x *WaitlistEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WaitlistEntry.ProtoReflect.Descriptor instead.
+func (*WaitlistEntry) Descriptor() ([]byte, []int) {
+	return file_api_proto_inventory_v1_inventory_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *WaitlistEntry) GetTripId() string {
+	if x != nil {
+		return x.TripId
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetSeatClass() string {
+	if x != nil {
+		return x.SeatClass
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetRequestedSeats() int32 {
+	if x != nil {
+		return x.RequestedSeats
+	}
+	return 0
+}
+
+func (x *WaitlistEntry) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type GetUserWaitlistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*WaitlistEntry       `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserWaitlistResponse) Reset() {
+	*x = GetUserWaitlistResponse{}
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserWaitlistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserWaitlistResponse) ProtoMessage() {}
+
+func (x *GetUserWaitlistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_inventory_v1_inventory_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserWaitlistResponse.ProtoReflect.Descriptor instead.
+func (*GetUserWaitlistResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_inventory_v1_inventory_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetUserWaitlistResponse) GetEntries() []*WaitlistEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
 var File_api_proto_inventory_v1_inventory_proto protoreflect.FileDescriptor
 
 const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
@@ -2057,14 +2365,38 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"X\n" +
 	"\x17UpdateInventoryResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12#\n" +
-	"\rupdated_count\x18\x02 \x01(\x05R\fupdatedCount*\x8b\x01\n" +
+	"\rupdated_count\x18\x02 \x01(\x05R\fupdatedCount\"\xb8\x01\n" +
+	"\x13JoinWaitlistRequest\x12\x17\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"seat_class\x18\x03 \x01(\tR\tseatClass\x12'\n" +
+	"\x0frequested_seats\x18\x04 \x01(\x05R\x0erequestedSeats\x12'\n" +
+	"\x0forganization_id\x18\x05 \x01(\tR\x0eorganizationId\"f\n" +
+	"\x14JoinWaitlistResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1a\n" +
+	"\bposition\x18\x03 \x01(\x05R\bposition\"1\n" +
+	"\x16GetUserWaitlistRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xd0\x01\n" +
+	"\rWaitlistEntry\x12\x17\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12'\n" +
+	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x1d\n" +
+	"\n" +
+	"seat_class\x18\x03 \x01(\tR\tseatClass\x12'\n" +
+	"\x0frequested_seats\x18\x04 \x01(\x05R\x0erequestedSeats\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\"P\n" +
+	"\x17GetUserWaitlistResponse\x125\n" +
+	"\aentries\x18\x01 \x03(\v2\x1b.inventory.v1.WaitlistEntryR\aentries*\x8b\x01\n" +
 	"\n" +
 	"SeatStatus\x12\x1b\n" +
 	"\x17SEAT_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15SEAT_STATUS_AVAILABLE\x10\x01\x12\x14\n" +
 	"\x10SEAT_STATUS_HELD\x10\x02\x12\x16\n" +
 	"\x12SEAT_STATUS_BOOKED\x10\x03\x12\x17\n" +
-	"\x13SEAT_STATUS_BLOCKED\x10\x042\x80\x06\n" +
+	"\x13SEAT_STATUS_BLOCKED\x10\x042\xb7\a\n" +
 	"\x10InventoryService\x12d\n" +
 	"\x11CheckAvailability\x12&.inventory.v1.CheckAvailabilityRequest\x1a'.inventory.v1.CheckAvailabilityResponse\x12[\n" +
 	"\x16BatchCheckAvailability\x12\x1f.inventory.v1.BatchCheckRequest\x1a .inventory.v1.BatchCheckResponse\x12L\n" +
@@ -2074,7 +2406,9 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\n" +
 	"GetSeatMap\x12\x1f.inventory.v1.GetSeatMapRequest\x1a .inventory.v1.GetSeatMapResponse\x12v\n" +
 	"\x17InitializeTripInventory\x12,.inventory.v1.InitializeTripInventoryRequest\x1a-.inventory.v1.InitializeTripInventoryResponse\x12^\n" +
-	"\x0fUpdateInventory\x12$.inventory.v1.UpdateInventoryRequest\x1a%.inventory.v1.UpdateInventoryResponseB<Z:github.com/MuhibNayem/Travio/server/api/proto/inventory/v1b\x06proto3"
+	"\x0fUpdateInventory\x12$.inventory.v1.UpdateInventoryRequest\x1a%.inventory.v1.UpdateInventoryResponse\x12U\n" +
+	"\fJoinWaitlist\x12!.inventory.v1.JoinWaitlistRequest\x1a\".inventory.v1.JoinWaitlistResponse\x12^\n" +
+	"\x0fGetUserWaitlist\x12$.inventory.v1.GetUserWaitlistRequest\x1a%.inventory.v1.GetUserWaitlistResponseB<Z:github.com/MuhibNayem/Travio/server/api/proto/inventory/v1b\x06proto3"
 
 var (
 	file_api_proto_inventory_v1_inventory_proto_rawDescOnce sync.Once
@@ -2089,7 +2423,7 @@ func file_api_proto_inventory_v1_inventory_proto_rawDescGZIP() []byte {
 }
 
 var file_api_proto_inventory_v1_inventory_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_proto_inventory_v1_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_api_proto_inventory_v1_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_api_proto_inventory_v1_inventory_proto_goTypes = []any{
 	(SeatStatus)(0),                         // 0: inventory.v1.SeatStatus
 	(*CheckAvailabilityRequest)(nil),        // 1: inventory.v1.CheckAvailabilityRequest
@@ -2118,8 +2452,13 @@ var file_api_proto_inventory_v1_inventory_proto_goTypes = []any{
 	(*UpdateInventoryRequest)(nil),          // 24: inventory.v1.UpdateInventoryRequest
 	(*SeatUpdate)(nil),                      // 25: inventory.v1.SeatUpdate
 	(*UpdateInventoryResponse)(nil),         // 26: inventory.v1.UpdateInventoryResponse
-	nil,                                     // 27: inventory.v1.SeatMapLegend.StatusColorsEntry
-	nil,                                     // 28: inventory.v1.SeatMapLegend.ClassColorsEntry
+	(*JoinWaitlistRequest)(nil),             // 27: inventory.v1.JoinWaitlistRequest
+	(*JoinWaitlistResponse)(nil),            // 28: inventory.v1.JoinWaitlistResponse
+	(*GetUserWaitlistRequest)(nil),          // 29: inventory.v1.GetUserWaitlistRequest
+	(*WaitlistEntry)(nil),                   // 30: inventory.v1.WaitlistEntry
+	(*GetUserWaitlistResponse)(nil),         // 31: inventory.v1.GetUserWaitlistResponse
+	nil,                                     // 32: inventory.v1.SeatMapLegend.StatusColorsEntry
+	nil,                                     // 33: inventory.v1.SeatMapLegend.ClassColorsEntry
 }
 var file_api_proto_inventory_v1_inventory_proto_depIdxs = []int32{
 	3,  // 0: inventory.v1.CheckAvailabilityResponse.seats:type_name -> inventory.v1.SeatAvailability
@@ -2132,34 +2471,39 @@ var file_api_proto_inventory_v1_inventory_proto_depIdxs = []int32{
 	18, // 7: inventory.v1.GetSeatMapResponse.legend:type_name -> inventory.v1.SeatMapLegend
 	17, // 8: inventory.v1.SeatRow.seats:type_name -> inventory.v1.SeatCell
 	0,  // 9: inventory.v1.SeatCell.status:type_name -> inventory.v1.SeatStatus
-	27, // 10: inventory.v1.SeatMapLegend.status_colors:type_name -> inventory.v1.SeatMapLegend.StatusColorsEntry
-	28, // 11: inventory.v1.SeatMapLegend.class_colors:type_name -> inventory.v1.SeatMapLegend.ClassColorsEntry
+	32, // 10: inventory.v1.SeatMapLegend.status_colors:type_name -> inventory.v1.SeatMapLegend.StatusColorsEntry
+	33, // 11: inventory.v1.SeatMapLegend.class_colors:type_name -> inventory.v1.SeatMapLegend.ClassColorsEntry
 	20, // 12: inventory.v1.InitializeTripInventoryRequest.segments:type_name -> inventory.v1.SegmentDefinition
 	21, // 13: inventory.v1.InitializeTripInventoryRequest.seat_config:type_name -> inventory.v1.SeatConfiguration
 	22, // 14: inventory.v1.SeatConfiguration.seats:type_name -> inventory.v1.SeatDefinition
 	25, // 15: inventory.v1.UpdateInventoryRequest.updates:type_name -> inventory.v1.SeatUpdate
 	0,  // 16: inventory.v1.SeatUpdate.new_status:type_name -> inventory.v1.SeatStatus
-	1,  // 17: inventory.v1.InventoryService.CheckAvailability:input_type -> inventory.v1.CheckAvailabilityRequest
-	4,  // 18: inventory.v1.InventoryService.BatchCheckAvailability:input_type -> inventory.v1.BatchCheckRequest
-	6,  // 19: inventory.v1.InventoryService.HoldSeats:input_type -> inventory.v1.HoldSeatsRequest
-	8,  // 20: inventory.v1.InventoryService.ReleaseSeats:input_type -> inventory.v1.ReleaseSeatsRequest
-	10, // 21: inventory.v1.InventoryService.ConfirmBooking:input_type -> inventory.v1.ConfirmBookingRequest
-	14, // 22: inventory.v1.InventoryService.GetSeatMap:input_type -> inventory.v1.GetSeatMapRequest
-	19, // 23: inventory.v1.InventoryService.InitializeTripInventory:input_type -> inventory.v1.InitializeTripInventoryRequest
-	24, // 24: inventory.v1.InventoryService.UpdateInventory:input_type -> inventory.v1.UpdateInventoryRequest
-	2,  // 25: inventory.v1.InventoryService.CheckAvailability:output_type -> inventory.v1.CheckAvailabilityResponse
-	5,  // 26: inventory.v1.InventoryService.BatchCheckAvailability:output_type -> inventory.v1.BatchCheckResponse
-	7,  // 27: inventory.v1.InventoryService.HoldSeats:output_type -> inventory.v1.HoldSeatsResponse
-	9,  // 28: inventory.v1.InventoryService.ReleaseSeats:output_type -> inventory.v1.ReleaseSeatsResponse
-	12, // 29: inventory.v1.InventoryService.ConfirmBooking:output_type -> inventory.v1.ConfirmBookingResponse
-	15, // 30: inventory.v1.InventoryService.GetSeatMap:output_type -> inventory.v1.GetSeatMapResponse
-	23, // 31: inventory.v1.InventoryService.InitializeTripInventory:output_type -> inventory.v1.InitializeTripInventoryResponse
-	26, // 32: inventory.v1.InventoryService.UpdateInventory:output_type -> inventory.v1.UpdateInventoryResponse
-	25, // [25:33] is the sub-list for method output_type
-	17, // [17:25] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	30, // 17: inventory.v1.GetUserWaitlistResponse.entries:type_name -> inventory.v1.WaitlistEntry
+	1,  // 18: inventory.v1.InventoryService.CheckAvailability:input_type -> inventory.v1.CheckAvailabilityRequest
+	4,  // 19: inventory.v1.InventoryService.BatchCheckAvailability:input_type -> inventory.v1.BatchCheckRequest
+	6,  // 20: inventory.v1.InventoryService.HoldSeats:input_type -> inventory.v1.HoldSeatsRequest
+	8,  // 21: inventory.v1.InventoryService.ReleaseSeats:input_type -> inventory.v1.ReleaseSeatsRequest
+	10, // 22: inventory.v1.InventoryService.ConfirmBooking:input_type -> inventory.v1.ConfirmBookingRequest
+	14, // 23: inventory.v1.InventoryService.GetSeatMap:input_type -> inventory.v1.GetSeatMapRequest
+	19, // 24: inventory.v1.InventoryService.InitializeTripInventory:input_type -> inventory.v1.InitializeTripInventoryRequest
+	24, // 25: inventory.v1.InventoryService.UpdateInventory:input_type -> inventory.v1.UpdateInventoryRequest
+	27, // 26: inventory.v1.InventoryService.JoinWaitlist:input_type -> inventory.v1.JoinWaitlistRequest
+	29, // 27: inventory.v1.InventoryService.GetUserWaitlist:input_type -> inventory.v1.GetUserWaitlistRequest
+	2,  // 28: inventory.v1.InventoryService.CheckAvailability:output_type -> inventory.v1.CheckAvailabilityResponse
+	5,  // 29: inventory.v1.InventoryService.BatchCheckAvailability:output_type -> inventory.v1.BatchCheckResponse
+	7,  // 30: inventory.v1.InventoryService.HoldSeats:output_type -> inventory.v1.HoldSeatsResponse
+	9,  // 31: inventory.v1.InventoryService.ReleaseSeats:output_type -> inventory.v1.ReleaseSeatsResponse
+	12, // 32: inventory.v1.InventoryService.ConfirmBooking:output_type -> inventory.v1.ConfirmBookingResponse
+	15, // 33: inventory.v1.InventoryService.GetSeatMap:output_type -> inventory.v1.GetSeatMapResponse
+	23, // 34: inventory.v1.InventoryService.InitializeTripInventory:output_type -> inventory.v1.InitializeTripInventoryResponse
+	26, // 35: inventory.v1.InventoryService.UpdateInventory:output_type -> inventory.v1.UpdateInventoryResponse
+	28, // 36: inventory.v1.InventoryService.JoinWaitlist:output_type -> inventory.v1.JoinWaitlistResponse
+	31, // 37: inventory.v1.InventoryService.GetUserWaitlist:output_type -> inventory.v1.GetUserWaitlistResponse
+	28, // [28:38] is the sub-list for method output_type
+	18, // [18:28] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_inventory_v1_inventory_proto_init() }
@@ -2173,7 +2517,7 @@ func file_api_proto_inventory_v1_inventory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_inventory_v1_inventory_proto_rawDesc), len(file_api_proto_inventory_v1_inventory_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   28,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
