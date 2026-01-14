@@ -105,152 +105,201 @@
         </Button>
     </div>
 
-    <div class="rounded-xl border bg-card shadow-sm">
-        <Table.Root>
-            <Table.Header>
-                <Table.Row>
-                    <Table.Head>ROUTE</Table.Head>
-                    <Table.Head>DEPARTURE</Table.Head>
-                    <Table.Head>DAYS</Table.Head>
-                    <Table.Head>SEATS</Table.Head>
-                    <Table.Head>STATUS</Table.Head>
-                </Table.Row>
-            </Table.Header>
-            <Table.Body>
-                {#if loading}
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold tracking-tight">
+                Recurring Schedules (Templates)
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                Base templates that generate actual daily trips.
+            </p>
+        </div>
+        <div class="rounded-xl border bg-card shadow-sm">
+            <Table.Root>
+                <Table.Header>
                     <Table.Row>
-                        <Table.Cell colspan={5} class="h-24 text-center">
-                            Loading schedules...
-                        </Table.Cell>
+                        <Table.Head>ROUTE</Table.Head>
+                        <Table.Head>DEPARTURE</Table.Head>
+                        <Table.Head>DAYS</Table.Head>
+                        <Table.Head>SEATS</Table.Head>
+                        <Table.Head>STATUS</Table.Head>
                     </Table.Row>
-                {:else if schedules.length === 0}
-                    <Table.Row>
-                        <Table.Cell colspan={5} class="h-40 text-center">
-                            <div class="flex flex-col items-center justify-center text-muted-foreground">
-                                <div class="p-4 rounded-full bg-muted mb-4">
-                                    <Calendar class="h-8 w-8" />
-                                </div>
-                                <p class="text-lg font-medium text-foreground">
-                                    No schedules created
-                                </p>
-                                <p class="text-sm">
-                                    Create a schedule to generate trip instances.
-                                </p>
-                            </div>
-                        </Table.Cell>
-                    </Table.Row>
-                {:else}
-                    {#each schedules as schedule}
+                </Table.Header>
+                <Table.Body>
+                    {#if loading}
                         <Table.Row>
-                            <Table.Cell>{getRouteName(schedule.route_id)}</Table.Cell>
-                            <Table.Cell>
-                                <div class="flex items-center gap-2">
-                                    <Clock class="h-4 w-4 text-muted-foreground" />
-                                    {minutesToTime(schedule.departure_minutes)}
-                                </div>
-                            </Table.Cell>
-                            <Table.Cell>{daysMaskToText(schedule.days_of_week)}</Table.Cell>
-                            <Table.Cell>{schedule.total_seats}</Table.Cell>
-                            <Table.Cell>
-                                <span
-                                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                                >
-                                    {schedule.status}
-                                </span>
+                            <Table.Cell colspan={5} class="h-24 text-center">
+                                Loading schedules...
                             </Table.Cell>
                         </Table.Row>
-                    {/each}
-                {/if}
-            </Table.Body>
-        </Table.Root>
-    </div>
-
-    <div class="rounded-xl border bg-card shadow-sm">
-        <Table.Root>
-            <Table.Header>
-                <Table.Row>
-                    <Table.Head>VEHICLE</Table.Head>
-                    <Table.Head>ROUTE</Table.Head>
-                    <Table.Head>DEPARTURE</Table.Head>
-                    <Table.Head>SEATS</Table.Head>
-                    <Table.Head class="text-right">STATUS</Table.Head>
-                </Table.Row>
-            </Table.Header>
-            <Table.Body>
-                {#if loading}
-                    <Table.Row>
-                        <Table.Cell colspan={5} class="h-24 text-center">
-                            Loading trips...
-                        </Table.Cell>
-                    </Table.Row>
-                {:else if tripInstances.length === 0}
-                    <Table.Row>
-                        <Table.Cell colspan={5} class="h-40 text-center">
-                            <div class="flex flex-col items-center justify-center text-muted-foreground">
-                                <div class="p-4 rounded-full bg-muted mb-4">
-                                    <Calendar class="h-8 w-8" />
+                    {:else if schedules.length === 0}
+                        <Table.Row>
+                            <Table.Cell colspan={5} class="h-40 text-center">
+                                <div
+                                    class="flex flex-col items-center justify-center text-muted-foreground"
+                                >
+                                    <div class="p-4 rounded-full bg-muted mb-4">
+                                        <Calendar class="h-8 w-8" />
+                                    </div>
+                                    <p
+                                        class="text-lg font-medium text-foreground"
+                                    >
+                                        No schedules created
+                                    </p>
+                                    <p class="text-sm">
+                                        Create a schedule to generate trip
+                                        instances.
+                                    </p>
                                 </div>
-                                <p class="text-lg font-medium text-foreground">
-                                    No upcoming trips
-                                </p>
-                                <p class="text-sm">
-                                    Generate trip instances from schedules.
-                                </p>
-                            </div>
-                        </Table.Cell>
-                    </Table.Row>
-                {:else}
-                    {#each tripInstances as result}
-                        {#if result.trip}
+                            </Table.Cell>
+                        </Table.Row>
+                    {:else}
+                        {#each schedules as schedule}
                             <Table.Row>
+                                <Table.Cell
+                                    >{getRouteName(
+                                        schedule.route_id,
+                                    )}</Table.Cell
+                                >
                                 <Table.Cell>
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
-                                        >
-                                            <svelte:component
-                                                this={icons[
-                                                    result.trip.vehicle_type as keyof typeof icons
-                                                ] || Bus}
-                                                size={16}
-                                            />
-                                        </div>
-                                        <span class="font-medium">
-                                            {result.trip.vehicle_id}
-                                        </span>
+                                    <div class="flex items-center gap-2">
+                                        <Clock
+                                            class="h-4 w-4 text-muted-foreground"
+                                        />
+                                        {minutesToTime(
+                                            schedule.departure_minutes,
+                                        )}
                                     </div>
                                 </Table.Cell>
-                                <Table.Cell>{result.route?.name || "-"}</Table.Cell>
+                                <Table.Cell
+                                    >{daysMaskToText(
+                                        schedule.days_of_week,
+                                    )}</Table.Cell
+                                >
+                                <Table.Cell>{schedule.total_seats}</Table.Cell>
                                 <Table.Cell>
-                                    <div class="flex flex-col">
-                                        <span class="font-medium">
-                                            {new Date(
-                                                result.trip.departure_time * 1000,
-                                            ).toLocaleDateString()}
-                                        </span>
-                                        <span class="text-xs text-muted-foreground">
-                                            {new Date(
-                                                result.trip.departure_time * 1000,
-                                            ).toLocaleTimeString()}
-                                        </span>
-                                    </div>
-                                </Table.Cell>
-                                <Table.Cell>
-                                    {result.trip.available_seats} / {result.trip.total_seats}
-                                </Table.Cell>
-                                <Table.Cell class="text-right">
                                     <span
                                         class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                                     >
-                                        {result.trip.status}
+                                        {schedule.status}
                                     </span>
                                 </Table.Cell>
                             </Table.Row>
-                        {/if}
-                    {/each}
-                {/if}
-            </Table.Body>
-        </Table.Root>
+                        {/each}
+                    {/if}
+                </Table.Body>
+            </Table.Root>
+        </div>
+    </div>
+
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold tracking-tight">
+                Upcoming Daily Trips (Live)
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                Actual bookable trips generated for the next 7 days.
+            </p>
+        </div>
+        <div class="rounded-xl border bg-card shadow-sm">
+            <Table.Root>
+                <Table.Header>
+                    <Table.Row>
+                        <Table.Head>VEHICLE</Table.Head>
+                        <Table.Head>ROUTE</Table.Head>
+                        <Table.Head>DEPARTURE</Table.Head>
+                        <Table.Head>SEATS</Table.Head>
+                        <Table.Head class="text-right">STATUS</Table.Head>
+                    </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                    {#if loading}
+                        <Table.Row>
+                            <Table.Cell colspan={5} class="h-24 text-center">
+                                Loading trips...
+                            </Table.Cell>
+                        </Table.Row>
+                    {:else if tripInstances.length === 0}
+                        <Table.Row>
+                            <Table.Cell colspan={5} class="h-40 text-center">
+                                <div
+                                    class="flex flex-col items-center justify-center text-muted-foreground"
+                                >
+                                    <div class="p-4 rounded-full bg-muted mb-4">
+                                        <Calendar class="h-8 w-8" />
+                                    </div>
+                                    <p
+                                        class="text-lg font-medium text-foreground"
+                                    >
+                                        No upcoming trips
+                                    </p>
+                                    <p class="text-sm">
+                                        Generate trip instances from schedules.
+                                    </p>
+                                </div>
+                            </Table.Cell>
+                        </Table.Row>
+                    {:else}
+                        {#each tripInstances as result}
+                            {#if result.trip}
+                                <Table.Row>
+                                    <Table.Cell>
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                            >
+                                                <svelte:component
+                                                    this={icons[
+                                                        result.trip
+                                                            .vehicle_type as keyof typeof icons
+                                                    ] || Bus}
+                                                    size={16}
+                                                />
+                                            </div>
+                                            <span class="font-medium">
+                                                {result.trip.vehicle_id}
+                                            </span>
+                                        </div>
+                                    </Table.Cell>
+                                    <Table.Cell
+                                        >{result.route?.name || "-"}</Table.Cell
+                                    >
+                                    <Table.Cell>
+                                        <div class="flex flex-col">
+                                            <span class="font-medium">
+                                                {new Date(
+                                                    result.trip.departure_time *
+                                                        1000,
+                                                ).toLocaleDateString()}
+                                            </span>
+                                            <span
+                                                class="text-xs text-muted-foreground"
+                                            >
+                                                {new Date(
+                                                    result.trip.departure_time *
+                                                        1000,
+                                                ).toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        {result.trip.available_seats} / {result
+                                            .trip.total_seats}
+                                    </Table.Cell>
+                                    <Table.Cell class="text-right">
+                                        <span
+                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                                        >
+                                            {result.trip.status}
+                                        </span>
+                                    </Table.Cell>
+                                </Table.Row>
+                            {/if}
+                        {/each}
+                    {/if}
+                </Table.Body>
+            </Table.Root>
+        </div>
     </div>
 </div>
 
