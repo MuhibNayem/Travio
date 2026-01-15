@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { Ticket, Apple, Play } from "@lucide/svelte";
+    import logo from "$lib/assets/logo.png";
 </script>
 
 <section class="py-24 px-4 bg-[#101922] text-white relative overflow-hidden">
@@ -93,12 +94,16 @@
                             >
                                 <div class="text-center">
                                     <div
-                                        class="size-16 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                                        class="size-20 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center p-4 shadow-lg border border-white/10"
                                     >
-                                        <Ticket size={32} class="text-white" />
+                                        <img
+                                            src={logo}
+                                            alt="Logo"
+                                            class="w-full h-full object-contain drop-shadow-md"
+                                        />
                                     </div>
                                     <h3 class="text-white font-bold text-2xl">
-                                        TicketNation
+                                        Travio
                                     </h3>
                                 </div>
                             </div>

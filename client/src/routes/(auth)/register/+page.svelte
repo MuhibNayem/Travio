@@ -178,9 +178,7 @@
 
     <div class="flex flex-col gap-6 text-center">
         <div>
-            <h1 class="text-3xl font-black tracking-tight mb-2">
-                Join TicketNation
-            </h1>
+            <h1 class="text-3xl font-black tracking-tight mb-2">Join Travio</h1>
             <p class="text-muted-foreground">
                 {accountType === "traveller"
                     ? "Create your traveller account"

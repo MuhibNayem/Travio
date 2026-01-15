@@ -51,6 +51,16 @@
     });
 
     function onSearch() {
+        if (tab === "events") {
+            if (!from) return;
+            // Try to find city from station ID, or just use ID if it's a direct match?
+            // Since our Combobox binds station IDs, let's extract the City if possible.
+            const station = stationsStore.stations.find((s) => s.id === from);
+            const city = station?.city || from;
+            goto(`/search?city=${city}&type=${tab}&date=${date}`);
+            return;
+        }
+
         if (!from || !to) return;
         goto(`/search?from=${from}&to=${to}&type=${tab}&date=${date}`);
     }
@@ -172,17 +182,22 @@
                             <div class="group flex flex-col gap-2">
                                 <label
                                     class="text-xs font-bold uppercase tracking-wide text-muted-foreground"
-                                    >From</label
                                 >
+                                    {tab === "events"
+                                        ? "City / Location"
+                                        : "From"}
+                                </label>
                                 <Combobox
                                     items={stationsStore.stations.map((s) => ({
                                         value: s.id,
                                         label: s.name,
                                     }))}
                                     bind:value={from}
-                                    placeholder="Select origin..."
-                                    searchPlaceholder="Search station..."
-                                    emptyText="No station found."
+                                    placeholder={tab === "events"
+                                        ? "Select City..."
+                                        : "Select origin..."}
+                                    searchPlaceholder="Search..."
+                                    emptyText="No location found."
                                     width="w-full"
                                     class="text-base font-semibold"
                                     loading={stationsStore.loading}
@@ -193,30 +208,34 @@
                                 </Combobox>
                             </div>
 
-                            <!-- To -->
-                            <div class="group flex flex-col gap-2">
-                                <label
-                                    class="text-xs font-bold uppercase tracking-wide text-muted-foreground"
-                                    >To</label
-                                >
-                                <Combobox
-                                    items={stationsStore.stations.map((s) => ({
-                                        value: s.id,
-                                        label: s.name,
-                                    }))}
-                                    bind:value={to}
-                                    placeholder="Select destination..."
-                                    searchPlaceholder="Search station..."
-                                    emptyText="No station found."
-                                    width="w-full"
-                                    class="text-base font-semibold"
-                                    loading={stationsStore.loading}
-                                >
-                                    {#snippet icon()}
-                                        <MapPin size={24} />
-                                    {/snippet}
-                                </Combobox>
-                            </div>
+                            <!-- To (Hidden for Events) -->
+                            {#if tab !== "events"}
+                                <div class="group flex flex-col gap-2">
+                                    <label
+                                        class="text-xs font-bold uppercase tracking-wide text-muted-foreground"
+                                        >To</label
+                                    >
+                                    <Combobox
+                                        items={stationsStore.stations.map(
+                                            (s) => ({
+                                                value: s.id,
+                                                label: s.name,
+                                            }),
+                                        )}
+                                        bind:value={to}
+                                        placeholder="Select destination..."
+                                        searchPlaceholder="Search station..."
+                                        emptyText="No station found."
+                                        width="w-full"
+                                        class="text-base font-semibold"
+                                        loading={stationsStore.loading}
+                                    >
+                                        {#snippet icon()}
+                                            <MapPin size={24} />
+                                        {/snippet}
+                                    </Combobox>
+                                </div>
+                            {/if}
 
                             <!-- Date -->
                             <div class="group relative flex flex-col gap-2">

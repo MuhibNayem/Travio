@@ -1,4 +1,6 @@
 <script lang="ts">
+    import logoLight from "$lib/assets/logo_light.png";
+    import logoDark from "$lib/assets/logo_dark.png";
     import { Button } from "$lib/components/ui/button";
     import { auth } from "$lib/runes/auth.svelte";
     import { goto } from "$app/navigation";
@@ -6,6 +8,7 @@
     import { toast } from "svelte-sonner";
 
     let theme = $state<"light" | "dark">("light");
+    let logo = $derived(theme === "dark" ? logoDark : logoLight);
 
     function toggleTheme() {
         theme = theme === "light" ? "dark" : "light";
@@ -37,15 +40,11 @@
 >
     <!-- Logo -->
     <a href="/" class="flex cursor-pointer items-center gap-4">
-        <div
-            class="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md transition-transform hover:scale-105"
-        >
-            <Ticket size={20} />
-        </div>
+        <img src={logo} alt="Travio" class="h-10 w-auto object-contain" />
         <h2
             class="text-xl font-extrabold leading-tight tracking-tight text-gradient"
         >
-            TicketNation
+            Travio
         </h2>
     </a>
 

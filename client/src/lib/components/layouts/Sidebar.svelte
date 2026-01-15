@@ -10,7 +10,12 @@
         Users,
         Route,
         Building,
+        ChevronDown,
+        Music,
+        MapPin,
+        Plus,
     } from "@lucide/svelte";
+    import { slide } from "svelte/transition";
     import { cn } from "$lib/utils";
 
     const navItems = [
@@ -41,8 +46,30 @@
             ],
         },
         {
+            title: "Events",
+            icon: Music,
+            submenu: [
+                {
+                    title: "Dashboard",
+                    href: "/organization/events",
+                    icon: LayoutDashboard,
+                },
+                {
+                    title: "Create Event",
+                    href: "/organization/events/create",
+                    icon: Plus,
+                },
+                {
+                    title: "Venues",
+                    href: "/organization/events/venues",
+                    icon: MapPin,
+                },
+            ],
+        },
+
+        {
             title: "Sales (Counter)",
-            href: "/organization/sales",
+            href: "/organization/sales/counter",
             icon: Ticket,
         },
         {
@@ -68,6 +95,16 @@
             ],
         },
     ];
+
+    let expanded = $state<Record<string, boolean>>({
+        Operations: true, // Default open
+        Events: false,
+        Settings: false,
+    });
+
+    function toggle(title: string) {
+        expanded[title] = !expanded[title];
+    }
 </script>
 
 <aside
@@ -79,8 +116,10 @@
                 {#if item.submenu}
                     <!-- Submenu Header -->
                     <li>
-                        <div
-                            class="flex items-center rounded-lg px-3 py-2 text-gray-900 dark:text-white"
+                        <button
+                            type="button"
+                            class="flex w-full items-center rounded-lg px-3 py-2 text-left text-gray-900 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+                            onclick={() => toggle(item.title)}
                         >
                             <item.icon
                                 class="h-5 w-5 flex-shrink-0 text-gray-500 transition duration-75 dark:text-gray-400"
@@ -88,27 +127,39 @@
                             <span class="ml-3 flex-1 whitespace-nowrap"
                                 >{item.title}</span
                             >
-                        </div>
-                        <ul
-                            class="ml-6 mt-1 space-y-1 border-l border-gray-200 dark:border-gray-700"
-                        >
-                            {#each item.submenu as subItem}
-                                <li>
-                                    <a
-                                        href={subItem.href}
-                                        class={cn(
-                                            "group flex w-full items-center rounded-r-lg border-l-2 border-transparent px-3 py-2 pl-4 text-sm transition-all hover:bg-gray-100 dark:hover:bg-gray-700",
-                                            $page.url.pathname === subItem.href
-                                                ? "border-primary bg-primary/10 text-primary dark:text-primary-400"
-                                                : "text-gray-500 hover:border-gray-300 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
-                                        )}
-                                    >
-                                        <subItem.icon class="mr-2 h-4 w-4" />
-                                        {subItem.title}
-                                    </a>
-                                </li>
-                            {/each}
-                        </ul>
+                            <ChevronDown
+                                class={cn(
+                                    "h-4 w-4 transition-transform duration-200",
+                                    expanded[item.title] ? "rotate-180" : "",
+                                )}
+                            />
+                        </button>
+                        {#if expanded[item.title]}
+                            <ul
+                                transition:slide={{ duration: 200 }}
+                                class="ml-6 mt-1 space-y-1 border-l border-gray-200 dark:border-gray-700"
+                            >
+                                {#each item.submenu as subItem}
+                                    <li>
+                                        <a
+                                            href={subItem.href}
+                                            class={cn(
+                                                "group flex w-full items-center rounded-r-lg border-l-2 border-transparent px-3 py-2 pl-4 text-sm transition-all hover:bg-gray-100 dark:hover:bg-gray-700",
+                                                $page.url.pathname ===
+                                                    subItem.href
+                                                    ? "border-primary bg-primary/10 text-primary dark:text-primary-400"
+                                                    : "text-gray-500 hover:border-gray-300 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
+                                            )}
+                                        >
+                                            <subItem.icon
+                                                class="mr-2 h-4 w-4"
+                                            />
+                                            {subItem.title}
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {/if}
                     </li>
                 {:else}
                     <!-- Single Link -->

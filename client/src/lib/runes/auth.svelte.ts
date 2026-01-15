@@ -11,7 +11,7 @@ interface User {
     // I should update GetMe to fetch name or just use Email/ID for now.
     // Or Name is optional.
     email: string; // Not in Context.
-    role: 'user' | 'admin';
+    role: 'user' | 'admin' | 'operator';
     organizationId?: string;
 }
 

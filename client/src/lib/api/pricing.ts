@@ -61,4 +61,43 @@ export const pricingApi = {
     deleteRule: async (id: string): Promise<void> => {
         await api.delete(`/v1/pricing/rules/${id}`);
     },
+
+    // Promotions
+    getPromotions: async (activeOnly = true): Promise<Promotion[]> => {
+        const response = await api.get<{ promotions: Promotion[] }>(
+            `/v1/pricing/promotions?active_only=${activeOnly}`,
+        );
+        return response?.promotions ?? [];
+    },
+
+    createPromotion: async (payload: CreatePromotionRequest): Promise<Promotion> => {
+        const response = await api.post<{ promotion: Promotion }>('/v1/pricing/promotions', payload);
+        return response?.promotion ?? response;
+    },
 };
+
+export interface Promotion {
+    id: string;
+    code: string;
+    description?: string;
+    discount_type: string; // "percentage", "fixed"
+    discount_value: number;
+    max_usage: number;
+    current_usage: number;
+    valid_from?: string;
+    valid_until?: string;
+    min_order_amount_paisa: number;
+    is_active: boolean;
+}
+
+export interface CreatePromotionRequest {
+    code: string;
+    description?: string;
+    discount_type: string;
+    discount_value: number;
+    max_usage: number;
+    valid_from?: string;
+    valid_until?: string;
+    min_order_amount_paisa: number;
+    organization_id?: string;
+}

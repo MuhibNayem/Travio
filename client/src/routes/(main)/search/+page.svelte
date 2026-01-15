@@ -7,30 +7,41 @@
     import { stationsStore } from "$lib/stores/stations.svelte";
     import type { PageData } from "./$types";
 
-    export let data: PageData;
+    import EventCard from "$lib/components/search/EventCard.svelte";
 
-    $: results = data.results;
-    $: total = data.total;
-    $: params = data.searchParams;
-    let fromName = "";
-    let toName = "";
-    let lastFrom = "";
-    let lastTo = "";
+    let { data } = $props<{ data: PageData }>();
 
-    $: fromLabel =
+    let results = $derived(data.results);
+    let mode = $derived(data.mode);
+    let total = $derived(data.total);
+    let params = $derived(data.searchParams);
+
+    let fromName = $state("");
+    let toName = $state("");
+    let lastFrom = $state("");
+    let lastTo = $state("");
+
+    let fromLabel = $derived(
         stationsStore.stations.find((station) => station.id === params.from)
             ?.name ||
-        fromName ||
-        params.from;
-    $: toLabel =
-        stationsStore.stations.find((station) => station.id === params.to)?.name ||
-        toName ||
-        params.to;
+            fromName ||
+            params.from ||
+            (mode === "events" ? params.city : ""),
+    );
+
+    let toLabel = $derived(
+        stationsStore.stations.find((station) => station.id === params.to)
+            ?.name ||
+            toName ||
+            params.to,
+    );
 
     async function loadStationNames(fromId: string, toId: string) {
         if (!fromId && !toId) return;
         const [fromResult, toResult] = await Promise.allSettled([
-            fromId ? stationsStore.getStationById(fromId) : Promise.resolve(null),
+            fromId
+                ? stationsStore.getStationById(fromId)
+                : Promise.resolve(null),
             toId ? stationsStore.getStationById(toId) : Promise.resolve(null),
         ]);
 
@@ -42,13 +53,15 @@
         }
     }
 
-    $: if (browser && (params.from !== lastFrom || params.to !== lastTo)) {
-        lastFrom = params.from;
-        lastTo = params.to;
-        fromName = "";
-        toName = "";
-        void loadStationNames(params.from, params.to);
-    }
+    $effect(() => {
+        if (browser && (params.from !== lastFrom || params.to !== lastTo)) {
+            lastFrom = params.from;
+            lastTo = params.to;
+            fromName = "";
+            toName = "";
+            loadStationNames(params.from, params.to);
+        }
+    });
 </script>
 
 <div class="min-h-screen bg-muted/30 pb-20">
@@ -96,8 +109,12 @@
 
                 {#if results.length > 0}
                     <div class="flex flex-col gap-4">
-                        {#each results as trip (trip.id)}
-                            <TripCard {trip} />
+                        {#each results as result (result.id || result.event?.id)}
+                            {#if mode === "events"}
+                                <EventCard {result} />
+                            {:else}
+                                <TripCard trip={result} />
+                            {/if}
                         {/each}
                     </div>
                 {:else}

@@ -29,6 +29,7 @@ export interface CreateOrderRequest {
 export interface Order {
     id: string;
     trip_id: string;
+    route_id: string;
     from_station_id: string;
     to_station_id: string;
     status: string; // "PENDING", "CONFIRMED", "CANCELLED"

@@ -8,14 +8,20 @@
         ArrowRight,
     } from "@lucide/svelte";
 
+    import busIcon from "$lib/assets/icons/bus.png";
+    import trainIcon from "$lib/assets/icons/train.png";
+    import launchIcon from "$lib/assets/icons/launch.png";
+    import eventIcon from "$lib/assets/icons/event.png";
+
     const categories = [
         {
             key: "bus",
             title: "Bus",
             cta: "Book Now",
             icon: Bus,
+            image: busIcon,
             gradient: "from-blue-500 to-blue-600",
-            chipBg: "bg-white/20",
+            chipBg: "bg-white/90",
             arrowBg: "bg-white text-blue-600",
         },
         {
@@ -23,8 +29,9 @@
             title: "Train",
             cta: "Book Now",
             icon: Train,
+            image: trainIcon,
             gradient: "from-emerald-500 to-emerald-600",
-            chipBg: "bg-white/20",
+            chipBg: "bg-white/90",
             arrowBg: "bg-white text-emerald-600",
         },
         {
@@ -32,8 +39,9 @@
             title: "Launch",
             cta: "Book Now",
             icon: Ship,
+            image: launchIcon,
             gradient: "from-cyan-500 to-cyan-600",
-            chipBg: "bg-white/20",
+            chipBg: "bg-white/90",
             arrowBg: "bg-white text-cyan-600",
         },
         {
@@ -41,8 +49,9 @@
             title: "Concerts",
             cta: "Get Tickets",
             icon: Music,
+            image: eventIcon,
             gradient: "from-purple-500 to-purple-600",
-            chipBg: "bg-white/20",
+            chipBg: "bg-white/90",
             arrowBg: "bg-white text-purple-600",
         },
         {
@@ -50,8 +59,10 @@
             title: "Sports",
             cta: "Get Tickets",
             icon: Trophy,
+            // Fallback for now or reuse event? Let's use event for now until dedicated sports icon
+            image: eventIcon,
             gradient: "from-orange-500 to-red-600",
-            chipBg: "bg-white/20",
+            chipBg: "bg-white/90",
             arrowBg: "bg-white text-red-600",
         },
     ] as const;
@@ -81,16 +92,32 @@
             >
                 <!-- Decorative Icon Background -->
                 <div
-                    class="absolute -right-6 -top-6 translate-x-4 opacity-10 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110 group-hover:opacity-20"
+                    class="absolute -right-8 -top-8 size-40 opacity-20 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110 group-hover:opacity-30 mix-blend-overlay"
                 >
-                    <c.icon size={140} strokeWidth={1} />
+                    {#if c.image}
+                        <img
+                            src={c.image}
+                            alt=""
+                            class="w-full h-full object-contain"
+                        />
+                    {:else}
+                        <c.icon size={140} strokeWidth={1} />
+                    {/if}
                 </div>
 
                 <!-- Icon Chip -->
                 <div
-                    class={`relative z-10 flex size-14 items-center justify-center rounded-xl ${c.chipBg} backdrop-blur-md border border-white/20 shadow-inner transition-transform duration-300 group-hover:scale-110`}
+                    class={`relative z-10 flex size-14 items-center justify-center rounded-xl ${c.chipBg} backdrop-blur-md border border-white/20 shadow-xl transition-transform duration-300 group-hover:scale-110 p-2`}
                 >
-                    <c.icon size={32} />
+                    {#if c.image}
+                        <img
+                            src={c.image}
+                            alt=""
+                            class="w-full h-full object-contain drop-shadow-sm"
+                        />
+                    {:else}
+                        <c.icon size={32} />
+                    {/if}
                 </div>
 
                 <div class="relative z-10 mt-6 w-full">
@@ -101,7 +128,7 @@
                         class="mt-2 flex items-center justify-between border-t border-white/20 pt-3"
                     >
                         <span
-                            class="text-xs font-bold uppercase tracking-wider opacity-90"
+                            class="text-xs font-bold uppercase tracking-wider opacity-90 shadow-black/10 drop-shadow-sm"
                             >{c.cta}</span
                         >
                         <div

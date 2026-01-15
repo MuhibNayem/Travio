@@ -14,9 +14,7 @@
                     >
                         <Ticket size={20} />
                     </div>
-                    <h2 class="text-lg font-bold leading-tight">
-                        TicketNation
-                    </h2>
+                    <h2 class="text-lg font-bold leading-tight">Travio</h2>
                 </div>
                 <p
                     class="text-sm leading-relaxed text-gray-500 dark:text-gray-400"
@@ -95,7 +93,7 @@
             class="flex flex-col items-center border-t border-black/5 pt-8 text-center dark:border-white/5 md:flex-row md:justify-between"
         >
             <p class="text-sm text-gray-400">
-                &copy; {new Date().getFullYear()} TicketNation. All rights reserved.
+                &copy; {new Date().getFullYear()} Travio. All rights reserved.
             </p>
             <p class="text-sm text-gray-400">
                 Designed with <span class="text-red-500">♥</span> by Travio Team
