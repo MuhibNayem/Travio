@@ -188,19 +188,26 @@
                                         : "From"}
                                 </label>
                                 <Combobox
-                                    items={stationsStore.stations.map((s) => ({
-                                        value: s.id,
-                                        label: s.name,
-                                    }))}
+                                    items={stationsStore.visibleStations.map(
+                                        (s) => ({
+                                            value: s.id,
+                                            label: `${s.name}, ${s.city}`, // Show City for better context
+                                        }),
+                                    )}
                                     bind:value={from}
                                     placeholder={tab === "events"
                                         ? "Select City..."
                                         : "Select origin..."}
-                                    searchPlaceholder="Search..."
+                                    searchPlaceholder="Search state, city or station..."
                                     emptyText="No location found."
                                     width="w-full"
                                     class="text-base font-semibold"
                                     loading={stationsStore.loading}
+                                    loadingMore={stationsStore.loadingMore}
+                                    onSearch={(q) =>
+                                        stationsStore.handleSearch(q)}
+                                    onEndReached={() =>
+                                        stationsStore.loadMore()}
                                 >
                                     {#snippet icon()}
                                         <MapPin size={24} />
@@ -216,10 +223,10 @@
                                         >To</label
                                     >
                                     <Combobox
-                                        items={stationsStore.stations.map(
+                                        items={stationsStore.visibleStations.map(
                                             (s) => ({
                                                 value: s.id,
-                                                label: s.name,
+                                                label: `${s.name}, ${s.city}`,
                                             }),
                                         )}
                                         bind:value={to}
@@ -229,6 +236,11 @@
                                         width="w-full"
                                         class="text-base font-semibold"
                                         loading={stationsStore.loading}
+                                        loadingMore={stationsStore.loadingMore}
+                                        onSearch={(q) =>
+                                            stationsStore.handleSearch(q)}
+                                        onEndReached={() =>
+                                            stationsStore.loadMore()}
                                     >
                                         {#snippet icon()}
                                             <MapPin size={24} />

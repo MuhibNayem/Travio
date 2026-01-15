@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -487,15 +489,20 @@ func (h *CatalogHandler) CreateSchedule(w http.ResponseWriter, r *http.Request) 
 
 	orgID := middleware.GetOrgID(r.Context())
 	if orgID == "" {
+		log.Printf("CreateSchedule: organization_id is missing from context")
 		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
 		return
 	}
 
 	var req ScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("CreateSchedule: failed to decode request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	log.Printf("CreateSchedule: orgID=%s, routeID=%s, vehicleID=%s, startDate=%s, endDate=%s",
+		orgID, req.RouteID, req.VehicleID, req.StartDate, req.EndDate)
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.CreateSchedule(ctx, &catalogpb.CreateScheduleRequest{
@@ -515,7 +522,8 @@ func (h *CatalogHandler) CreateSchedule(w http.ResponseWriter, r *http.Request) 
 		})
 	})
 	if err != nil {
-		http.Error(w, "Failed to create schedule", http.StatusInternalServerError)
+		log.Printf("CreateSchedule ERROR: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to create schedule: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
@@ -592,9 +600,12 @@ func (h *CatalogHandler) ListSchedules(w http.ResponseWriter, r *http.Request) {
 
 	orgID := middleware.GetOrgID(r.Context())
 	if orgID == "" {
+		log.Printf("ListSchedules: organization_id missing")
 		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
 		return
 	}
+
+	log.Printf("ListSchedules: orgID=%s, routeID=%s", orgID, r.URL.Query().Get("route_id"))
 
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.ListSchedules(ctx, &catalogpb.ListSchedulesRequest{
@@ -605,7 +616,8 @@ func (h *CatalogHandler) ListSchedules(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 	if err != nil {
-		http.Error(w, "Failed to list schedules", http.StatusInternalServerError)
+		log.Printf("ListSchedules ERROR: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to list schedules: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 	resp := result.(*catalogpb.ListSchedulesResponse)
@@ -787,6 +799,9 @@ func (h *CatalogHandler) GenerateTripInstances(w http.ResponseWriter, r *http.Re
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
 
+	log.Printf("GenerateTripInstances: orgID=%s, scheduleID=%s, startDate=%s, endDate=%s",
+		orgID, scheduleID, startDate, endDate)
+
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.GenerateTripInstances(ctx, &catalogpb.GenerateTripInstancesRequest{
 			ScheduleId:     scheduleID,
@@ -796,7 +811,8 @@ func (h *CatalogHandler) GenerateTripInstances(w http.ResponseWriter, r *http.Re
 		})
 	})
 	if err != nil {
-		http.Error(w, "Failed to generate trip instances", http.StatusInternalServerError)
+		log.Printf("GenerateTripInstances ERROR: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to generate trip instances: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 	resp := result.(*catalogpb.GenerateTripInstancesResponse)

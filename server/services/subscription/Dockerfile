@@ -8,6 +8,7 @@ COPY api ./api
 COPY services/subscription ./services/subscription
 
 WORKDIR /app/services/subscription
+RUN go env -w GOPROXY=https://goproxy.io,direct
 RUN go mod download
 RUN go build -o /subscription-service ./cmd/main.go
 

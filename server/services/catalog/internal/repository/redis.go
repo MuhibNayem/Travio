@@ -58,11 +58,11 @@ func (r *CachedStationRepository) GetByID(ctx context.Context, id, orgID string)
 	return station, nil
 }
 
-func (r *CachedStationRepository) List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error) {
+func (r *CachedStationRepository) List(ctx context.Context, orgID, city, searchQuery string, limit, offset int) ([]*domain.Station, int, error) {
 	// Caching Lists is harder due to pagination and filters.
 	// For FAANG scale, we might cache common queries (e.g., "all stations for org").
 	// For now, let's pass through.
-	return r.next.List(ctx, orgID, city, limit, offset)
+	return r.next.List(ctx, orgID, city, searchQuery, limit, offset)
 }
 
 func (r *CachedStationRepository) Update(ctx context.Context, station *domain.Station) error {

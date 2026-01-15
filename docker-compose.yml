@@ -564,41 +564,41 @@ services:
       timeout: 5s
       retries: 3
 
-  fraud:
-    build:
-      context: ./server
-      dockerfile: services/fraud/Dockerfile
-    container_name: travio-fraud
-    restart: unless-stopped
-    environment:
-      - REDIS_ADDR=redis:${REDIS_PORT}
-      - ZAI_API_KEY=${ZAI_API_KEY}
-      - ZAI_BASE_URL=${ZAI_BASE_URL:-https://api.z.ai/api/paas/v4}
-      - FRAUD_THRESHOLD=${FRAUD_THRESHOLD:-70}
-      - FRAUD_CACHE_TTL=${FRAUD_CACHE_TTL:-5m}
-      - PROFILE_ENABLED=${PROFILE_ENABLED:-true}
-      - PROFILE_DEVIATION_THRESHOLD=${PROFILE_DEVIATION_THRESHOLD:-2.0}
-      - FRAUD_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/travio_fraud?sslmode=disable
-      - RAG_ENABLED=${RAG_ENABLED:-true}
-      - RAG_TOP_K=${RAG_TOP_K:-5}
-      - RAG_SIMILARITY_THRESHOLD=${RAG_SIMILARITY_THRESHOLD:-0.7}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - OPENSEARCH_URL=http://opensearch:9200
-      - GRPC_PORT=${FRAUD_GRPC_PORT:-50090}
-    ports:
-      - "${FRAUD_GRPC_PORT:-50090}:${FRAUD_GRPC_PORT:-50090}"
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      opensearch:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+  # fraud:
+  #   build:
+  #     context: ./server
+  #     dockerfile: services/fraud/Dockerfile
+  #   container_name: travio-fraud
+  #   restart: unless-stopped
+  #   environment:
+  #     - REDIS_ADDR=redis:${REDIS_PORT}
+  #     - ZAI_API_KEY=${ZAI_API_KEY}
+  #     - ZAI_BASE_URL=${ZAI_BASE_URL:-https://api.z.ai/api/paas/v4}
+  #     - FRAUD_THRESHOLD=${FRAUD_THRESHOLD:-70}
+  #     - FRAUD_CACHE_TTL=${FRAUD_CACHE_TTL:-5m}
+  #     - PROFILE_ENABLED=${PROFILE_ENABLED:-true}
+  #     - PROFILE_DEVIATION_THRESHOLD=${PROFILE_DEVIATION_THRESHOLD:-2.0}
+  #     - FRAUD_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/travio_fraud?sslmode=disable
+  #     - RAG_ENABLED=${RAG_ENABLED:-true}
+  #     - RAG_TOP_K=${RAG_TOP_K:-5}
+  #     - RAG_SIMILARITY_THRESHOLD=${RAG_SIMILARITY_THRESHOLD:-0.7}
+  #     - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+  #     - OPENSEARCH_URL=http://opensearch:9200
+  #     - GRPC_PORT=${FRAUD_GRPC_PORT:-50090}
+  #   ports:
+  #     - "${FRAUD_GRPC_PORT:-50090}:${FRAUD_GRPC_PORT:-50090}"
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+  #     opensearch:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/health" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
 
   reporting:
     build:
@@ -649,7 +649,7 @@ services:
       - PRICING_URL=pricing:${PRICING_GRPC_PORT:-50058}
       - OPERATOR_URL=operator:${OPERATOR_GRPC_PORT:-50059}
       - SUBSCRIPTION_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
-      - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
+      # - FRAUD_URL=fraud:${FRAUD_GRPC_PORT:-50090}
       - REPORTING_URL=reporting:${REPORTING_GRPC_PORT:-50091}
       - EVENTS_URL=events:${EVENTS_SERVICE_GRPC_PORT:-9091}
       - FLEET_URL=fleet:${FLEET_GRPC_PORT:-9093}
@@ -682,8 +682,8 @@ services:
         condition: service_healthy
       subscription:
         condition: service_healthy
-      fraud:
-        condition: service_healthy
+      # fraud:
+      #   condition: service_healthy
       reporting:
         condition: service_healthy
     healthcheck:

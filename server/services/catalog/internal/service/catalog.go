@@ -63,7 +63,7 @@ func (s *CatalogService) GetStation(ctx context.Context, id, orgID string) (*dom
 	return s.stationRepo.GetByID(ctx, id, orgID)
 }
 
-func (s *CatalogService) ListStations(ctx context.Context, orgID, city string, pageSize int, pageToken string) ([]*domain.Station, int, string, error) {
+func (s *CatalogService) ListStations(ctx context.Context, orgID, city, searchQuery string, pageSize int, pageToken string) ([]*domain.Station, int, string, error) {
 	offset := parsePageToken(pageToken)
 	if pageSize <= 0 {
 		pageSize = 20
@@ -72,7 +72,7 @@ func (s *CatalogService) ListStations(ctx context.Context, orgID, city string, p
 		pageSize = 100
 	}
 
-	stations, total, err := s.stationRepo.List(ctx, orgID, city, pageSize, offset)
+	stations, total, err := s.stationRepo.List(ctx, orgID, city, searchQuery, pageSize, offset)
 	if err != nil {
 		return nil, 0, "", err
 	}
@@ -330,16 +330,26 @@ func (s *CatalogService) CreateSchedule(ctx context.Context, schedule *domain.Sc
 	if schedule.OrganizationID == "" {
 		return nil, fmt.Errorf("organization_id is required")
 	}
+
+	fmt.Printf("CreateSchedule Service: orgID=%s, routeID=%s\n", schedule.OrganizationID, schedule.RouteID)
+
 	// Validate route exists
+	fmt.Printf("About to call routeRepo.GetByID with routeID=%s, orgID=%s\n", schedule.RouteID, schedule.OrganizationID)
 	route, err := s.routeRepo.GetByID(ctx, schedule.RouteID, schedule.OrganizationID)
 	if err != nil {
-		return nil, err
-	}
-	if err := s.validateSchedule(ctx, schedule, route, ""); err != nil {
+		fmt.Printf("routeRepo.GetByID ERROR: %v\n", err)
 		return nil, err
 	}
 
+	fmt.Printf("Route found, calling validateSchedule\n")
+	if err := s.validateSchedule(ctx, schedule, route, ""); err != nil {
+		fmt.Printf("validateSchedule ERROR: %v\n", err)
+		return nil, err
+	}
+
+	fmt.Printf("Validation passed, calling scheduleRepo.Create\n")
 	if err := s.scheduleRepo.Create(ctx, schedule); err != nil {
+		fmt.Printf("scheduleRepo.Create ERROR: %v\n", err)
 		return nil, err
 	}
 	return schedule, nil

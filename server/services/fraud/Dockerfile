@@ -17,6 +17,7 @@ COPY services/fraud/go.mod services/fraud/go.sum ./services/fraud/
 RUN go work init ./pkg ./api ./services/fraud
 
 # Download dependencies
+RUN go env -w GOPROXY=https://goproxy.io,direct
 RUN cd services/fraud && go mod download
 
 # Copy source code

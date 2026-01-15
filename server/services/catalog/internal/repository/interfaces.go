@@ -10,7 +10,7 @@ import (
 type StationRepository interface {
 	Create(ctx context.Context, station *domain.Station) error
 	GetByID(ctx context.Context, id, orgID string) (*domain.Station, error)
-	List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error)
+	List(ctx context.Context, orgID, city, searchQuery string, limit, offset int) ([]*domain.Station, int, error)
 	Update(ctx context.Context, station *domain.Station) error
 	Delete(ctx context.Context, id, orgID string) error
 }

@@ -16,7 +16,9 @@
         class: className,
         icon,
         loading = false,
-        onInput,
+        loadingMore = false,
+        onSearch,
+        onEndReached,
     } = $props<{
         value: string;
         items: { value: string; label: string }[];
@@ -27,11 +29,15 @@
         class?: string;
         icon?: Snippet;
         loading?: boolean;
-        onInput?: (value: string) => void;
+        loadingMore?: boolean;
+        onSearch?: (term: string) => void;
+        onEndReached?: () => void;
     }>();
 
     let open = $state(false);
     let triggerRef = $state<HTMLButtonElement>(null!);
+    let searchQuery = $state("");
+    let debounceTimer: any;
 
     // Find selected label based on value
     let selectedLabel = $derived(
@@ -39,12 +45,35 @@
             (item: { value: string; label: string }) => item.value === value,
         )?.label ?? placeholder,
     );
+    // Use derived state properly for selectedLabel, but we need to handle when value isn't in items yet.
+    // If value exists but items doesn't have it (e.g. initial load), we might want to allow passing a separate display value or just show placeholder.
+    // However, sticking to current logic: find in items.
 
     function closeAndFocusTrigger() {
         open = false;
         tick().then(() => {
             triggerRef?.focus();
         });
+    }
+
+    function handleSearch(term: string) {
+        searchQuery = term;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            onSearch?.(term);
+        }, 300);
+    }
+
+    function handleScroll(e: Event) {
+        const target = e.target as HTMLElement;
+        const { scrollTop, scrollHeight, clientHeight } = target;
+
+        // Check if we are near the bottom (within 50px)
+        if (scrollHeight - scrollTop <= clientHeight + 50) {
+            if (!loadingMore && !loading && onEndReached) {
+                onEndReached();
+            }
+        }
     }
 </script>
 
@@ -60,6 +89,7 @@
                     "justify-between font-semibold focus:ring-2 focus:ring-primary/20 data-[state=open]:bg-white/90 dark:data-[state=open]:bg-white/20 transition-all font-sans",
                     width,
                     className,
+                    !value && "text-muted-foreground",
                 )}
                 {...props}
             >
@@ -74,42 +104,62 @@
         {/snippet}
     </Popover.Trigger>
     <Popover.Content class={cn("p-0", width)}>
-        <Command.Root>
+        <Command.Root shouldFilter={false}>
             <Command.Input
                 placeholder={searchPlaceholder}
-                oninput={(e) => onInput?.(e.currentTarget.value)}
+                value={searchQuery}
+                oninput={(e) => handleSearch(e.currentTarget.value)}
             />
             <Command.List>
-                {#if loading}
-                    <div
-                        class="py-6 flex items-center justify-center text-sm text-muted-foreground"
-                    >
-                        <Loader2 class="h-4 w-4 animate-spin mr-2" />
-                        Loading...
-                    </div>
-                {:else}
-                    <Command.Empty>{emptyText}</Command.Empty>
-                    <Command.Group>
-                        {#each items as item (item.value)}
-                            <Command.Item
-                                value={item.label}
-                                onSelect={() => {
-                                    value = item.value;
-                                    closeAndFocusTrigger();
-                                }}
+                <div
+                    class="max-h-[300px] overflow-y-auto overflow-x-hidden"
+                    onscroll={handleScroll}
+                >
+                    {#if loading}
+                        <div
+                            class="py-6 flex items-center justify-center text-sm text-muted-foreground"
+                        >
+                            <Loader2 class="h-4 w-4 animate-spin mr-2" />
+                            Loading...
+                        </div>
+                    {:else if items.length === 0}
+                        <div
+                            class="py-6 text-center text-sm text-muted-foreground"
+                        >
+                            {emptyText}
+                        </div>
+                    {:else}
+                        <Command.Group>
+                            {#each items as item (item.value)}
+                                <Command.Item
+                                    value={item.value}
+                                    onSelect={() => {
+                                        value = item.value;
+                                        closeAndFocusTrigger();
+                                    }}
+                                >
+                                    <Check
+                                        class={cn(
+                                            "mr-2 h-4 w-4",
+                                            value !== item.value &&
+                                                "text-transparent",
+                                        )}
+                                    />
+                                    {item.label}
+                                </Command.Item>
+                            {/each}
+                        </Command.Group>
+
+                        {#if loadingMore}
+                            <div
+                                class="py-2 flex items-center justify-center text-xs text-muted-foreground"
                             >
-                                <Check
-                                    class={cn(
-                                        "mr-2 h-4 w-4",
-                                        value !== item.value &&
-                                            "text-transparent",
-                                    )}
-                                />
-                                {item.label}
-                            </Command.Item>
-                        {/each}
-                    </Command.Group>
-                {/if}
+                                <Loader2 class="h-3 w-3 animate-spin mr-2" />
+                                Loading more...
+                            </div>
+                        {/if}
+                    {/if}
+                </div>
             </Command.List>
         </Command.Root>
     </Popover.Content>

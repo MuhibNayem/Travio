@@ -95,6 +95,7 @@ message ListStationsRequest {
   string city = 2;           // Filter by city
   int32 page_size = 3;
   string page_token = 4;
+  string search_query = 5;   // Filter by name, code, or city (fuzzy)
 }
 
 message ListStationsResponse {

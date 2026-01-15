@@ -55,7 +55,7 @@ func (h *GrpcHandler) GetStation(ctx context.Context, req *pb.GetStationRequest)
 }
 
 func (h *GrpcHandler) ListStations(ctx context.Context, req *pb.ListStationsRequest) (*pb.ListStationsResponse, error) {
-	stations, total, nextToken, err := h.catalogService.ListStations(ctx, req.OrganizationId, req.City, int(req.PageSize), req.PageToken)
+	stations, total, nextToken, err := h.catalogService.ListStations(ctx, req.OrganizationId, req.City, req.SearchQuery, int(req.PageSize), req.PageToken)
 	if err != nil {
 		// Log the actual error for debugging
 		fmt.Printf("ListStations error: %v\n", err)
@@ -244,6 +244,8 @@ func (h *GrpcHandler) CancelTrip(ctx context.Context, req *pb.CancelTripRequest)
 // --- Schedule Handlers ---
 
 func (h *GrpcHandler) CreateSchedule(ctx context.Context, req *pb.CreateScheduleRequest) (*pb.Schedule, error) {
+	fmt.Printf("CreateSchedule gRPC: orgID=%s, routeID=%s, vehicleID=%s\n", req.OrganizationId, req.RouteId, req.VehicleId)
+
 	schedule := &domain.ScheduleTemplate{
 		OrganizationID:       req.OrganizationId,
 		RouteID:              req.RouteId,
@@ -262,7 +264,8 @@ func (h *GrpcHandler) CreateSchedule(ctx context.Context, req *pb.CreateSchedule
 
 	created, err := h.catalogService.CreateSchedule(ctx, schedule)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to create schedule")
+		fmt.Printf("CreateSchedule ERROR: %v\n", err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create schedule: %v", err))
 	}
 	return scheduleToProto(created), nil
 }
@@ -311,8 +314,11 @@ func (h *GrpcHandler) GetSchedule(ctx context.Context, req *pb.GetScheduleReques
 }
 
 func (h *GrpcHandler) ListSchedules(ctx context.Context, req *pb.ListSchedulesRequest) (*pb.ListSchedulesResponse, error) {
+	fmt.Printf("ListSchedules gRPC: orgID=%s, routeID=%s, status=%v\n", req.OrganizationId, req.RouteId, req.Status)
+
 	schedules, total, nextToken, err := h.catalogService.ListSchedules(ctx, req.OrganizationId, req.RouteId, protoScheduleStatusToString(req.Status), int(req.PageSize), req.PageToken)
 	if err != nil {
+		fmt.Printf("ListSchedules ERROR: %v\n", err)
 		return nil, status.Errorf(codes.Internal, "failed to list schedules: %v", err)
 	}
 
@@ -386,9 +392,13 @@ func (h *GrpcHandler) ListScheduleExceptions(ctx context.Context, req *pb.ListSc
 }
 
 func (h *GrpcHandler) GenerateTripInstances(ctx context.Context, req *pb.GenerateTripInstancesRequest) (*pb.GenerateTripInstancesResponse, error) {
+	fmt.Printf("GenerateTripInstances gRPC: scheduleID=%s, orgID=%s, startDate=%s, endDate=%s\n",
+		req.ScheduleId, req.OrganizationId, req.StartDate, req.EndDate)
+
 	trips, count, err := h.catalogService.GenerateTripInstances(ctx, req.ScheduleId, req.OrganizationId, req.StartDate, req.EndDate)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to generate trips")
+		fmt.Printf("GenerateTripInstances ERROR: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to generate trips: %v", err)
 	}
 
 	var protoTrips []*pb.Trip

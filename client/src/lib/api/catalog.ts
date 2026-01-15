@@ -19,8 +19,13 @@ export interface ListStationsResponse {
 }
 
 export const catalogApi = {
-    getStations: async (): Promise<Station[]> => {
-        const response = await api.get<ListStationsResponse>('/v1/stations');
+    getStations: async (params: { search_query?: string; page_size?: number; page_token?: string } = {}): Promise<Station[]> => {
+        const query = new URLSearchParams();
+        if (params.search_query) query.append('search_query', params.search_query);
+        if (params.page_size) query.append('page_size', params.page_size.toString());
+        if (params.page_token) query.append('page_token', params.page_token);
+
+        const response = await api.get<ListStationsResponse>(`/v1/stations?${query.toString()}`);
         return response?.stations ?? [];
     },
 
@@ -81,7 +86,7 @@ export const catalogApi = {
         const query = new URLSearchParams();
         if (startDate) query.append('start_date', startDate);
         if (endDate) query.append('end_date', endDate);
-        const response = await api.post<GenerateTripInstancesResponse>(`/v1/schedules/${scheduleId}/generate?${query.toString()}`);
+        const response = await api.post<GenerateTripInstancesResponse>(`/v1/schedules/${scheduleId}/generate?${query.toString()}`, {});
         return response;
     },
 };

@@ -7,6 +7,7 @@ COPY api ./api
 COPY services/operator ./services/operator
 
 WORKDIR /app/services/operator
+RUN go env -w GOPROXY=https://goproxy.io,direct
 RUN go mod download
 RUN go build -o operator-service cmd/main.go
 

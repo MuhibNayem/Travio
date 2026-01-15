@@ -17,6 +17,7 @@ COPY services/reporting/go.mod services/reporting/go.sum ./services/reporting/
 RUN go work init ./pkg ./api ./services/reporting
 
 # Download dependencies
+RUN go env -w GOPROXY=https://goproxy.io,direct
 RUN cd services/reporting && go mod download
 
 # Copy source code

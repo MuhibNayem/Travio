@@ -116,7 +116,7 @@ func (r *PostgresStationRepository) GetByID(ctx context.Context, id, orgID strin
 	return &station, nil
 }
 
-func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error) {
+func (r *PostgresStationRepository) List(ctx context.Context, orgID, city, searchQuery string, limit, offset int) ([]*domain.Station, int, error) {
 	var args []interface{}
 	var whereClause string
 	argIdx := 1
@@ -137,6 +137,18 @@ func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string
 		argIdx++
 	}
 
+	if searchQuery != "" {
+		// Fuzzy search on Name, Code, City, or State
+		searchTerm := "%" + searchQuery + "%"
+		whereClause += fmt.Sprintf(" AND (name ILIKE $%d OR code ILIKE $%d OR city ILIKE $%d OR state ILIKE $%d)", argIdx, argIdx, argIdx, argIdx)
+		// We use the same arg 4 times, but pgx/database/sql usually requires positional args.
+		// Actually, standard SQL with $1 requires the value to be passed for EACH usage if using simple drivers, but usually one arg per index.
+		// Wait, if I use $3 for all, I only pass it once.
+		// Let's verify standard postgres param usage. Yes, I can reuse $N.
+		args = append(args, searchTerm)
+		argIdx++
+	}
+
 	// Count total
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM stations %s", whereClause)
 	var total int
@@ -145,7 +157,7 @@ func (r *PostgresStationRepository) List(ctx context.Context, orgID, city string
 	// Fetch data
 	query := fmt.Sprintf(`SELECT id, organization_id, code, name, city, state, country, 
 		  latitude, longitude, timezone, address, amenities, status, created_at, updated_at 
-		  FROM stations %s ORDER BY name ASC LIMIT $%d OFFSET $%d`,
+		  FROM stations %s ORDER BY name ASC, id ASC LIMIT $%d OFFSET $%d`,
 		whereClause, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
@@ -826,6 +838,9 @@ func (r *PostgresScheduleRepository) Create(ctx context.Context, schedule *domai
 		schedule.Version = 1
 	}
 
+	fmt.Printf("DEBUG Schedule.Create: ID=%s, OrgID=%s, RouteID=%s, VehicleID=%s\n",
+		schedule.ID, schedule.OrganizationID, schedule.RouteID, schedule.VehicleID)
+
 	pricingJSON, _ := json.Marshal(schedule.Pricing)
 
 	query := `INSERT INTO schedule_templates (
@@ -840,6 +855,9 @@ func (r *PostgresScheduleRepository) Create(ctx context.Context, schedule *domai
 		schedule.ArrivalOffsetMinutes, schedule.Timezone, schedule.StartDate, schedule.EndDate,
 		schedule.DaysOfWeek, schedule.Status, schedule.Version, schedule.CreatedAt, schedule.UpdatedAt,
 	)
+	if err != nil {
+		fmt.Printf("DEBUG Schedule.Create ERROR: %v\n", err)
+	}
 	return err
 }
 
@@ -915,17 +933,25 @@ func (r *PostgresScheduleRepository) List(ctx context.Context, orgID, routeID, s
 	var schedules []*domain.ScheduleTemplate
 	for rows.Next() {
 		var schedule domain.ScheduleTemplate
-		var departureTime time.Time
+		var departureTimeStr string // Scan as string since DB returns TIME as string
 		var pricingJSON []byte
 		if err := rows.Scan(
 			&schedule.ID, &schedule.OrganizationID, &schedule.RouteID, &schedule.VehicleID,
-			&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTime, &schedule.ArrivalOffsetMinutes,
+			&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTimeStr, &schedule.ArrivalOffsetMinutes,
 			&schedule.Timezone, &schedule.StartDate, &schedule.EndDate, &schedule.DaysOfWeek,
 			&schedule.Status, &schedule.Version, &schedule.CreatedAt, &schedule.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
-		schedule.DepartureMinutes = timeToMinutes(departureTime)
+
+		// Parse TIME string (HH:MM:SS) to minutes since midnight
+		if departureTimeStr != "" {
+			t, err := time.Parse("15:04:05", departureTimeStr)
+			if err == nil {
+				schedule.DepartureMinutes = timeToMinutes(t)
+			}
+		}
+
 		json.Unmarshal(pricingJSON, &schedule.Pricing)
 		schedules = append(schedules, &schedule)
 	}
@@ -943,10 +969,17 @@ func (r *PostgresScheduleRepository) HasVehicleConflict(ctx context.Context, sch
 		return false, nil
 	}
 
-	query := `
+	// Build query dynamically based on whether we need to exclude a specific ID
+	queryBase := `
 		SELECT COUNT(*) FROM schedule_templates
 		WHERE organization_id = $1
-		  AND vehicle_id = $2
+		  AND vehicle_id = $2`
+
+	var query string
+	var args []interface{}
+
+	if excludeID != "" {
+		query = queryBase + `
 		  AND id != $3
 		  AND status = 'active'
 		  AND start_date <= $4
@@ -956,18 +989,39 @@ func (r *PostgresScheduleRepository) HasVehicleConflict(ctx context.Context, sch
 				(EXTRACT(EPOCH FROM departure_time)/60) < $7
 				AND (EXTRACT(EPOCH FROM departure_time)/60 + COALESCE(arrival_offset_minutes, 0)) > $8
 		  )`
+		args = []interface{}{
+			schedule.OrganizationID,
+			schedule.VehicleID,
+			excludeID,
+			schedule.EndDate,
+			schedule.StartDate,
+			schedule.DaysOfWeek,
+			float64(newEnd) / 60.0,
+			float64(newStart) / 60.0,
+		}
+	} else {
+		query = queryBase + `
+		  AND status = 'active'
+		  AND start_date <= $3
+		  AND end_date >= $4
+		  AND (days_of_week & $5) != 0
+		  AND (
+				(EXTRACT(EPOCH FROM departure_time)/60) < $6
+				AND (EXTRACT(EPOCH FROM departure_time)/60 + COALESCE(arrival_offset_minutes, 0)) > $7
+		  )`
+		args = []interface{}{
+			schedule.OrganizationID,
+			schedule.VehicleID,
+			schedule.EndDate,
+			schedule.StartDate,
+			schedule.DaysOfWeek,
+			float64(newEnd) / 60.0,
+			float64(newStart) / 60.0,
+		}
+	}
 
 	var count int
-	err := r.DB.QueryRowContext(ctx, query,
-		schedule.OrganizationID,
-		schedule.VehicleID,
-		excludeID,
-		schedule.EndDate,
-		schedule.StartDate,
-		schedule.DaysOfWeek,
-		float64(newStart)/60.0,
-		float64(newEnd)/60.0,
-	).Scan(&count)
+	err := r.DB.QueryRowContext(ctx, query, args...).Scan(&count)
 
 	if err != nil {
 		return false, err

@@ -3,6 +3,7 @@ FROM golang:1.25.3-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache git ca-certificates
 COPY go.mod go.sum ./
+RUN go env -w GOPROXY=https://goproxy.io,direct
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/service ./services/crm/cmd/main.go
