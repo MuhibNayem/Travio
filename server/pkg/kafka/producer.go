@@ -108,6 +108,7 @@ const (
 	EventTicketGenerated   = "fulfillment.ticket_generated"
 	EventNotificationSent  = "notification.sent"
 	EventTripCreated       = "trip.created"
+	EventTripUpdated       = "trip.updated"
 
 	EventStationCreated = "station.created"
 	EventEventCreated   = "event.created"

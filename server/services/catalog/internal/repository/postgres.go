@@ -635,9 +635,38 @@ func (r *PostgresTripRepository) Search(ctx context.Context, orgID, originCity, 
 }
 
 func (r *PostgresTripRepository) UpdateStatus(ctx context.Context, id, orgID, status string) error {
-	query := `UPDATE trips SET status = $1, updated_at = $2 WHERE id = $3 AND organization_id = $4`
-	_, err := r.DB.ExecContext(ctx, query, status, time.Now(), id, orgID)
-	return err
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `UPDATE trips SET status = $1, updated_at = $2 WHERE id = $3 AND organization_id = $4 RETURNING id`
+	var updatedID string
+	err = tx.QueryRowContext(ctx, query, status, time.Now(), id, orgID).Scan(&updatedID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrTripNotFound
+		}
+		return err
+	}
+
+	// Fetch trip details for event (using main DB conn, reading potentially pre-update state, but acceptable)
+	trip, err := r.GetByID(ctx, id, orgID)
+	if err != nil {
+		return err
+	}
+	// Patch with updated values
+	trip.Status = status
+	trip.UpdatedAt = time.Now()
+
+	if r.publisher != nil {
+		if err := r.publisher.PublishTripUpdated(ctx, tx, trip); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (r *PostgresTripRepository) DecrementSeats(ctx context.Context, id string, count int) error {

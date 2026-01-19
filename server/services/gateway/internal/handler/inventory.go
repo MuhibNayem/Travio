@@ -44,6 +44,9 @@ func (h *InventoryHandler) CheckAvailability(w http.ResponseWriter, r *http.Requ
 	toStation := r.URL.Query().Get("to")
 	orgID := middleware.GetOrgID(r.Context())
 	if orgID == "" {
+		orgID = r.URL.Query().Get("org_id")
+	}
+	if orgID == "" {
 		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -96,6 +99,9 @@ func (h *InventoryHandler) GetSeatMap(w http.ResponseWriter, r *http.Request) {
 	fromStation := r.URL.Query().Get("from")
 	toStation := r.URL.Query().Get("to")
 	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		orgID = r.URL.Query().Get("org_id")
+	}
 	if orgID == "" {
 		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
 		return

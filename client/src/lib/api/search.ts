@@ -19,6 +19,7 @@ export interface TripSearchResult {
     date: string;              // YYYY-MM-DD
     status: string;
     route_id: string;
+    organization_id: string;
     operator_name?: string;
     route_name?: string;
 }

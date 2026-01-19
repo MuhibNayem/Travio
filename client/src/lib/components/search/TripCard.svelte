@@ -114,7 +114,7 @@
                 </div>
             </div>
             <Button
-                href="/booking/{trip.trip_id}?from={trip.from_station_id}&to={trip.to_station_id}"
+                href={`/booking/${trip.trip_id}?from=${trip.from_station_id}&to=${trip.to_station_id}&org_id=${trip.organization_id}`}
                 class="w-full rounded-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
                 size="sm"
             >
