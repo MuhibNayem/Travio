@@ -31,15 +31,22 @@ func (h *GrpcHandler) SearchTrips(ctx context.Context, req *pb.SearchTripsReques
 	for _, t := range trips {
 		results = append(results, &pb.TripResult{
 			TripId:          t.TripID,
-			RouteName:       t.RouteName,
+			VehicleType:     t.VehicleType,
+			VehicleClass:    t.VehicleClass,
 			DepartureTime:   t.DepartureTime,
 			ArrivalTime:     t.ArrivalTime,
 			PricePaisa:      t.PricePaisa,
-			OperatorName:    t.OperatorName,
-			VehicleType:     t.VehicleType,
+			TotalSeats:      int32(t.TotalSeats),
 			AvailableSeats:  int32(t.AvailableSeats),
+			FromStationId:   t.FromStationID,
 			FromStationName: t.FromStationName,
+			FromCity:        t.FromCity,
+			ToStationId:     t.ToStationID,
 			ToStationName:   t.ToStationName,
+			ToCity:          t.ToCity,
+			Date:            t.Date,
+			Status:          t.Status,
+			RouteId:         t.RouteID,
 		})
 	}
 

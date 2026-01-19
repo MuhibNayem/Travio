@@ -208,6 +208,8 @@
                                         stationsStore.handleSearch(q)}
                                     onEndReached={() =>
                                         stationsStore.loadMore()}
+                                    onClose={() =>
+                                        stationsStore.resetToDefault()}
                                 >
                                     {#snippet icon()}
                                         <MapPin size={24} />
@@ -241,6 +243,8 @@
                                             stationsStore.handleSearch(q)}
                                         onEndReached={() =>
                                             stationsStore.loadMore()}
+                                        onClose={() =>
+                                            stationsStore.resetToDefault()}
                                     >
                                         {#snippet icon()}
                                             <MapPin size={24} />

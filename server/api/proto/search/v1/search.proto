@@ -25,15 +25,22 @@ message SearchTripsResponse {
 
 message TripResult {
   string trip_id = 1;
-  string route_name = 2;
-  string departure_time = 3;
-  string arrival_time = 4;
-  int64 price_paisa = 5;
-  string operator_name = 6;
-  string vehicle_type = 7;
+  string vehicle_type = 2;
+  string vehicle_class = 3;
+  int64 departure_time = 4;   // Unix timestamp
+  int64 arrival_time = 5;     // Unix timestamp
+  int64 price_paisa = 6;
+  int32 total_seats = 7;
   int32 available_seats = 8;
-  string from_station_name = 9;
-  string to_station_name = 10;
+  string from_station_id = 9;
+  string from_station_name = 10;
+  string from_city = 11;
+  string to_station_id = 12;
+  string to_station_name = 13;
+  string to_city = 14;
+  string date = 15;           // YYYY-MM-DD
+  string status = 16;
+  string route_id = 17;
 }
 
 message SearchStationsRequest {

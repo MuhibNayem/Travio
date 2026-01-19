@@ -270,17 +270,23 @@ func (r *PostgresRouteRepository) Create(ctx context.Context, route *domain.Rout
 }
 
 func (r *PostgresRouteRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Route, error) {
-	query := `SELECT id, organization_id, code, name, origin_station_id, destination_station_id,
-			  intermediate_stops, distance_km, estimated_duration_minutes, status, created_at, updated_at
-			  FROM routes WHERE id = $1 AND organization_id = $2`
+	query := `SELECT r.id, r.organization_id, r.code, r.name, r.origin_station_id, r.destination_station_id,
+			  r.intermediate_stops, r.distance_km, r.estimated_duration_minutes, r.status, r.created_at, r.updated_at,
+			  row_to_json(s1), row_to_json(s2)
+			  FROM routes r
+			  LEFT JOIN stations s1 ON r.origin_station_id = s1.id
+			  LEFT JOIN stations s2 ON r.destination_station_id = s2.id
+			  WHERE r.id = $1 AND r.organization_id = $2`
 
 	var route domain.Route
 	var stopsJSON []byte
+	var originJSON, destJSON []byte
 
 	err := r.DB.QueryRowContext(ctx, query, id, orgID).Scan(
 		&route.ID, &route.OrganizationID, &route.Code, &route.Name, &route.OriginStationID,
 		&route.DestinationStationID, &stopsJSON, &route.DistanceKm, &route.EstimatedDurationMin,
 		&route.Status, &route.CreatedAt, &route.UpdatedAt,
+		&originJSON, &destJSON,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -290,6 +296,20 @@ func (r *PostgresRouteRepository) GetByID(ctx context.Context, id, orgID string)
 	}
 
 	json.Unmarshal(stopsJSON, &route.IntermediateStops)
+
+	if len(originJSON) > 0 {
+		var s domain.Station
+		if err := json.Unmarshal(originJSON, &s); err == nil {
+			route.OriginStation = &s
+		}
+	}
+	if len(destJSON) > 0 {
+		var s domain.Station
+		if err := json.Unmarshal(destJSON, &s); err == nil {
+			route.DestinationStation = &s
+		}
+	}
+
 	return &route, nil
 }
 
@@ -760,16 +780,6 @@ func (r *PostgresTripRepository) BatchCreate(ctx context.Context, trips []*domai
 		batchSegs := allSegments[i:end]
 		if err := r.batchInsertSegments(ctx, tx, batchSegs); err != nil {
 			return err
-		}
-	}
-
-	// Publish TripCreated events within the same transaction (Transactional Outbox)
-	if r.publisher != nil {
-		for _, t := range trips {
-			if err := r.publisher.PublishTripCreated(ctx, tx, t); err != nil {
-				// Failing to publish event should fail the transaction to ensure consistency
-				return fmt.Errorf("failed to publish trip created event: %w", err)
-			}
 		}
 	}
 

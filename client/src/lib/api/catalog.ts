@@ -16,17 +16,18 @@ export interface Station {
 export interface ListStationsResponse {
     stations: Station[];
     total: number;
+    next_page_token?: string;
 }
 
 export const catalogApi = {
-    getStations: async (params: { search_query?: string; page_size?: number; page_token?: string } = {}): Promise<Station[]> => {
+    getStations: async (params: { search_query?: string; page_size?: number; page_token?: string } = {}): Promise<ListStationsResponse> => {
         const query = new URLSearchParams();
         if (params.search_query) query.append('search_query', params.search_query);
         if (params.page_size) query.append('page_size', params.page_size.toString());
         if (params.page_token) query.append('page_token', params.page_token);
 
         const response = await api.get<ListStationsResponse>(`/v1/stations?${query.toString()}`);
-        return response?.stations ?? [];
+        return response ?? { stations: [], total: 0 };
     },
 
     getStation: async (id: string): Promise<Station> => {

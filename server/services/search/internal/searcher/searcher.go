@@ -38,18 +38,25 @@ func generateCacheKey(prefix string, params ...interface{}) string {
 
 type TripDocument struct {
 	TripID          string `json:"trip_id"`
-	RouteName       string `json:"route_name"`
-	DepartureTime   string `json:"departure_time"`
-	ArrivalTime     string `json:"arrival_time"`
-	PricePaisa      int64  `json:"price_paisa"`
-	OperatorName    string `json:"operator_name"`
+	RouteID         string `json:"route_id"`
+	OrganizationID  string `json:"organization_id"`
+	VehicleID       string `json:"vehicle_id"`
 	VehicleType     string `json:"vehicle_type"`
+	VehicleClass    string `json:"vehicle_class"`
+	DepartureTime   int64  `json:"departure_time"`
+	ArrivalTime     int64  `json:"arrival_time"`
+	PricePaisa      int64  `json:"price_paisa"`
+	TotalSeats      int    `json:"total_seats"`
 	AvailableSeats  int    `json:"available_seats"`
-	FromStationName string `json:"from_station_name"`
-	ToStationName   string `json:"to_station_name"`
 	FromStationID   string `json:"from_station_id"`
+	FromStationName string `json:"from_station_name"`
+	FromCity        string `json:"from_city"`
 	ToStationID     string `json:"to_station_id"`
-	Date            string `json:"date"` // YYYY-MM-DD
+	ToStationName   string `json:"to_station_name"`
+	ToCity          string `json:"to_city"`
+	Date            string `json:"date"`
+	ServiceDate     string `json:"service_date"`
+	Status          string `json:"status"`
 }
 
 func (s *Searcher) SearchTrips(ctx context.Context, query, fromID, toID, date string, limit, offset int) ([]TripDocument, int64, error) {
@@ -75,17 +82,23 @@ func (s *Searcher) SearchTrips(ctx context.Context, query, fromID, toID, date st
 
 	if fromID != "" {
 		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{"from_station_id": fromID},
+			"term": map[string]interface{}{"from_station_id.keyword": fromID},
 		})
 	}
 	if toID != "" {
 		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{"to_station_id": toID},
+			"term": map[string]interface{}{"to_station_id.keyword": toID},
 		})
 	}
 	if date != "" {
+		// Use range query for date field to handle date type properly
 		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{"date": date},
+			"range": map[string]interface{}{
+				"date": map[string]interface{}{
+					"gte": date,
+					"lte": date,
+				},
+			},
 		})
 	}
 	if query != "" {

@@ -14,6 +14,7 @@ class StationsStore {
     currentQuery = $state("");
     currentPage = $state(1);
     pageSize = 50;
+    nextPageToken = $state<string>("");
     loading = $state<boolean>(false);
     loadingMore = $state<boolean>(false);
     hasMore = $state(true);
@@ -34,10 +35,12 @@ class StationsStore {
         this.currentPage = 1;
         this.hasMore = true;
         this.currentQuery = "";
+        this.nextPageToken = "";
 
         try {
             // Initial fetch
-            const stations = await catalogApi.getStations({ page_size: this.pageSize });
+            const response = await catalogApi.getStations({ page_size: this.pageSize });
+            const stations = response.stations || [];
 
             this.stations = stations; // Keep initial cache? Or just use visibleStations? 
             // Let's keep stations for "default" view, but visibleStations drives the UI
@@ -45,7 +48,8 @@ class StationsStore {
 
             this.stationMap = stations.reduce<Record<string, Station>>((acc, s) => { acc[s.id] = s; return acc; }, {});
 
-            this.hasMore = stations.length === this.pageSize;
+            this.nextPageToken = response.next_page_token || "";
+            this.hasMore = !!this.nextPageToken;
             this.loading = false;
             return stations;
         } catch (err) {
@@ -63,18 +67,21 @@ class StationsStore {
         this.currentQuery = query;
         this.currentPage = 1;
         this.loading = true;
+        this.nextPageToken = "";
         // Note: We might want a separate "searching" state to avoid full page loader, 
         // but for now reusing 'loading' or we can add 'isSearching' if needed. 
         // SearchHero uses 'loading' prop on Combobox which shows a spinner.
 
         try {
-            const stations = await catalogApi.getStations({
+            const response = await catalogApi.getStations({
                 search_query: query,
                 page_size: this.pageSize
             });
+            const stations = response.stations || [];
 
             this.visibleStations = stations;
-            this.hasMore = stations.length === this.pageSize;
+            this.nextPageToken = response.next_page_token || "";
+            this.hasMore = !!this.nextPageToken;
 
             // Merge into stationMap so GetById still works for these new ones
             stations.forEach(s => this.stationMap[s.id] = s);
@@ -91,31 +98,33 @@ class StationsStore {
      * Load next page of data
      */
     async loadMore() {
-        if (this.loadingMore || !this.hasMore) return;
+        if (this.loadingMore || !this.hasMore) {
+            return;
+        }
 
         this.loadingMore = true;
 
         try {
-            // We need to implement page_token support in Store or just use offset.
-            // The API supports page_size and page_token (which is offset as string).
-            // Current page is 1-based. Next offset = currentPage * pageSize
-            const offset = this.currentPage * this.pageSize;
-
-            const moreStations = await catalogApi.getStations({
+            const response = await catalogApi.getStations({
                 search_query: this.currentQuery,
                 page_size: this.pageSize,
-                page_token: offset.toString()
+                page_token: this.nextPageToken
             });
+
+            const moreStations = response.stations || [];
 
             if (moreStations.length > 0) {
                 this.visibleStations = [...this.visibleStations, ...moreStations];
                 this.currentPage++;
+                this.nextPageToken = response.next_page_token || "";
+                this.hasMore = !!this.nextPageToken;
 
                 moreStations.forEach(s => this.stationMap[s.id] = s);
-
-                this.hasMore = moreStations.length === this.pageSize;
             } else {
-                this.hasMore = false;
+                this.hasMore = !!response.next_page_token;
+                this.nextPageToken = response.next_page_token || "";
+                // If items 0 but token exists, we might still have more? 
+                // Usually empty items means no more, but let's trust token.
             }
         } catch (err) {
             console.error("Load more failed", err);
@@ -124,11 +133,15 @@ class StationsStore {
         }
     }
 
-    // updateVisibleStations is no longer needed/used in this pattern, removed logic.
-    updateVisibleStations(query: string = "", reset: boolean = false) {
-        // Legacy/Unused stub to satisfy any lingering calls until cleanup? 
-        // Actually best to remove it, but check callsites. 
-        // handleSearch replaced it. load() calls it? No, I removed that call in load() above.
+    /**
+     * Reset to default station list (clears search filter).
+     * Called when a combobox closes to restore shared state.
+     */
+    resetToDefault() {
+        this.currentQuery = "";
+        this.visibleStations = this.stations;
+        this.nextPageToken = "";
+        this.hasMore = this.stations.length >= this.pageSize;
     }
 
     /**

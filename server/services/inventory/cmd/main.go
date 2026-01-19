@@ -38,8 +38,7 @@ func main() {
 
 	scyllaSession, err := scylladb.NewSession(scyllaCfg)
 	if err != nil {
-		logger.Error("Failed to connect to ScyllaDB", "error", err)
-		// Don't crash in scaffold mode - will fail at runtime if DB needed
+		logger.Fatal("Failed to connect to ScyllaDB", "error", err)
 	}
 	defer func() {
 		if scyllaSession != nil {

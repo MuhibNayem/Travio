@@ -28,13 +28,20 @@ type TripCreatedPayload struct {
 	RouteID         string `json:"route_id"`
 	VehicleID       string `json:"vehicle_id"`
 	VehicleType     string `json:"vehicle_type"`
+	VehicleClass    string `json:"vehicle_class"`
 	Date            string `json:"date"`
+	ServiceDate     string `json:"service_date"`
 	FromStationID   string `json:"from_station_id"`
 	ToStationID     string `json:"to_station_id"`
 	FromStationName string `json:"from_station_name"`
 	ToStationName   string `json:"to_station_name"`
+	FromCity        string `json:"from_city"`
+	ToCity          string `json:"to_city"`
 	DepartureTime   int64  `json:"departure_time"`
+	ArrivalTime     int64  `json:"arrival_time"`
 	TotalSeats      int    `json:"total_seats"`
+	AvailableSeats  int    `json:"available_seats"`
+	PricePaisa      int64  `json:"price_paisa"`
 	Status          string `json:"status"`
 }
 
@@ -46,18 +53,21 @@ func (p *Publisher) PublishTripCreated(ctx context.Context, tx *sql.Tx, trip *do
 		RouteID:         trip.RouteID,
 		VehicleID:       trip.VehicleID,
 		VehicleType:     trip.VehicleType,
+		VehicleClass:    trip.VehicleClass,
 		Date:            trip.ServiceDate,
+		ServiceDate:     trip.ServiceDate,
 		FromStationID:   trip.OriginStationID,
 		ToStationID:     trip.DestinationStationID,
 		FromStationName: trip.OriginStationName,
 		ToStationName:   trip.DestinationStationName,
+		FromCity:        trip.OriginStationCity,
+		ToCity:          trip.DestinationStationCity,
 		DepartureTime:   trip.DepartureTime.Unix(),
+		ArrivalTime:     trip.ArrivalTime.Unix(),
 		TotalSeats:      trip.TotalSeats,
+		AvailableSeats:  trip.AvailableSeats,
+		PricePaisa:      trip.Pricing.BasePricePaisa,
 		Status:          trip.Status,
 	}
-	// Note: We need to ensure TopicTrips and EventTripCreated exist in pkg/kafka
-	// Using hardcoded strings or we'll check pkg/kafka next.
-	// OrderService uses kafka.TopicOrders.
-	// I'll assume kafka.TopicTrips/Catalog exists or I will add it.
 	return p.outbox.Publish(ctx, tx, kafka.TopicCatalog, kafka.EventTripCreated, trip.ID, payload)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,9 +45,25 @@ func (h *CatalogHandler) ListStations(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
+	// Parse query parameters
+	searchQuery := r.URL.Query().Get("search_query")
+	city := r.URL.Query().Get("city")
+	pageToken := r.URL.Query().Get("page_token")
+	pageSizeStr := r.URL.Query().Get("page_size")
+
+	pageSize := int32(100) // Default
+	if pageSizeStr != "" {
+		if parsed, err := parseInt32(pageSizeStr); err == nil && parsed > 0 {
+			pageSize = parsed
+		}
+	}
+
 	result, err := h.cb.Execute(func() (interface{}, error) {
 		return h.client.ListStations(ctx, &catalogpb.ListStationsRequest{
-			PageSize: 100,
+			SearchQuery: searchQuery,
+			City:        city,
+			PageToken:   pageToken,
+			PageSize:    pageSize,
 		})
 	})
 	if err != nil {
@@ -1035,4 +1052,12 @@ func parseTripStatus(value string) catalogpb.TripStatus {
 	default:
 		return catalogpb.TripStatus_TRIP_STATUS_UNSPECIFIED
 	}
+}
+
+func parseInt32(s string) (int32, error) {
+	n, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(n), nil
 }

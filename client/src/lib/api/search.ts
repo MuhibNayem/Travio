@@ -2,29 +2,30 @@ import { api } from './index';
 import type { TripInstanceResult } from './catalog';
 
 export interface TripSearchResult {
-    id: string;
-    route_id: string;
-    type: string;
-    operator: string;
-    vehicle_name: string;
-    departure_time: string;
-    arrival_time: string;
-    price: number;
-    class: string;
-    available_seats: number;
+    trip_id: string;
+    vehicle_type: string;
+    vehicle_class: string;
+    departure_time: number;    // Unix timestamp
+    arrival_time: number;      // Unix timestamp
+    price_paisa: number;
     total_seats: number;
-    from: string;
+    available_seats: number;
+    from_station_id: string;
+    from_station_name: string;
     from_city: string;
-    to: string;
+    to_station_id: string;
+    to_station_name: string;
     to_city: string;
-    duration: number;
-    distance: number;
+    date: string;              // YYYY-MM-DD
+    status: string;
+    route_id: string;
+    operator_name?: string;
+    route_name?: string;
 }
 
 export interface SearchResponse {
     results: TripSearchResult[];
     total: number;
-    next_page: string;
 }
 
 export interface SearchParams {

@@ -114,25 +114,33 @@
                 <div class="grid gap-2">
                     <Label>Origin Station</Label>
                     <Combobox
-                        items={stationsStore.stations.map((s) => ({
+                        items={stationsStore.visibleStations.map((s) => ({
                             value: s.id,
                             label: s.name,
                         }))}
                         bind:value={originId}
                         placeholder="Select Origin"
                         loading={stationsStore.loading}
+                        loadingMore={stationsStore.loadingMore}
+                        onSearch={(q) => stationsStore.handleSearch(q)}
+                        onEndReached={() => stationsStore.loadMore()}
+                        onClose={() => stationsStore.resetToDefault()}
                     />
                 </div>
                 <div class="grid gap-2">
                     <Label>Destination Station</Label>
                     <Combobox
-                        items={stationsStore.stations.map((s) => ({
+                        items={stationsStore.visibleStations.map((s) => ({
                             value: s.id,
                             label: s.name,
                         }))}
                         bind:value={destinationId}
                         placeholder="Select Destination"
                         loading={stationsStore.loading}
+                        loadingMore={stationsStore.loadingMore}
+                        onSearch={(q) => stationsStore.handleSearch(q)}
+                        onEndReached={() => stationsStore.loadMore()}
+                        onClose={() => stationsStore.resetToDefault()}
                     />
                 </div>
             </div>

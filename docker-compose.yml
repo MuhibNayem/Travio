@@ -152,7 +152,7 @@ services:
     volumes:
       - scylla_data:/var/lib/scylla
     healthcheck:
-      test: [ "CMD-SHELL", "cqlsh -e 'DESCRIBE CLUSTER' || exit 1" ]
+      test: [ "CMD-SHELL", "cqlsh $(hostname -i) -e 'DESCRIBE CLUSTER' || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -279,6 +279,8 @@ services:
       - POSTGRES_DB=travio_inventory
       - REDIS_URL=redis:${REDIS_PORT}
       - SCYLLA_HOSTS=${SCYLLA_HOST:-scylla}
+      - KAFKA_BROKERS=kafka:29092
+      - FLEET_URL=fleet:${FLEET_GRPC_PORT:-9093}
       - HOLD_TTL_SECONDS=${HOLD_TTL_SECONDS:-600}
       - HTTP_PORT=${INVENTORY_HTTP_PORT:-8083}
       - GRPC_PORT=${INVENTORY_GRPC_PORT:-9083}

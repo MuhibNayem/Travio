@@ -19,6 +19,7 @@
         loadingMore = false,
         onSearch,
         onEndReached,
+        onClose,
     } = $props<{
         value: string;
         items: { value: string; label: string }[];
@@ -32,6 +33,7 @@
         loadingMore?: boolean;
         onSearch?: (term: string) => void;
         onEndReached?: () => void;
+        onClose?: () => void;
     }>();
 
     let open = $state(false);
@@ -51,6 +53,8 @@
 
     function closeAndFocusTrigger() {
         open = false;
+        searchQuery = "";
+        onClose?.();
         tick().then(() => {
             triggerRef?.focus();
         });
@@ -63,6 +67,18 @@
             onSearch?.(term);
         }, 300);
     }
+
+    let listRef = $state<HTMLElement>(null!);
+
+    $effect(() => {
+        const element = listRef;
+        if (element) {
+            element.addEventListener("scroll", handleScroll);
+            return () => {
+                element.removeEventListener("scroll", handleScroll);
+            };
+        }
+    });
 
     function handleScroll(e: Event) {
         const target = e.target as HTMLElement;
@@ -110,56 +126,49 @@
                 value={searchQuery}
                 oninput={(e) => handleSearch(e.currentTarget.value)}
             />
-            <Command.List>
-                <div
-                    class="max-h-[300px] overflow-y-auto overflow-x-hidden"
-                    onscroll={handleScroll}
-                >
-                    {#if loading}
-                        <div
-                            class="py-6 flex items-center justify-center text-sm text-muted-foreground"
-                        >
-                            <Loader2 class="h-4 w-4 animate-spin mr-2" />
-                            Loading...
-                        </div>
-                    {:else if items.length === 0}
-                        <div
-                            class="py-6 text-center text-sm text-muted-foreground"
-                        >
-                            {emptyText}
-                        </div>
-                    {:else}
-                        <Command.Group>
-                            {#each items as item (item.value)}
-                                <Command.Item
-                                    value={item.value}
-                                    onSelect={() => {
-                                        value = item.value;
-                                        closeAndFocusTrigger();
-                                    }}
-                                >
-                                    <Check
-                                        class={cn(
-                                            "mr-2 h-4 w-4",
-                                            value !== item.value &&
-                                                "text-transparent",
-                                        )}
-                                    />
-                                    {item.label}
-                                </Command.Item>
-                            {/each}
-                        </Command.Group>
-
-                        {#if loadingMore}
-                            <div
-                                class="py-2 flex items-center justify-center text-xs text-muted-foreground"
+            <Command.List bind:ref={listRef} class="max-h-[300px]">
+                {#if loading}
+                    <div
+                        class="py-6 flex items-center justify-center text-sm text-muted-foreground"
+                    >
+                        <Loader2 class="h-4 w-4 animate-spin mr-2" />
+                        Loading...
+                    </div>
+                {:else if items.length === 0}
+                    <div class="py-6 text-center text-sm text-muted-foreground">
+                        {emptyText}
+                    </div>
+                {:else}
+                    <Command.Group>
+                        {#each items as item (item.value)}
+                            <Command.Item
+                                value={item.value}
+                                onSelect={() => {
+                                    value = item.value;
+                                    closeAndFocusTrigger();
+                                }}
                             >
-                                <Loader2 class="h-3 w-3 animate-spin mr-2" />
-                                Loading more...
-                            </div>
-                        {/if}
+                                <Check
+                                    class={cn(
+                                        "mr-2 h-4 w-4",
+                                        value !== item.value &&
+                                            "text-transparent",
+                                    )}
+                                />
+                                {item.label}
+                            </Command.Item>
+                        {/each}
+                    </Command.Group>
+
+                    {#if loadingMore}
+                        <div
+                            class="py-2 flex items-center justify-center text-xs text-muted-foreground"
+                        >
+                            <Loader2 class="h-3 w-3 animate-spin mr-2" />
+                            Loading more...
+                        </div>
                     {/if}
-                </div>
+                {/if}
             </Command.List>
         </Command.Root>
     </Popover.Content>

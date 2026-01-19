@@ -13,17 +13,18 @@
 
     export let trip: TripSearchResult;
 
-    function formatTime(isoString: string) {
-        return new Date(isoString).toLocaleTimeString([], {
+    function formatTime(timestamp: number) {
+        if (!timestamp) return "--:--";
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
         });
     }
 
-    function formatDuration(minutes: number) {
-        const h = Math.floor(minutes / 60);
-        const m = minutes % 60;
-        return `${h}h ${m}m`;
+    function formatPrice(paisa: number) {
+        if (!paisa) return "0";
+        return Math.floor(paisa / 100).toLocaleString();
     }
 
     const icons = {
@@ -31,6 +32,10 @@
         train: Train,
         launch: Ship,
     } as const;
+
+    $: vehicleType = (
+        trip.vehicle_type || "bus"
+    ).toLowerCase() as keyof typeof icons;
 </script>
 
 <div
@@ -44,19 +49,14 @@
             <div
                 class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20"
             >
-                <svelte:component
-                    this={icons[
-                        trip.type.toLowerCase() as keyof typeof icons
-                    ] || Bus}
-                    size={24}
-                />
+                <svelte:component this={icons[vehicleType] || Bus} size={24} />
             </div>
             <div>
                 <h3 class="text-lg font-bold text-foreground">
-                    {trip.operator}
+                    {trip.operator_name || "Operator"}
                 </h3>
                 <p class="text-sm font-medium text-muted-foreground">
-                    {trip.vehicle_name} • {trip.class}
+                    {trip.route_name || trip.vehicle_type || "Trip"}
                 </p>
             </div>
         </div>
@@ -71,17 +71,11 @@
                     class="flex items-center justify-center gap-1 text-xs font-semibold uppercase text-muted-foreground"
                 >
                     <MapPin size={12} class="text-muted-foreground/70" />
-                    {trip.from_city}
+                    {trip.from_station_name || "Origin"}
                 </div>
             </div>
 
             <div class="flex flex-col items-center gap-1">
-                <div
-                    class="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                >
-                    <Clock size={10} />
-                    {formatDuration(trip.duration)}
-                </div>
                 <div class="relative flex w-24 items-center">
                     <div
                         class="h-[2px] w-full bg-border group-hover:bg-primary/50 transition-colors"
@@ -101,7 +95,7 @@
                     class="flex items-center justify-center gap-1 text-xs font-semibold uppercase text-muted-foreground"
                 >
                     <MapPin size={12} class="text-muted-foreground/70" />
-                    {trip.to_city}
+                    {trip.to_station_name || "Destination"}
                 </div>
             </div>
         </div>
@@ -109,15 +103,18 @@
         <!-- Action -->
         <div class="flex flex-col items-end gap-3 md:w-32">
             <div class="text-right">
-                <p class="text-xl font-black text-primary">৳{trip.price}</p>
+                <p class="text-xl font-black text-primary">
+                    ৳{formatPrice(trip.price_paisa)}
+                </p>
                 <div
                     class="flex items-center justify-end gap-1.5 text-xs font-medium text-muted-foreground"
                 >
                     <Armchair size={14} class="text-emerald-500" />
-                    <span>{trip.available_seats} seats left</span>
+                    <span>{trip.available_seats || 0} seats left</span>
                 </div>
             </div>
             <Button
+                href="/booking/{trip.trip_id}?from={trip.from_station_id}&to={trip.to_station_id}"
                 class="w-full rounded-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
                 size="sm"
             >

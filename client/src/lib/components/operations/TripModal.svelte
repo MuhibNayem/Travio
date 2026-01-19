@@ -38,7 +38,11 @@
     let currency = "BDT";
     let classPriceOverrides: Array<{ key: string; value: string }> = [];
     let seatCategoryOverrides: Array<{ key: string; value: string }> = [];
-    let segmentPriceOverrides: Array<{ fromId: string; toId: string; basePrice: string }> = [];
+    let segmentPriceOverrides: Array<{
+        fromId: string;
+        toId: string;
+        basePrice: string;
+    }> = [];
     let additionalDepartures = "";
     let timezone = "Asia/Dhaka";
     let selectedDays = new Set<number>();
@@ -69,7 +73,7 @@
             } catch (error) {
                 console.error(error);
             }
-            stations = await catalogApi.getStations();
+            stations = (await catalogApi.getStations()).stations;
             stationNameMap = stations.reduce(
                 (acc, station) => {
                     acc[station.id] = station.name;
@@ -118,25 +122,31 @@
     }
 
     function buildClassPricesMap(): Record<string, number> {
-        return classPriceOverrides.reduce((acc, entry) => {
-            const key = entry.key.trim();
-            const value = Number(entry.value);
-            if (key && Number.isFinite(value) && value > 0) {
-                acc[key] = Math.round(value * 100);
-            }
-            return acc;
-        }, {} as Record<string, number>);
+        return classPriceOverrides.reduce(
+            (acc, entry) => {
+                const key = entry.key.trim();
+                const value = Number(entry.value);
+                if (key && Number.isFinite(value) && value > 0) {
+                    acc[key] = Math.round(value * 100);
+                }
+                return acc;
+            },
+            {} as Record<string, number>,
+        );
     }
 
     function buildSeatCategoryPricesMap(): Record<string, number> {
-        return seatCategoryOverrides.reduce((acc, entry) => {
-            const key = entry.key.trim();
-            const value = Number(entry.value);
-            if (key && Number.isFinite(value) && value > 0) {
-                acc[key] = Math.round(value * 100);
-            }
-            return acc;
-        }, {} as Record<string, number>);
+        return seatCategoryOverrides.reduce(
+            (acc, entry) => {
+                const key = entry.key.trim();
+                const value = Number(entry.value);
+                if (key && Number.isFinite(value) && value > 0) {
+                    acc[key] = Math.round(value * 100);
+                }
+                return acc;
+            },
+            {} as Record<string, number>,
+        );
     }
 
     function buildSegmentPrices(): SegmentPricing[] {
@@ -202,7 +212,11 @@
                 .map((stop) => stop.station_id),
             route.destination_station_id,
         ];
-        const segments: Array<{ fromId: string; toId: string; basePrice: string }> = [];
+        const segments: Array<{
+            fromId: string;
+            toId: string;
+            basePrice: string;
+        }> = [];
         for (let i = 0; i < stops.length - 1; i += 1) {
             segments.push({
                 fromId: stops[i],
@@ -523,9 +537,13 @@
                     {:else}
                         {#each segmentPriceOverrides as segment}
                             <div class="grid grid-cols-2 gap-3">
-                                <div class="flex items-center text-sm text-muted-foreground">
-                                    {stationNameMap[segment.fromId] || segment.fromId} →
-                                    {stationNameMap[segment.toId] || segment.toId}
+                                <div
+                                    class="flex items-center text-sm text-muted-foreground"
+                                >
+                                    {stationNameMap[segment.fromId] ||
+                                        segment.fromId} →
+                                    {stationNameMap[segment.toId] ||
+                                        segment.toId}
                                 </div>
                                 <Input
                                     type="number"

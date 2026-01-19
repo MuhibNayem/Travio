@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: server/api/proto/search/v1/search.proto
+// source: api/proto/search/v1/search.proto
 
 package v1
 
@@ -35,7 +35,7 @@ type SearchTripsRequest struct {
 
 func (x *SearchTripsRequest) Reset() {
 	*x = SearchTripsRequest{}
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[0]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *SearchTripsRequest) String() string {
 func (*SearchTripsRequest) ProtoMessage() {}
 
 func (x *SearchTripsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[0]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *SearchTripsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchTripsRequest.ProtoReflect.Descriptor instead.
 func (*SearchTripsRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_search_v1_search_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_search_v1_search_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SearchTripsRequest) GetQuery() string {
@@ -115,7 +115,7 @@ type SearchTripsResponse struct {
 
 func (x *SearchTripsResponse) Reset() {
 	*x = SearchTripsResponse{}
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[1]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -127,7 +127,7 @@ func (x *SearchTripsResponse) String() string {
 func (*SearchTripsResponse) ProtoMessage() {}
 
 func (x *SearchTripsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[1]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -140,7 +140,7 @@ func (x *SearchTripsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchTripsResponse.ProtoReflect.Descriptor instead.
 func (*SearchTripsResponse) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_search_v1_search_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_search_v1_search_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SearchTripsResponse) GetResults() []*TripResult {
@@ -160,22 +160,29 @@ func (x *SearchTripsResponse) GetTotal() int32 {
 type TripResult struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	TripId          string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	RouteName       string                 `protobuf:"bytes,2,opt,name=route_name,json=routeName,proto3" json:"route_name,omitempty"`
-	DepartureTime   string                 `protobuf:"bytes,3,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
-	ArrivalTime     string                 `protobuf:"bytes,4,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
-	PricePaisa      int64                  `protobuf:"varint,5,opt,name=price_paisa,json=pricePaisa,proto3" json:"price_paisa,omitempty"`
-	OperatorName    string                 `protobuf:"bytes,6,opt,name=operator_name,json=operatorName,proto3" json:"operator_name,omitempty"`
-	VehicleType     string                 `protobuf:"bytes,7,opt,name=vehicle_type,json=vehicleType,proto3" json:"vehicle_type,omitempty"`
+	VehicleType     string                 `protobuf:"bytes,2,opt,name=vehicle_type,json=vehicleType,proto3" json:"vehicle_type,omitempty"`
+	VehicleClass    string                 `protobuf:"bytes,3,opt,name=vehicle_class,json=vehicleClass,proto3" json:"vehicle_class,omitempty"`
+	DepartureTime   int64                  `protobuf:"varint,4,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"` // Unix timestamp
+	ArrivalTime     int64                  `protobuf:"varint,5,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`       // Unix timestamp
+	PricePaisa      int64                  `protobuf:"varint,6,opt,name=price_paisa,json=pricePaisa,proto3" json:"price_paisa,omitempty"`
+	TotalSeats      int32                  `protobuf:"varint,7,opt,name=total_seats,json=totalSeats,proto3" json:"total_seats,omitempty"`
 	AvailableSeats  int32                  `protobuf:"varint,8,opt,name=available_seats,json=availableSeats,proto3" json:"available_seats,omitempty"`
-	FromStationName string                 `protobuf:"bytes,9,opt,name=from_station_name,json=fromStationName,proto3" json:"from_station_name,omitempty"`
-	ToStationName   string                 `protobuf:"bytes,10,opt,name=to_station_name,json=toStationName,proto3" json:"to_station_name,omitempty"`
+	FromStationId   string                 `protobuf:"bytes,9,opt,name=from_station_id,json=fromStationId,proto3" json:"from_station_id,omitempty"`
+	FromStationName string                 `protobuf:"bytes,10,opt,name=from_station_name,json=fromStationName,proto3" json:"from_station_name,omitempty"`
+	FromCity        string                 `protobuf:"bytes,11,opt,name=from_city,json=fromCity,proto3" json:"from_city,omitempty"`
+	ToStationId     string                 `protobuf:"bytes,12,opt,name=to_station_id,json=toStationId,proto3" json:"to_station_id,omitempty"`
+	ToStationName   string                 `protobuf:"bytes,13,opt,name=to_station_name,json=toStationName,proto3" json:"to_station_name,omitempty"`
+	ToCity          string                 `protobuf:"bytes,14,opt,name=to_city,json=toCity,proto3" json:"to_city,omitempty"`
+	Date            string                 `protobuf:"bytes,15,opt,name=date,proto3" json:"date,omitempty"` // YYYY-MM-DD
+	Status          string                 `protobuf:"bytes,16,opt,name=status,proto3" json:"status,omitempty"`
+	RouteId         string                 `protobuf:"bytes,17,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *TripResult) Reset() {
 	*x = TripResult{}
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[2]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -187,7 +194,7 @@ func (x *TripResult) String() string {
 func (*TripResult) ProtoMessage() {}
 
 func (x *TripResult) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[2]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -200,47 +207,12 @@ func (x *TripResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TripResult.ProtoReflect.Descriptor instead.
 func (*TripResult) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_search_v1_search_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_search_v1_search_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *TripResult) GetTripId() string {
 	if x != nil {
 		return x.TripId
-	}
-	return ""
-}
-
-func (x *TripResult) GetRouteName() string {
-	if x != nil {
-		return x.RouteName
-	}
-	return ""
-}
-
-func (x *TripResult) GetDepartureTime() string {
-	if x != nil {
-		return x.DepartureTime
-	}
-	return ""
-}
-
-func (x *TripResult) GetArrivalTime() string {
-	if x != nil {
-		return x.ArrivalTime
-	}
-	return ""
-}
-
-func (x *TripResult) GetPricePaisa() int64 {
-	if x != nil {
-		return x.PricePaisa
-	}
-	return 0
-}
-
-func (x *TripResult) GetOperatorName() string {
-	if x != nil {
-		return x.OperatorName
 	}
 	return ""
 }
@@ -252,11 +224,53 @@ func (x *TripResult) GetVehicleType() string {
 	return ""
 }
 
+func (x *TripResult) GetVehicleClass() string {
+	if x != nil {
+		return x.VehicleClass
+	}
+	return ""
+}
+
+func (x *TripResult) GetDepartureTime() int64 {
+	if x != nil {
+		return x.DepartureTime
+	}
+	return 0
+}
+
+func (x *TripResult) GetArrivalTime() int64 {
+	if x != nil {
+		return x.ArrivalTime
+	}
+	return 0
+}
+
+func (x *TripResult) GetPricePaisa() int64 {
+	if x != nil {
+		return x.PricePaisa
+	}
+	return 0
+}
+
+func (x *TripResult) GetTotalSeats() int32 {
+	if x != nil {
+		return x.TotalSeats
+	}
+	return 0
+}
+
 func (x *TripResult) GetAvailableSeats() int32 {
 	if x != nil {
 		return x.AvailableSeats
 	}
 	return 0
+}
+
+func (x *TripResult) GetFromStationId() string {
+	if x != nil {
+		return x.FromStationId
+	}
+	return ""
 }
 
 func (x *TripResult) GetFromStationName() string {
@@ -266,9 +280,51 @@ func (x *TripResult) GetFromStationName() string {
 	return ""
 }
 
+func (x *TripResult) GetFromCity() string {
+	if x != nil {
+		return x.FromCity
+	}
+	return ""
+}
+
+func (x *TripResult) GetToStationId() string {
+	if x != nil {
+		return x.ToStationId
+	}
+	return ""
+}
+
 func (x *TripResult) GetToStationName() string {
 	if x != nil {
 		return x.ToStationName
+	}
+	return ""
+}
+
+func (x *TripResult) GetToCity() string {
+	if x != nil {
+		return x.ToCity
+	}
+	return ""
+}
+
+func (x *TripResult) GetDate() string {
+	if x != nil {
+		return x.Date
+	}
+	return ""
+}
+
+func (x *TripResult) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TripResult) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
 	}
 	return ""
 }
@@ -283,7 +339,7 @@ type SearchStationsRequest struct {
 
 func (x *SearchStationsRequest) Reset() {
 	*x = SearchStationsRequest{}
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[3]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -295,7 +351,7 @@ func (x *SearchStationsRequest) String() string {
 func (*SearchStationsRequest) ProtoMessage() {}
 
 func (x *SearchStationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[3]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -308,7 +364,7 @@ func (x *SearchStationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchStationsRequest.ProtoReflect.Descriptor instead.
 func (*SearchStationsRequest) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_search_v1_search_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_search_v1_search_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SearchStationsRequest) GetQuery() string {
@@ -334,7 +390,7 @@ type SearchStationsResponse struct {
 
 func (x *SearchStationsResponse) Reset() {
 	*x = SearchStationsResponse{}
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[4]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -346,7 +402,7 @@ func (x *SearchStationsResponse) String() string {
 func (*SearchStationsResponse) ProtoMessage() {}
 
 func (x *SearchStationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[4]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -359,7 +415,7 @@ func (x *SearchStationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchStationsResponse.ProtoReflect.Descriptor instead.
 func (*SearchStationsResponse) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_search_v1_search_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_search_v1_search_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SearchStationsResponse) GetResults() []*StationResult {
@@ -381,7 +437,7 @@ type StationResult struct {
 
 func (x *StationResult) Reset() {
 	*x = StationResult{}
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[5]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -393,7 +449,7 @@ func (x *StationResult) String() string {
 func (*StationResult) ProtoMessage() {}
 
 func (x *StationResult) ProtoReflect() protoreflect.Message {
-	mi := &file_server_api_proto_search_v1_search_proto_msgTypes[5]
+	mi := &file_api_proto_search_v1_search_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -406,7 +462,7 @@ func (x *StationResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StationResult.ProtoReflect.Descriptor instead.
 func (*StationResult) Descriptor() ([]byte, []int) {
-	return file_server_api_proto_search_v1_search_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_search_v1_search_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *StationResult) GetStationId() string {
@@ -437,11 +493,11 @@ func (x *StationResult) GetDivision() string {
 	return ""
 }
 
-var File_server_api_proto_search_v1_search_proto protoreflect.FileDescriptor
+var File_api_proto_search_v1_search_proto protoreflect.FileDescriptor
 
-const file_server_api_proto_search_v1_search_proto_rawDesc = "" +
+const file_api_proto_search_v1_search_proto_rawDesc = "" +
 	"\n" +
-	"'server/api/proto/search/v1/search.proto\x12\tsearch.v1\"\xb8\x01\n" +
+	" api/proto/search/v1/search.proto\x12\tsearch.v1\"\xb8\x01\n" +
 	"\x12SearchTripsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12&\n" +
 	"\x0ffrom_station_id\x18\x02 \x01(\tR\rfromStationId\x12\"\n" +
@@ -451,22 +507,29 @@ const file_server_api_proto_search_v1_search_proto_rawDesc = "" +
 	"\x06offset\x18\x06 \x01(\x05R\x06offset\"\\\n" +
 	"\x13SearchTripsResponse\x12/\n" +
 	"\aresults\x18\x01 \x03(\v2\x15.search.v1.TripResultR\aresults\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"\xf4\x02\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xbf\x04\n" +
 	"\n" +
 	"TripResult\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x1d\n" +
-	"\n" +
-	"route_name\x18\x02 \x01(\tR\trouteName\x12%\n" +
-	"\x0edeparture_time\x18\x03 \x01(\tR\rdepartureTime\x12!\n" +
-	"\farrival_time\x18\x04 \x01(\tR\varrivalTime\x12\x1f\n" +
-	"\vprice_paisa\x18\x05 \x01(\x03R\n" +
-	"pricePaisa\x12#\n" +
-	"\roperator_name\x18\x06 \x01(\tR\foperatorName\x12!\n" +
-	"\fvehicle_type\x18\a \x01(\tR\vvehicleType\x12'\n" +
-	"\x0favailable_seats\x18\b \x01(\x05R\x0eavailableSeats\x12*\n" +
-	"\x11from_station_name\x18\t \x01(\tR\x0ffromStationName\x12&\n" +
-	"\x0fto_station_name\x18\n" +
-	" \x01(\tR\rtoStationName\"C\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12!\n" +
+	"\fvehicle_type\x18\x02 \x01(\tR\vvehicleType\x12#\n" +
+	"\rvehicle_class\x18\x03 \x01(\tR\fvehicleClass\x12%\n" +
+	"\x0edeparture_time\x18\x04 \x01(\x03R\rdepartureTime\x12!\n" +
+	"\farrival_time\x18\x05 \x01(\x03R\varrivalTime\x12\x1f\n" +
+	"\vprice_paisa\x18\x06 \x01(\x03R\n" +
+	"pricePaisa\x12\x1f\n" +
+	"\vtotal_seats\x18\a \x01(\x05R\n" +
+	"totalSeats\x12'\n" +
+	"\x0favailable_seats\x18\b \x01(\x05R\x0eavailableSeats\x12&\n" +
+	"\x0ffrom_station_id\x18\t \x01(\tR\rfromStationId\x12*\n" +
+	"\x11from_station_name\x18\n" +
+	" \x01(\tR\x0ffromStationName\x12\x1b\n" +
+	"\tfrom_city\x18\v \x01(\tR\bfromCity\x12\"\n" +
+	"\rto_station_id\x18\f \x01(\tR\vtoStationId\x12&\n" +
+	"\x0fto_station_name\x18\r \x01(\tR\rtoStationName\x12\x17\n" +
+	"\ato_city\x18\x0e \x01(\tR\x06toCity\x12\x12\n" +
+	"\x04date\x18\x0f \x01(\tR\x04date\x12\x16\n" +
+	"\x06status\x18\x10 \x01(\tR\x06status\x12\x19\n" +
+	"\broute_id\x18\x11 \x01(\tR\arouteId\"C\n" +
 	"\x15SearchStationsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"L\n" +
@@ -483,19 +546,19 @@ const file_server_api_proto_search_v1_search_proto_rawDesc = "" +
 	"\x0eSearchStations\x12 .search.v1.SearchStationsRequest\x1a!.search.v1.SearchStationsResponseB9Z7github.com/MuhibNayem/Travio/server/api/proto/search/v1b\x06proto3"
 
 var (
-	file_server_api_proto_search_v1_search_proto_rawDescOnce sync.Once
-	file_server_api_proto_search_v1_search_proto_rawDescData []byte
+	file_api_proto_search_v1_search_proto_rawDescOnce sync.Once
+	file_api_proto_search_v1_search_proto_rawDescData []byte
 )
 
-func file_server_api_proto_search_v1_search_proto_rawDescGZIP() []byte {
-	file_server_api_proto_search_v1_search_proto_rawDescOnce.Do(func() {
-		file_server_api_proto_search_v1_search_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_server_api_proto_search_v1_search_proto_rawDesc), len(file_server_api_proto_search_v1_search_proto_rawDesc)))
+func file_api_proto_search_v1_search_proto_rawDescGZIP() []byte {
+	file_api_proto_search_v1_search_proto_rawDescOnce.Do(func() {
+		file_api_proto_search_v1_search_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_search_v1_search_proto_rawDesc), len(file_api_proto_search_v1_search_proto_rawDesc)))
 	})
-	return file_server_api_proto_search_v1_search_proto_rawDescData
+	return file_api_proto_search_v1_search_proto_rawDescData
 }
 
-var file_server_api_proto_search_v1_search_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_server_api_proto_search_v1_search_proto_goTypes = []any{
+var file_api_proto_search_v1_search_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_api_proto_search_v1_search_proto_goTypes = []any{
 	(*SearchTripsRequest)(nil),     // 0: search.v1.SearchTripsRequest
 	(*SearchTripsResponse)(nil),    // 1: search.v1.SearchTripsResponse
 	(*TripResult)(nil),             // 2: search.v1.TripResult
@@ -503,7 +566,7 @@ var file_server_api_proto_search_v1_search_proto_goTypes = []any{
 	(*SearchStationsResponse)(nil), // 4: search.v1.SearchStationsResponse
 	(*StationResult)(nil),          // 5: search.v1.StationResult
 }
-var file_server_api_proto_search_v1_search_proto_depIdxs = []int32{
+var file_api_proto_search_v1_search_proto_depIdxs = []int32{
 	2, // 0: search.v1.SearchTripsResponse.results:type_name -> search.v1.TripResult
 	5, // 1: search.v1.SearchStationsResponse.results:type_name -> search.v1.StationResult
 	0, // 2: search.v1.SearchService.SearchTrips:input_type -> search.v1.SearchTripsRequest
@@ -517,26 +580,26 @@ var file_server_api_proto_search_v1_search_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_server_api_proto_search_v1_search_proto_init() }
-func file_server_api_proto_search_v1_search_proto_init() {
-	if File_server_api_proto_search_v1_search_proto != nil {
+func init() { file_api_proto_search_v1_search_proto_init() }
+func file_api_proto_search_v1_search_proto_init() {
+	if File_api_proto_search_v1_search_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_api_proto_search_v1_search_proto_rawDesc), len(file_server_api_proto_search_v1_search_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_search_v1_search_proto_rawDesc), len(file_api_proto_search_v1_search_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_server_api_proto_search_v1_search_proto_goTypes,
-		DependencyIndexes: file_server_api_proto_search_v1_search_proto_depIdxs,
-		MessageInfos:      file_server_api_proto_search_v1_search_proto_msgTypes,
+		GoTypes:           file_api_proto_search_v1_search_proto_goTypes,
+		DependencyIndexes: file_api_proto_search_v1_search_proto_depIdxs,
+		MessageInfos:      file_api_proto_search_v1_search_proto_msgTypes,
 	}.Build()
-	File_server_api_proto_search_v1_search_proto = out.File
-	file_server_api_proto_search_v1_search_proto_goTypes = nil
-	file_server_api_proto_search_v1_search_proto_depIdxs = nil
+	File_api_proto_search_v1_search_proto = out.File
+	file_api_proto_search_v1_search_proto_goTypes = nil
+	file_api_proto_search_v1_search_proto_depIdxs = nil
 }

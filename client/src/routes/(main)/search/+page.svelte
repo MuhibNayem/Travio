@@ -109,7 +109,7 @@
 
                 {#if results.length > 0}
                     <div class="flex flex-col gap-4">
-                        {#each results as result (result.id || result.event?.id)}
+                        {#each results as result (result.trip_id || result.event?.id)}
                             {#if mode === "events"}
                                 <EventCard {result} />
                             {:else}
