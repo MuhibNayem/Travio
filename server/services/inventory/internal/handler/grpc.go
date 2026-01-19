@@ -5,6 +5,7 @@ import (
 	"time"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
+	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/service"
 	"google.golang.org/grpc/codes"
@@ -193,7 +194,8 @@ func (h *GrpcHandler) InitializeTripInventory(ctx context.Context, req *pb.Initi
 	})
 
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to initialize trip inventory")
+		logger.Error("Failed to initialize trip inventory", "error", err, "trip_id", req.TripId)
+		return nil, status.Errorf(codes.Internal, "failed to initialize trip inventory: %v", err)
 	}
 
 	return &pb.InitializeTripInventoryResponse{

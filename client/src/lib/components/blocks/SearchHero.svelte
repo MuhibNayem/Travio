@@ -23,7 +23,7 @@
     import { stationsStore } from "$lib/stores/stations.svelte";
     import { toast } from "svelte-sonner";
 
-    let tab = $state<"train" | "bus" | "launch" | "events">("train");
+    let tab = $state<"train" | "bus" | "launch" | "events">("bus");
     let from = $state("");
     let to = $state("");
     let date = $state("");

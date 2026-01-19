@@ -9,9 +9,11 @@ import (
 )
 
 type Config struct {
-	Server   server.Config
-	ScyllaDB ScyllaDBConfig
-	Redis    RedisConfig
+	Server       server.Config
+	ScyllaDB     ScyllaDBConfig
+	Redis        RedisConfig
+	KafkaBrokers []string
+	FleetURL     string
 }
 
 type ScyllaDBConfig struct {
@@ -33,6 +35,21 @@ func Load() *Config {
 		scyllaHosts = strings.Split(env, ",")
 	}
 
+	scyllaConsistency := "ONE" // Default for single-node dev environments
+	if env := os.Getenv("SCYLLA_CONSISTENCY"); env != "" {
+		scyllaConsistency = env
+	}
+
+	kafkaBrokers := []string{"localhost:9092"}
+	if env := os.Getenv("KAFKA_BROKERS"); env != "" {
+		kafkaBrokers = strings.Split(env, ",")
+	}
+
+	fleetURL := "localhost:50053"
+	if env := os.Getenv("FLEET_URL"); env != "" {
+		fleetURL = env
+	}
+
 	return &Config{
 		Server: server.Config{
 			GRPCPort:        9083,
@@ -44,7 +61,7 @@ func Load() *Config {
 		ScyllaDB: ScyllaDBConfig{
 			Hosts:       scyllaHosts,
 			Keyspace:    "travio_inventory",
-			Consistency: "QUORUM",
+			Consistency: scyllaConsistency,
 			Timeout:     5 * time.Second,
 		},
 		Redis: RedisConfig{
@@ -52,5 +69,7 @@ func Load() *Config {
 			Password: "",
 			DB:       1,
 		},
+		KafkaBrokers: kafkaBrokers,
+		FleetURL:     fleetURL,
 	}
 }

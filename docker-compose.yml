@@ -247,11 +247,17 @@ services:
       - REDIS_ADDR=redis:${REDIS_PORT}
       - SUBSCRIPTION_SERVICE_URL=subscription:${SUBSCRIPTION_GRPC_PORT:-50060}
       - FLEET_URL=fleet:${FLEET_GRPC_PORT:-9093}
+      - INVENTORY_URL=inventory:${INVENTORY_GRPC_PORT:-9083}
+      - KAFKA_BROKERS=kafka:29092
     ports:
       - "${CATALOG_HTTP_PORT}:${CATALOG_HTTP_PORT}"
       - "${CATALOG_GRPC_PORT}:${CATALOG_GRPC_PORT}"
     depends_on:
       postgres:
+        condition: service_healthy
+      inventory:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${CATALOG_HTTP_PORT}/health" ]

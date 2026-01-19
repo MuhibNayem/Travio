@@ -912,6 +912,8 @@ func routeToJSON(r *catalogpb.Route) map[string]interface{} {
 		"status":                     formatEnum(r.Status.String(), "ROUTE_STATUS_"),
 		"created_at":                 r.CreatedAt,
 		"updated_at":                 r.UpdatedAt,
+		"origin_station":             stationToJSON(r.OriginStation),
+		"destination_station":        stationToJSON(r.DestinationStation),
 	}
 }
 

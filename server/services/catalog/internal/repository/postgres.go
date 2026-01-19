@@ -298,9 +298,9 @@ func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, des
 	var whereClause string
 	argIdx := 1
 
-	// Build WHERE clause dynamically
+	// Build WHERE clause dynamically with aliases
 	if orgID != "" {
-		whereClause = fmt.Sprintf("WHERE organization_id = $%d", argIdx)
+		whereClause = fmt.Sprintf("WHERE r.organization_id = $%d", argIdx)
 		args = append(args, orgID)
 		argIdx++
 	} else {
@@ -308,25 +308,32 @@ func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, des
 	}
 
 	if originID != "" {
-		whereClause += fmt.Sprintf(" AND origin_station_id = $%d", argIdx)
+		whereClause += fmt.Sprintf(" AND r.origin_station_id = $%d", argIdx)
 		args = append(args, originID)
 		argIdx++
 	}
 	if destID != "" {
-		whereClause += fmt.Sprintf(" AND destination_station_id = $%d", argIdx)
+		whereClause += fmt.Sprintf(" AND r.destination_station_id = $%d", argIdx)
 		args = append(args, destID)
 		argIdx++
 	}
 
-	// Count
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM routes %s", whereClause)
+	// Count (simple count on routes table is enough, assuming strict integrity or we don't care about missing stations for count)
+	// We use 'routes r' to match the alias if we extracted whereClause logic to a function,
+	// but here we just need to make sure the where clause works.
+	// Since whereClause now uses 'r.', we must alias the table in count query too.
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM routes r %s", whereClause)
 	var total int
 	r.DB.QueryRowContext(ctx, countQuery, args...).Scan(&total)
 
-	// Fetch
-	query := fmt.Sprintf(`SELECT id, organization_id, code, name, origin_station_id, destination_station_id,
-			  intermediate_stops, distance_km, estimated_duration_minutes, status, created_at, updated_at
-			  FROM routes %s ORDER BY name ASC LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
+	// Fetch with JOINs
+	query := fmt.Sprintf(`SELECT r.id, r.organization_id, r.code, r.name, r.origin_station_id, r.destination_station_id,
+			  r.intermediate_stops, r.distance_km, r.estimated_duration_minutes, r.status, r.created_at, r.updated_at,
+			  row_to_json(s1), row_to_json(s2)
+			  FROM routes r
+			  LEFT JOIN stations s1 ON r.origin_station_id = s1.id
+			  LEFT JOIN stations s2 ON r.destination_station_id = s2.id
+			  %s ORDER BY r.name ASC LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.DB.QueryContext(ctx, query, args...)
@@ -339,11 +346,13 @@ func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, des
 	for rows.Next() {
 		var rt domain.Route
 		var stopsJSON []byte
+		var originJSON, destJSON []byte
 		var orgID sql.NullString
 		if err := rows.Scan(
 			&rt.ID, &orgID, &rt.Code, &rt.Name, &rt.OriginStationID,
 			&rt.DestinationStationID, &stopsJSON, &rt.DistanceKm, &rt.EstimatedDurationMin,
 			&rt.Status, &rt.CreatedAt, &rt.UpdatedAt,
+			&originJSON, &destJSON,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -351,6 +360,20 @@ func (r *PostgresRouteRepository) List(ctx context.Context, orgID, originID, des
 			rt.OrganizationID = orgID.String
 		}
 		json.Unmarshal(stopsJSON, &rt.IntermediateStops)
+
+		if len(originJSON) > 0 {
+			var s domain.Station
+			if err := json.Unmarshal(originJSON, &s); err == nil {
+				rt.OriginStation = &s
+			}
+		}
+		if len(destJSON) > 0 {
+			var s domain.Station
+			if err := json.Unmarshal(destJSON, &s); err == nil {
+				rt.DestinationStation = &s
+			}
+		}
+
 		routes = append(routes, &rt)
 	}
 
@@ -740,6 +763,16 @@ func (r *PostgresTripRepository) BatchCreate(ctx context.Context, trips []*domai
 		}
 	}
 
+	// Publish TripCreated events within the same transaction (Transactional Outbox)
+	if r.publisher != nil {
+		for _, t := range trips {
+			if err := r.publisher.PublishTripCreated(ctx, tx, t); err != nil {
+				// Failing to publish event should fail the transaction to ensure consistency
+				return fmt.Errorf("failed to publish trip created event: %w", err)
+			}
+		}
+	}
+
 	return tx.Commit()
 }
 
@@ -771,7 +804,7 @@ func (r *PostgresTripRepository) batchInsertTrips(ctx context.Context, tx *sql.T
 			pricingJSON, t.Status, t.CreatedAt, t.UpdatedAt)
 	}
 
-	query := fmt.Sprintf("INSERT INTO trips (id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class, departure_time, arrival_time, total_seats, available_seats, pricing, status, created_at, updated_at) VALUES %s", strings.Join(valueStrings, ","))
+	query := fmt.Sprintf("INSERT INTO trips (id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class, departure_time, arrival_time, total_seats, available_seats, pricing, status, created_at, updated_at) VALUES %s ON CONFLICT (schedule_id, service_date) WHERE status != 'cancelled' DO NOTHING", strings.Join(valueStrings, ","))
 
 	_, err := tx.ExecContext(ctx, query, valueArgs...)
 	return err
@@ -868,12 +901,13 @@ func (r *PostgresScheduleRepository) GetByID(ctx context.Context, id, orgID stri
 		FROM schedule_templates WHERE id = $1 AND organization_id = $2`
 
 	var schedule domain.ScheduleTemplate
-	var departureTime time.Time
+	var departureTimeStr string
+	var startDateStr, endDateStr string // Scan dates as strings to handle potential timestamp formats
 	var pricingJSON []byte
 	err := r.DB.QueryRowContext(ctx, query, id, orgID).Scan(
 		&schedule.ID, &schedule.OrganizationID, &schedule.RouteID, &schedule.VehicleID,
-		&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTime, &schedule.ArrivalOffsetMinutes,
-		&schedule.Timezone, &schedule.StartDate, &schedule.EndDate, &schedule.DaysOfWeek,
+		&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTimeStr, &schedule.ArrivalOffsetMinutes,
+		&schedule.Timezone, &startDateStr, &endDateStr, &schedule.DaysOfWeek,
 		&schedule.Status, &schedule.Version, &schedule.CreatedAt, &schedule.UpdatedAt,
 	)
 	if err != nil {
@@ -883,7 +917,22 @@ func (r *PostgresScheduleRepository) GetByID(ctx context.Context, id, orgID stri
 		return nil, err
 	}
 
-	schedule.DepartureMinutes = timeToMinutes(departureTime)
+	// Sanitize dates (remove time part if present)
+	if len(startDateStr) >= 10 {
+		schedule.StartDate = startDateStr[:10]
+	}
+	if len(endDateStr) >= 10 {
+		schedule.EndDate = endDateStr[:10]
+	}
+
+	// Parse TIME string (HH:MM:SS) to minutes since midnight
+	if departureTimeStr != "" {
+		t, err := time.Parse("15:04:05", departureTimeStr)
+		if err == nil {
+			schedule.DepartureMinutes = timeToMinutes(t)
+		}
+	}
+
 	json.Unmarshal(pricingJSON, &schedule.Pricing)
 	return &schedule, nil
 }
@@ -933,15 +982,24 @@ func (r *PostgresScheduleRepository) List(ctx context.Context, orgID, routeID, s
 	var schedules []*domain.ScheduleTemplate
 	for rows.Next() {
 		var schedule domain.ScheduleTemplate
-		var departureTimeStr string // Scan as string since DB returns TIME as string
+		var departureTimeStr string         // Scan as string since DB returns TIME as string
+		var startDateStr, endDateStr string // Scan dates as strings
 		var pricingJSON []byte
 		if err := rows.Scan(
 			&schedule.ID, &schedule.OrganizationID, &schedule.RouteID, &schedule.VehicleID,
 			&schedule.VehicleType, &schedule.VehicleClass, &schedule.TotalSeats, &pricingJSON, &departureTimeStr, &schedule.ArrivalOffsetMinutes,
-			&schedule.Timezone, &schedule.StartDate, &schedule.EndDate, &schedule.DaysOfWeek,
+			&schedule.Timezone, &startDateStr, &endDateStr, &schedule.DaysOfWeek,
 			&schedule.Status, &schedule.Version, &schedule.CreatedAt, &schedule.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
+		}
+
+		// Sanitize dates
+		if len(startDateStr) >= 10 {
+			schedule.StartDate = startDateStr[:10]
+		}
+		if len(endDateStr) >= 10 {
+			schedule.EndDate = endDateStr[:10]
 		}
 
 		// Parse TIME string (HH:MM:SS) to minutes since midnight

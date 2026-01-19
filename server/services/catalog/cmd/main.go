@@ -10,6 +10,7 @@ import (
 	pb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/entitlement"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
+	"github.com/MuhibNayem/Travio/server/pkg/outbox"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/catalog/config"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/clients"
@@ -41,6 +42,16 @@ func main() {
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
+
+	// Outbox Relay Setup
+	// Poll every 1 second, batch size 100
+	outboxRelay, err := outbox.NewRelay(db, cfg.KafkaBrokers, 1*time.Second, 100)
+	if err != nil {
+		logger.Error("Failed to create outbox relay", "error", err)
+	} else {
+		outboxRelay.Start()
+		defer outboxRelay.Stop()
+	}
 
 	// Dependency Injection (With Caching Decorators)
 	stationRepo := repository.NewStationRepository(db)
@@ -86,12 +97,7 @@ func main() {
 		logger.Error("Failed to create fleet client", "error", err)
 	}
 
-	inventoryClient, err := clients.NewInventoryClient(cfg.InventoryURL)
-	if err != nil {
-		logger.Error("Failed to create inventory client", "error", err)
-	}
-
-	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, cachedTripRepo, scheduleRepo, entChecker, fleetClient, inventoryClient, auditRepo)
+	catalogService := service.NewCatalogService(cachedStationRepo, cachedRouteRepo, cachedTripRepo, scheduleRepo, entChecker, fleetClient, auditRepo)
 	grpcHandler := handler.NewGrpcHandler(catalogService)
 
 	// HTTP Mux (for health checks and REST fallback)

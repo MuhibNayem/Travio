@@ -6,8 +6,17 @@
         type TripInstanceResult,
         type Route,
     } from "$lib/api/catalog";
+    import { fleetApi, type Asset } from "$lib/api/fleet";
     import { Button } from "$lib/components/ui/button";
-    import { Plus, Calendar, Clock, Bus, Train, Ship } from "@lucide/svelte";
+    import {
+        Plus,
+        Calendar,
+        Clock,
+        Bus,
+        Train,
+        Ship,
+        RefreshCw,
+    } from "@lucide/svelte";
     import TripModal from "$lib/components/operations/TripModal.svelte";
     import * as Table from "$lib/components/ui/table";
     import { toast } from "svelte-sonner";
@@ -15,8 +24,10 @@
     let schedules: Schedule[] = [];
     let tripInstances: TripInstanceResult[] = [];
     let routes: Route[] = [];
+    let assets: Asset[] = [];
     let loading = true;
     let showCreateModal = false;
+    let regeneratingId: string | null = null;
 
     const icons = {
         bus: Bus,
@@ -66,12 +77,14 @@
     async function loadData() {
         loading = true;
         try {
-            const [routesRes, schedulesRes] = await Promise.all([
+            const [routesRes, schedulesRes, assetsRes] = await Promise.all([
                 catalogApi.getRoutes(),
                 catalogApi.listSchedules(),
+                fleetApi.getAssets(),
             ]);
             routes = routesRes;
             schedules = schedulesRes;
+            assets = assetsRes;
 
             const range = formatDateRange(7);
             tripInstances = await catalogApi.listTripInstances({
@@ -84,6 +97,31 @@
         } finally {
             loading = false;
         }
+    }
+
+    async function handleRegenerate(scheduleId: string) {
+        regeneratingId = scheduleId;
+        try {
+            const range = formatDateRange(30); // Generate for next 30 days
+            await catalogApi.generateTripInstances(
+                scheduleId,
+                range.start,
+                range.end,
+            );
+            toast.success("Trip instances regenerated successfully");
+            await loadData();
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to generate trips");
+        } finally {
+            regeneratingId = null;
+        }
+    }
+
+    function getVehicleName(id: string) {
+        const asset = assets.find((a) => a.id === id);
+        if (asset) return `${asset.name} (${asset.license_plate})`;
+        return id;
     }
 
     onMount(() => {
@@ -123,18 +161,19 @@
                         <Table.Head>DAYS</Table.Head>
                         <Table.Head>SEATS</Table.Head>
                         <Table.Head>STATUS</Table.Head>
+                        <Table.Head class="text-right">ACTIONS</Table.Head>
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
                     {#if loading}
                         <Table.Row>
-                            <Table.Cell colspan={5} class="h-24 text-center">
+                            <Table.Cell colspan={6} class="h-24 text-center">
                                 Loading schedules...
                             </Table.Cell>
                         </Table.Row>
                     {:else if schedules.length === 0}
                         <Table.Row>
-                            <Table.Cell colspan={5} class="h-40 text-center">
+                            <Table.Cell colspan={6} class="h-40 text-center">
                                 <div
                                     class="flex flex-col items-center justify-center text-muted-foreground"
                                 >
@@ -183,6 +222,24 @@
                                     >
                                         {schedule.status}
                                     </span>
+                                </Table.Cell>
+                                <Table.Cell class="text-right">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={regeneratingId ===
+                                            schedule.id}
+                                        onclick={() =>
+                                            handleRegenerate(schedule.id)}
+                                    >
+                                        <RefreshCw
+                                            class="mr-2 h-3.5 w-3.5 {regeneratingId ===
+                                            schedule.id
+                                                ? 'animate-spin'
+                                                : ''}"
+                                        />
+                                        Regenerate
+                                    </Button>
                                 </Table.Cell>
                             </Table.Row>
                         {/each}
@@ -257,7 +314,9 @@
                                                 />
                                             </div>
                                             <span class="font-medium">
-                                                {result.trip.vehicle_id}
+                                                {getVehicleName(
+                                                    result.trip.vehicle_id,
+                                                )}
                                             </span>
                                         </div>
                                     </Table.Cell>

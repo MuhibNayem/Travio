@@ -149,6 +149,6 @@ func (r *CachedStationRepository) Delete(ctx context.Context, id, orgID string) 
 	return nil
 }
 
-func (r *CachedStationRepository) List(ctx context.Context, orgID, city string, limit, offset int) ([]*domain.Station, int, error) {
-	return r.repo.List(ctx, orgID, city, limit, offset)
+func (r *CachedStationRepository) List(ctx context.Context, orgID, city, searchQuery string, limit, offset int) ([]*domain.Station, int, error) {
+	return r.repo.List(ctx, orgID, city, searchQuery, limit, offset)
 }

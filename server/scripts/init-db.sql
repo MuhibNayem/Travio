@@ -174,6 +174,19 @@ CREATE TABLE IF NOT EXISTS schedule_versions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Outbox pattern for reliable event publishing
+CREATE TABLE IF NOT EXISTS event_outbox (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    aggregate_id VARCHAR(255) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    topic VARCHAR(100) NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    processed_at TIMESTAMP WITH TIME ZONE,
+    retries INT DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_outbox_unprocessed ON event_outbox(processed_at) WHERE processed_at IS NULL;
+
 ALTER TABLE trips
     ADD CONSTRAINT IF NOT EXISTS trips_schedule_fk
     FOREIGN KEY (schedule_id) REFERENCES schedule_templates(id);
@@ -202,6 +215,7 @@ CREATE INDEX IF NOT EXISTS idx_trips_service_date ON trips(service_date);
 CREATE INDEX IF NOT EXISTS idx_schedule_org_id ON schedule_templates(organization_id);
 CREATE INDEX IF NOT EXISTS idx_schedule_route_id ON schedule_templates(route_id);
 CREATE INDEX IF NOT EXISTS idx_schedule_active ON schedule_templates(status) WHERE status = 'active';
+
 
 -- Seed data for stations
 -- Legacy stations for backward compatibility

@@ -37,6 +37,8 @@ type Route struct {
 	Status               string      `json:"status"`
 	CreatedAt            time.Time   `json:"created_at"`
 	UpdatedAt            time.Time   `json:"updated_at"`
+	OriginStation        *Station    `json:"origin_station,omitempty"`
+	DestinationStation   *Station    `json:"destination_station,omitempty"`
 }
 
 // RouteStop represents an intermediate stop on a route
@@ -67,6 +69,14 @@ type Trip struct {
 	Segments       []TripSegment `json:"segments"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
+
+	// Transient fields for event publishing
+	OriginStationID        string `json:"-"`
+	DestinationStationID   string `json:"-"`
+	OriginStationName      string `json:"-"`
+	OriginStationCity      string `json:"-"`
+	DestinationStationName string `json:"-"`
+	DestinationStationCity string `json:"-"`
 }
 
 // TripPricing contains pricing information for a trip

@@ -65,6 +65,7 @@ func (r *PostgresStationRepository) InitSchema(ctx context.Context) error {
 		`CREATE INDEX IF NOT EXISTS idx_stations_city ON stations(city)`,
 		`CREATE INDEX IF NOT EXISTS idx_trips_departure ON trips(departure_time)`,
 		`CREATE INDEX IF NOT EXISTS idx_trips_route_id ON trips(route_id)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS trips_schedule_date_idx ON trips (schedule_id, service_date) WHERE status != 'cancelled'`,
 
 		// 3. Migrations
 		// 001: Ensure amenities is JSONB (If table existed from old schema)
@@ -87,6 +88,19 @@ func (r *PostgresStationRepository) InitSchema(ctx context.Context) error {
 			created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id)`,
+
+		// 003: Outbox Table for Transactional Messaging
+		`CREATE TABLE IF NOT EXISTS event_outbox (
+			id UUID PRIMARY KEY,
+			aggregate_id VARCHAR(255) NOT NULL,
+			event_type VARCHAR(100) NOT NULL,
+			topic VARCHAR(100) NOT NULL,
+			payload JSONB NOT NULL,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			processed_at TIMESTAMP WITH TIME ZONE,
+			retries INT DEFAULT 0
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_outbox_unprocessed ON event_outbox(processed_at) WHERE processed_at IS NULL`,
 	}
 
 	for _, query := range queries {

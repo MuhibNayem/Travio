@@ -14,6 +14,8 @@ import (
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/inventory/config"
+	"github.com/MuhibNayem/Travio/server/services/inventory/internal/clients"
+	"github.com/MuhibNayem/Travio/server/services/inventory/internal/consumer"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/service"
@@ -29,7 +31,7 @@ func main() {
 	scyllaCfg := scylladb.Config{
 		Hosts:          cfg.ScyllaDB.Hosts,
 		Keyspace:       cfg.ScyllaDB.Keyspace,
-		Consistency:    "QUORUM",
+		Consistency:    cfg.ScyllaDB.Consistency, // Use config value (defaults to ONE for dev)
 		Timeout:        cfg.ScyllaDB.Timeout,
 		ConnectTimeout: 10 * time.Second,
 	}
@@ -83,10 +85,30 @@ func main() {
 		// For now, log error but continue (as it might be intermittent connection or existing schema)
 	}
 
+	// Clients
+	fleetClient, err := clients.NewFleetClient(cfg.FleetURL)
+	if err != nil {
+		logger.Error("Failed to create fleet client", "error", err)
+	}
+
 	redisRepo := repository.NewRedisRepository(redisClient)
 	holdRepo := repository.NewHoldRepository(redisClient)
 	inventoryService := service.NewInventoryService(scyllaRepo, holdRepo, redisRepo)
 	grpcHandler := handler.NewGrpcHandler(inventoryService)
+
+	// Event Consumer
+	// Group ID usually "inventory-service"
+	consumer, err := consumer.New(cfg.KafkaBrokers, "inventory-service", inventoryService, fleetClient)
+	if err != nil {
+		logger.Error("Failed to create Kafka consumer", "error", err)
+		// We might want to exit or continue. Standard is to fail if we depend on events.
+	} else {
+		if err := consumer.Start(); err != nil {
+			logger.Error("Failed to start Kafka consumer", "error", err)
+		} else {
+			defer consumer.Stop()
+		}
+	}
 
 	// HTTP Mux
 	mux := http.NewServeMux()

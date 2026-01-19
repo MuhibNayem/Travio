@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { catalogApi, type Route } from "$lib/api/catalog";
+    import { stationsStore } from "$lib/stores/stations.svelte";
     import { Button } from "$lib/components/ui/button";
     import { Plus, Map, ArrowRight } from "@lucide/svelte";
     import RouteModal from "$lib/components/operations/RouteModal.svelte";
@@ -23,9 +24,20 @@
         }
     }
 
-    onMount(() => {
-        loadRoutes();
+    onMount(async () => {
+        // Load both routes and stations in parallel
+        await Promise.all([loadRoutes(), stationsStore.load()]);
     });
+
+    function getStationName(id: string) {
+        const station = stationsStore.stationMap[id];
+        if (station) return station.name;
+
+        // If not in map yet (maybe pagination?), try to look it up loosely or just show ID
+        // Ideally stationsStore.load() gets enough for this, or we might need individual fetches
+        // But for list view, mass-fetch is better.
+        return id;
+    }
 </script>
 
 <div class="space-y-6">
@@ -90,10 +102,14 @@
                             >
                             <Table.Cell>{route.name}</Table.Cell>
                             <Table.Cell class="text-muted-foreground"
-                                >{route.origin_station_id}</Table.Cell
+                                >{getStationName(
+                                    route.origin_station_id,
+                                )}</Table.Cell
                             >
                             <Table.Cell class="text-muted-foreground"
-                                >{route.destination_station_id}</Table.Cell
+                                >{getStationName(
+                                    route.destination_station_id,
+                                )}</Table.Cell
                             >
                             <Table.Cell>{route.distance_km} km</Table.Cell>
                             <Table.Cell

@@ -134,53 +134,21 @@ class StationsStore {
     /**
      * Resolve a station by ID with in-memory + localStorage caching.
      */
+    /**
+     * Resolve a station by ID.
+     */
     async getStationById(id: string): Promise<Station | null> {
         if (!id) return null;
 
         const existing = this.stationMap[id];
         if (existing) return existing;
 
-        if (browser) {
-            const cached = this.readFromCache(id);
-            if (cached) {
-                this.stationMap = { ...this.stationMap, [id]: cached };
-                return cached;
-            }
-        }
-
         try {
             const station = await catalogApi.getStation(id);
             this.stationMap = { ...this.stationMap, [id]: station };
-            if (browser) {
-                this.writeToCache(id, station);
-            }
             return station;
         } catch {
             return null;
-        }
-    }
-
-    private readFromCache(id: string): Station | null {
-        if (!browser) return null;
-        try {
-            const raw = window.localStorage.getItem(this.cacheKey);
-            if (!raw) return null;
-            const parsed = JSON.parse(raw) as Record<string, Station>;
-            return parsed[id] || null;
-        } catch {
-            return null;
-        }
-    }
-
-    private writeToCache(id: string, station: Station): void {
-        if (!browser) return;
-        try {
-            const raw = window.localStorage.getItem(this.cacheKey);
-            const parsed = raw ? (JSON.parse(raw) as Record<string, Station>) : {};
-            parsed[id] = station;
-            window.localStorage.setItem(this.cacheKey, JSON.stringify(parsed));
-        } catch {
-            // Ignore cache write errors
         }
     }
 

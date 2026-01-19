@@ -137,6 +137,8 @@ message Route {
   RouteStatus status = 10;
   int64 created_at = 11;
   int64 updated_at = 12;
+  Station origin_station = 13;
+  Station destination_station = 14;
 }
 
 message RouteStop {

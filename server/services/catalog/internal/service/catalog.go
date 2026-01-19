@@ -8,7 +8,7 @@ import (
 	"time"
 
 	fleetpb "github.com/MuhibNayem/Travio/server/api/proto/fleet/v1"
-	inventorypb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
+
 	"github.com/MuhibNayem/Travio/server/pkg/entitlement"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/clients"
 	"github.com/MuhibNayem/Travio/server/services/catalog/internal/domain"
@@ -18,14 +18,13 @@ import (
 
 // CatalogService handles business logic for catalog operations
 type CatalogService struct {
-	stationRepo     repository.StationRepository
-	routeRepo       repository.RouteRepository
-	tripRepo        repository.TripRepository
-	scheduleRepo    repository.ScheduleRepository
-	checker         entitlement.EntitlementChecker
-	fleetClient     *clients.FleetClient
-	inventoryClient *clients.InventoryClient
-	auditRepo       *repository.PostgresAuditRepository
+	stationRepo  repository.StationRepository
+	routeRepo    repository.RouteRepository
+	tripRepo     repository.TripRepository
+	scheduleRepo repository.ScheduleRepository
+	checker      entitlement.EntitlementChecker
+	fleetClient  *clients.FleetClient
+	auditRepo    *repository.PostgresAuditRepository
 }
 
 func NewCatalogService(
@@ -35,18 +34,16 @@ func NewCatalogService(
 	scheduleRepo repository.ScheduleRepository,
 	checker entitlement.EntitlementChecker,
 	fleetClient *clients.FleetClient,
-	inventoryClient *clients.InventoryClient,
 	auditRepo *repository.PostgresAuditRepository,
 ) *CatalogService {
 	return &CatalogService{
-		stationRepo:     stationRepo,
-		routeRepo:       routeRepo,
-		tripRepo:        tripRepo,
-		scheduleRepo:    scheduleRepo,
-		checker:         checker,
-		fleetClient:     fleetClient,
-		inventoryClient: inventoryClient,
-		auditRepo:       auditRepo,
+		stationRepo:  stationRepo,
+		routeRepo:    routeRepo,
+		tripRepo:     tripRepo,
+		scheduleRepo: scheduleRepo,
+		checker:      checker,
+		fleetClient:  fleetClient,
+		auditRepo:    auditRepo,
 	}
 }
 
@@ -220,34 +217,6 @@ func (s *CatalogService) CreateTrip(ctx context.Context, trip *domain.Trip, plan
 	segments := buildTripSegments(trip, route)
 	if err := s.tripRepo.CreateSegments(ctx, trip.ID, segments); err != nil {
 		return nil, err
-	}
-
-	// Initialize Inventory with Vehicle Layout
-	if s.inventoryClient != nil && asset != nil {
-		// asset is already fetched above
-		seatConfig := mapAssetConfigToSeatConfig(asset, trip.Pricing)
-
-		var pbSegments []*inventorypb.SegmentDefinition
-		for _, seg := range segments {
-			pbSegments = append(pbSegments, &inventorypb.SegmentDefinition{
-				SegmentIndex:  int32(seg.SegmentIndex),
-				FromStationId: seg.FromStationID,
-				ToStationId:   seg.ToStationID,
-				DepartureTime: seg.DepartureTime.Unix(),
-				ArrivalTime:   seg.ArrivalTime.Unix(),
-			})
-		}
-
-		_, err = s.inventoryClient.InitializeTripInventory(ctx, &inventorypb.InitializeTripInventoryRequest{
-			TripId:         trip.ID,
-			OrganizationId: trip.OrganizationID,
-			VehicleId:      trip.VehicleID,
-			Segments:       pbSegments,
-			SeatConfig:     seatConfig,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize inventory: %w", err)
-		}
 	}
 
 	return trip, nil
@@ -525,38 +494,48 @@ func (s *CatalogService) GenerateTripInstances(ctx context.Context, scheduleID, 
 		return nil, 0, err
 	}
 
-	// Fetch Asset once for efficiency
-	var asset *fleetpb.Asset
-	if s.fleetClient != nil && schedule.VehicleID != "" {
-		asset, err = s.fleetClient.GetAsset(ctx, schedule.VehicleID, schedule.OrganizationID)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to fetch asset: %w", err)
-		}
-	}
+	// [FIX] Check for existing trips is now handled by DB constraints (ON CONFLICT DO NOTHING)
+	// We rely on the unique index to prevent duplicates.
+
+	// No need to fetch asset if only used for inventory (which is now async)
+	// If we need asset for validation, restore it. But here it looked unused for validation.
 
 	var tripsToCreate []*domain.Trip
 	for _, serviceDate := range dates {
+		// existingMap check removed
+
 		departureTime, err := buildDepartureTime(serviceDate, schedule)
 		if err != nil {
 			return nil, 0, err
 		}
 
 		trip := &domain.Trip{
-			ID:             uuid.New().String(),
-			OrganizationID: schedule.OrganizationID,
-			ScheduleID:     schedule.ID,
-			ServiceDate:    serviceDate,
-			RouteID:        schedule.RouteID,
-			VehicleID:      schedule.VehicleID,
-			VehicleType:    schedule.VehicleType,
-			VehicleClass:   schedule.VehicleClass,
-			DepartureTime:  departureTime,
-			TotalSeats:     schedule.TotalSeats,
-			AvailableSeats: schedule.TotalSeats,
-			Pricing:        schedule.Pricing,
-			Status:         domain.TripStatusScheduled,
-			CreatedAt:      time.Now(),
-			UpdatedAt:      time.Now(),
+			ID:                   uuid.New().String(),
+			OrganizationID:       schedule.OrganizationID,
+			ScheduleID:           schedule.ID,
+			ServiceDate:          serviceDate,
+			RouteID:              schedule.RouteID,
+			VehicleID:            schedule.VehicleID,
+			VehicleType:          schedule.VehicleType,
+			VehicleClass:         schedule.VehicleClass,
+			DepartureTime:        departureTime,
+			TotalSeats:           schedule.TotalSeats,
+			AvailableSeats:       schedule.TotalSeats,
+			Pricing:              schedule.Pricing,
+			Status:               domain.TripStatusScheduled,
+			CreatedAt:            time.Now(),
+			UpdatedAt:            time.Now(),
+			OriginStationID:      route.OriginStationID,
+			DestinationStationID: route.DestinationStationID,
+		}
+
+		if route.OriginStation != nil {
+			trip.OriginStationName = route.OriginStation.Name
+			trip.OriginStationCity = route.OriginStation.City
+		}
+		if route.DestinationStation != nil {
+			trip.DestinationStationName = route.DestinationStation.Name
+			trip.DestinationStationCity = route.DestinationStation.City
 		}
 
 		if route.EstimatedDurationMin > 0 {
@@ -570,48 +549,14 @@ func (s *CatalogService) GenerateTripInstances(ctx context.Context, scheduleID, 
 		tripsToCreate = append(tripsToCreate, trip)
 	}
 
-	// Batch DB Insert
+	// Batch DB Insert (Handles Transactional Outbox)
 	if err := s.tripRepo.BatchCreate(ctx, tripsToCreate); err != nil {
+		// Log error and return
 		return nil, 0, err
 	}
 
-	// Initialize Inventory for each trip
-	if s.inventoryClient != nil && asset != nil {
-		seatConfig := mapAssetConfigToSeatConfig(asset, schedule.Pricing)
-
-		for _, trip := range tripsToCreate {
-			var pbSegments []*inventorypb.SegmentDefinition
-			for _, seg := range trip.Segments {
-				pbSegments = append(pbSegments, &inventorypb.SegmentDefinition{
-					SegmentIndex:  int32(seg.SegmentIndex),
-					FromStationId: seg.FromStationID,
-					ToStationId:   seg.ToStationID,
-					DepartureTime: seg.DepartureTime.Unix(),
-					ArrivalTime:   seg.ArrivalTime.Unix(),
-				})
-			}
-
-			// We launch these in parallel or sequence? Sequence for safety for now.
-			// Ideally worker pool.
-			_, err := s.inventoryClient.InitializeTripInventory(ctx, &inventorypb.InitializeTripInventoryRequest{
-				TripId:         trip.ID,
-				OrganizationId: trip.OrganizationID,
-				VehicleId:      trip.VehicleID,
-				Segments:       pbSegments,
-				SeatConfig:     seatConfig,
-			})
-			if err != nil {
-				// Log error but don't fail entire batch?
-				// Or return error (partial failure).
-				// For now return error, but transactions are already committed.
-				// This is a distributed transaction issue.
-				// SAGA or Log.
-				// Proceeding, but logging would be better.
-				// Since I don't have logger in struct (or do I? auditRepo is there), I'll just return error.
-				return nil, len(tripsToCreate), fmt.Errorf("failed to init inventory for trip %s: %w", trip.ID, err)
-			}
-		}
-	}
+	// Inventory initialization is handled asynchronously via TripCreated event
+	// which is published transactionally within BatchCreate.
 
 	return tripsToCreate, len(tripsToCreate), nil
 }
@@ -711,7 +656,8 @@ func (s *CatalogService) validateSchedule(ctx context.Context, schedule *domain.
 	}
 	start, err := time.Parse("2006-01-02", schedule.StartDate)
 	if err != nil {
-		return fmt.Errorf("invalid start_date")
+		fmt.Printf("validateSchedule: invalid start_date value='%s', err=%v\n", schedule.StartDate, err)
+		return fmt.Errorf("invalid start_date: value=%s error=%v", schedule.StartDate, err)
 	}
 	end, err := time.Parse("2006-01-02", schedule.EndDate)
 	if err != nil {
@@ -808,122 +754,6 @@ func (s *CatalogService) validateSchedule(ctx context.Context, schedule *domain.
 	}
 
 	return nil
-}
-
-func mapAssetConfigToSeatConfig(asset *fleetpb.Asset, pricing domain.TripPricing) *inventorypb.SeatConfiguration {
-	var seats []*inventorypb.SeatDefinition
-	totalSeats := 0
-
-	// Helper to calculate price
-	getPrice := func(seatClass, seatCategory string) int64 {
-		price := pricing.BasePricePaisa
-		if p, ok := pricing.ClassPrices[seatClass]; ok {
-			price = p
-		}
-		if p, ok := pricing.SeatCategoryPrices[seatCategory]; ok {
-			price = p
-		}
-		return price
-	}
-
-	if asset.Config.GetBus() != nil {
-		bus := asset.Config.GetBus()
-		totalSeats = int(bus.Rows * bus.SeatsPerRow) // Approximation
-		// Generate simple seat map for bus
-		// A1, A2, aisle, A3, A4...
-		// This is a naive generation. Ideally Fleet should return exact seat list.
-		// Detailed layout parsing should happen in Fleet service or shared lib.
-		// For now, we assume simple grid.
-		for r := 1; r <= int(bus.Rows); r++ {
-			char := string(rune('A' + r - 1))
-			for c := 1; c <= int(bus.SeatsPerRow); c++ {
-				seatNum := fmt.Sprintf("%s%d", char, c)
-				seatType := "window"
-				if c > 1 && c < int(bus.SeatsPerRow) {
-					seatType = "aisle"
-				}
-
-				seatClass := "economy" // default
-				// Check categories
-				for _, cat := range bus.Categories {
-					// Logic to map specific seats to categories would be complex here
-					// For simplicity using default class/category
-					seatClass = strings.ToLower(cat.Name)
-				}
-
-				seats = append(seats, &inventorypb.SeatDefinition{
-					SeatId:     fmt.Sprintf("%s-%s", asset.Id, seatNum),
-					SeatNumber: seatNum,
-					Row:        int32(r),
-					Column:     int32(c),
-					SeatType:   seatType,
-					SeatClass:  seatClass,
-					PricePaisa: getPrice(seatClass, ""),
-				})
-			}
-		}
-	} else if asset.Config.GetTrain() != nil {
-		// Train logic
-		train := asset.Config.GetTrain()
-		for _, coach := range train.Coaches {
-			for r := 1; r <= int(coach.Rows); r++ {
-				for s := 1; s <= int(coach.SeatsPerRow); s++ {
-					seatNum := fmt.Sprintf("%s-%d-%d", coach.Id, r, s)
-					seatClass := strings.ToLower(coach.Name) // e.g. "shovan"
-					seats = append(seats, &inventorypb.SeatDefinition{
-						SeatId:     fmt.Sprintf("%s-%s", asset.Id, seatNum),
-						SeatNumber: seatNum,
-						Row:        int32(r),
-						Column:     int32(s),
-						SeatClass:  seatClass,
-						PricePaisa: getPrice(seatClass, ""),
-					})
-					totalSeats++
-				}
-			}
-		}
-	} else if asset.Config.GetLaunch() != nil {
-		// Launch logic
-		launch := asset.Config.GetLaunch()
-		for _, deck := range launch.Decks {
-			// Deck seating
-			for r := 1; r <= int(deck.Rows); r++ {
-				for c := 1; c <= int(deck.Cols); c++ {
-					seatNum := fmt.Sprintf("%s-%d-%d", deck.Id, r, c)
-					seatClass := strings.ToLower(deck.Name)
-					seats = append(seats, &inventorypb.SeatDefinition{
-						SeatId:     fmt.Sprintf("%s-%s", asset.Id, seatNum),
-						SeatNumber: seatNum,
-						Row:        int32(r),
-						Column:     int32(c),
-						SeatClass:  seatClass,
-						PricePaisa: int64(deck.SeatPricePaisa), // Launch has explicit price in config
-					})
-					totalSeats++
-				}
-			}
-			// Cabins
-			for _, cabin := range deck.Cabins {
-				seatNum := cabin.Name
-				seatClass := "cabin"
-				if cabin.IsSuite {
-					seatClass = "suite"
-				}
-				seats = append(seats, &inventorypb.SeatDefinition{
-					SeatId:     fmt.Sprintf("%s-%s", asset.Id, cabin.Id),
-					SeatNumber: seatNum,
-					SeatClass:  seatClass,
-					PricePaisa: int64(cabin.PricePaisa),
-				})
-				totalSeats++
-			}
-		}
-	}
-
-	return &inventorypb.SeatConfiguration{
-		TotalSeats: int32(totalSeats),
-		Seats:      seats,
-	}
 }
 
 func sortedIntermediateStops(stops []domain.RouteStop) []string {

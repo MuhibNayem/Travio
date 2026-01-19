@@ -522,6 +522,8 @@ func routeToProto(r *domain.Route) *pb.Route {
 		Status:                   stringToProtoRouteStatus(r.Status),
 		CreatedAt:                r.CreatedAt.Unix(),
 		UpdatedAt:                r.UpdatedAt.Unix(),
+		OriginStation:            stationToProto(r.OriginStation),
+		DestinationStation:       stationToProto(r.DestinationStation),
 	}
 }
 

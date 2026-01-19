@@ -14,6 +14,7 @@ type Config struct {
 	SubscriptionURL string
 	FleetURL        string
 	InventoryURL    string
+	KafkaBrokers    []string
 }
 
 type DatabaseConfig struct {
@@ -32,6 +33,11 @@ type RedisConfig struct {
 }
 
 func Load() *Config {
+	kafkaBrokers := []string{"localhost:9092"}
+	if env := utils.GetEnv("KAFKA_BROKERS", ""); env != "" {
+		kafkaBrokers = []string{env}
+	}
+
 	return &Config{
 		Server: server.Config{
 			GRPCPort:        utils.GetEnvAsInt("GRPC_PORT", 9082),
@@ -56,5 +62,6 @@ func Load() *Config {
 		SubscriptionURL: utils.GetEnv("SUBSCRIPTION_SERVICE_URL", "localhost:50060"),
 		FleetURL:        utils.GetEnv("FLEET_URL", "localhost:9093"),
 		InventoryURL:    utils.GetEnv("INVENTORY_URL", "localhost:9083"),
+		KafkaBrokers:    kafkaBrokers,
 	}
 }
