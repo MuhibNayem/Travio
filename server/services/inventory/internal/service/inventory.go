@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/MuhibNayem/Travio/server/pkg/kafka"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/inventory/internal/repository"
 	"github.com/google/uuid"
@@ -16,16 +17,18 @@ const (
 
 // InventoryService handles seat availability and booking operations
 type InventoryService struct {
-	scyllaRepo *repository.ScyllaRepository
-	holdRepo   *repository.HoldRepository
-	redisRepo  *repository.RedisRepository
+	scyllaRepo    *repository.ScyllaRepository
+	holdRepo      *repository.HoldRepository
+	redisRepo     *repository.RedisRepository
+	kafkaProducer *kafka.Producer
 }
 
-func NewInventoryService(scyllaRepo *repository.ScyllaRepository, holdRepo *repository.HoldRepository, redisRepo *repository.RedisRepository) *InventoryService {
+func NewInventoryService(scyllaRepo *repository.ScyllaRepository, holdRepo *repository.HoldRepository, redisRepo *repository.RedisRepository, kafkaProducer *kafka.Producer) *InventoryService {
 	return &InventoryService{
-		scyllaRepo: scyllaRepo,
-		holdRepo:   holdRepo,
-		redisRepo:  redisRepo,
+		scyllaRepo:    scyllaRepo,
+		holdRepo:      holdRepo,
+		redisRepo:     redisRepo,
+		kafkaProducer: kafkaProducer,
 	}
 }
 
@@ -197,6 +200,9 @@ func (s *InventoryService) HoldSeats(ctx context.Context, req *HoldRequest) (*Ho
 		s.redisRepo.InvalidateSeatMap(bgCtx, req.OrganizationID, req.TripID)
 	}()
 
+	// Publish Event
+	s.publishSeatEvent(ctx, kafka.EventSeatsHeld, req.TripID, req.SeatIDs, "HELD")
+
 	return &HoldResult{
 		Success:     true,
 		HoldID:      holdID,
@@ -226,6 +232,9 @@ func (s *InventoryService) ReleaseSeats(ctx context.Context, orgID, holdID, user
 	if err := s.holdRepo.UpdateHoldStatus(ctx, orgID, holdID, domain.HoldStatusReleased); err != nil {
 		return err
 	}
+
+	// Publish Event
+	s.publishSeatEvent(ctx, kafka.EventSeatsReleased, hold.TripID, hold.SeatIDs, "AVAILABLE")
 
 	return nil
 }
@@ -283,6 +292,9 @@ func (s *InventoryService) ConfirmBooking(ctx context.Context, orgID, holdID, or
 			confirmedSeats[i].PassengerName = passengers[i].Name
 		}
 	}
+
+	// Publish Event
+	s.publishSeatEvent(ctx, kafka.EventSeatsBooked, hold.TripID, hold.SeatIDs, "BOOKED")
 
 	return &BookingResult{
 		Success:        true,
@@ -631,4 +643,33 @@ type WaitlistResult struct {
 	Success  bool
 	Message  string
 	Position int
+}
+
+// publishSeatEvent publishes a seat status change event to Kafka
+func (s *InventoryService) publishSeatEvent(ctx context.Context, eventType, tripID string, seatIDs []string, status string) {
+	if s.kafkaProducer == nil {
+		return
+	}
+
+	payload := map[string]interface{}{
+		"trip_id":    tripID,
+		"seat_ids":   seatIDs,
+		"status":     status,
+		"updated_at": time.Now(),
+	}
+
+	event := &kafka.Event{
+		ID:          uuid.New().String(),
+		Type:        eventType,
+		AggregateID: tripID,
+		Timestamp:   time.Now(),
+		Version:     1,
+		Payload:     payload,
+	}
+
+	if err := s.kafkaProducer.Publish(ctx, kafka.TopicInventory, event); err != nil {
+		// Log error but don't fail the request (best effort)
+		// in a real system we might want to retry or use outbox
+		// logger.Error("failed to publish seat event", "error", err)
+	}
 }

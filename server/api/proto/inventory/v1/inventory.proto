@@ -178,6 +178,7 @@ message SeatCell {
   bool is_accessible = 8;     // Wheelchair accessible
   bool has_power = 9;         // Power outlet
   bool is_exit_row = 10;
+  int64 hold_expires_at = 11; // Unix timestamp
 }
 
 message SeatMapLegend {

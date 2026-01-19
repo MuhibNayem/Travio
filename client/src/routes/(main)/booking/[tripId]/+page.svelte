@@ -14,6 +14,8 @@
     import { inventoryApi } from "$lib/api/inventory";
     import { toast } from "svelte-sonner";
 
+    import { onMount, onDestroy } from "svelte";
+
     let tripId = $derived($page.params.tripId);
     let fromId = $derived($page.url.searchParams.get("from") || "");
     let toId = $derived($page.url.searchParams.get("to") || "");
@@ -29,6 +31,10 @@
     let selectedSeats = $state<Seat[]>([]);
     let taxPerSeat = $state(0);
     let bookingFeePerSeat = $state(0);
+
+    let eventSource: EventSource | null = null;
+    const API_BASE_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:8888";
 
     async function fetchData() {
         if (!tripId) return;
@@ -125,8 +131,90 @@
         }
     }
 
+    function setupSSE() {
+        if (!tripId || typeof EventSource === "undefined") return;
+
+        // Close any existing connection
+        if (eventSource) eventSource.close();
+
+        const url = `${API_BASE_URL}/v1/trips/${tripId}/updates`;
+        console.log("Connecting to SSE:", url);
+
+        eventSource = new EventSource(url);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.type && msg.data) {
+                    handleSeatUpdate(msg.type, msg.data);
+                }
+            } catch (e) {
+                console.error("Failed to parse SSE message", e);
+            }
+        };
+
+        eventSource.onerror = (err) => {
+            console.error("SSE Error:", err);
+            // EventSource automatically attempts to reconnect
+        };
+    }
+
+    function handleSeatUpdate(type: string, data: any) {
+        if (data.trip_id !== tripId) return;
+
+        const seatIds = new Set(data.seat_ids || []);
+        if (seatIds.size === 0) return;
+
+        let newStatus: SeatStatus = "available";
+        if (type.includes("seats_held")) newStatus = "held";
+        else if (type.includes("seats_booked")) newStatus = "booked";
+        else if (type.includes("seats_released")) newStatus = "available";
+
+        // Update layout reactively
+        layout = layout.map((row) =>
+            row.map((seat) => {
+                if (seat && seatIds.has(seat.id)) {
+                    // Update availability count locally (rough estimate)
+                    if (
+                        trip &&
+                        seat.status === "available" &&
+                        newStatus !== "available"
+                    ) {
+                        trip.availableSeats = Math.max(
+                            0,
+                            trip.availableSeats - 1,
+                        );
+                    } else if (
+                        trip &&
+                        seat.status !== "available" &&
+                        newStatus === "available"
+                    ) {
+                        trip.availableSeats = Math.min(
+                            trip.totalSeats,
+                            trip.availableSeats + 1,
+                        );
+                    }
+
+                    return { ...seat, status: newStatus };
+                }
+                return seat;
+            }),
+        );
+
+        if (seatIds.size > 0) {
+            toast.info(`Seats updated: ${newStatus}`);
+        }
+    }
+
     $effect(() => {
-        if (tripId) fetchData();
+        if (tripId) {
+            fetchData();
+            setupSSE();
+        }
+
+        return () => {
+            if (eventSource) eventSource.close();
+        };
     });
 
     let total = $derived(selectedSeats.reduce((acc, s) => acc + s.price, 0));

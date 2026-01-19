@@ -1184,6 +1184,7 @@ type SeatCell struct {
 	IsAccessible  bool                   `protobuf:"varint,8,opt,name=is_accessible,json=isAccessible,proto3" json:"is_accessible,omitempty"` // Wheelchair accessible
 	HasPower      bool                   `protobuf:"varint,9,opt,name=has_power,json=hasPower,proto3" json:"has_power,omitempty"`             // Power outlet
 	IsExitRow     bool                   `protobuf:"varint,10,opt,name=is_exit_row,json=isExitRow,proto3" json:"is_exit_row,omitempty"`
+	HoldExpiresAt int64                  `protobuf:"varint,11,opt,name=hold_expires_at,json=holdExpiresAt,proto3" json:"hold_expires_at,omitempty"` // Unix timestamp
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1286,6 +1287,13 @@ func (x *SeatCell) GetIsExitRow() bool {
 		return x.IsExitRow
 	}
 	return false
+}
+
+func (x *SeatCell) GetHoldExpiresAt() int64 {
+	if x != nil {
+		return x.HoldExpiresAt
+	}
+	return 0
 }
 
 type SeatMapLegend struct {
@@ -2293,7 +2301,7 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\aSeatRow\x12\x1d\n" +
 	"\n" +
 	"row_number\x18\x01 \x01(\x05R\trowNumber\x12,\n" +
-	"\x05seats\x18\x02 \x03(\v2\x16.inventory.v1.SeatCellR\x05seats\"\xcd\x02\n" +
+	"\x05seats\x18\x02 \x03(\v2\x16.inventory.v1.SeatCellR\x05seats\"\xf5\x02\n" +
 	"\bSeatCell\x12\x17\n" +
 	"\aseat_id\x18\x01 \x01(\tR\x06seatId\x12\x1f\n" +
 	"\vseat_number\x18\x02 \x01(\tR\n" +
@@ -2308,7 +2316,8 @@ const file_api_proto_inventory_v1_inventory_proto_rawDesc = "" +
 	"\ris_accessible\x18\b \x01(\bR\fisAccessible\x12\x1b\n" +
 	"\thas_power\x18\t \x01(\bR\bhasPower\x12\x1e\n" +
 	"\vis_exit_row\x18\n" +
-	" \x01(\bR\tisExitRow\"\xb5\x02\n" +
+	" \x01(\bR\tisExitRow\x12&\n" +
+	"\x0fhold_expires_at\x18\v \x01(\x03R\rholdExpiresAt\"\xb5\x02\n" +
 	"\rSeatMapLegend\x12R\n" +
 	"\rstatus_colors\x18\x01 \x03(\v2-.inventory.v1.SeatMapLegend.StatusColorsEntryR\fstatusColors\x12O\n" +
 	"\fclass_colors\x18\x02 \x03(\v2,.inventory.v1.SeatMapLegend.ClassColorsEntryR\vclassColors\x1a?\n" +

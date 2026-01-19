@@ -13,8 +13,10 @@ import (
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/gateway/config"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/client"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/consumer"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/gateway/internal/middleware"
+	"github.com/MuhibNayem/Travio/server/services/gateway/internal/realtime"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 )
@@ -238,6 +240,24 @@ func main() {
 		crmHandler = handler.NewCRMHandler(crmClient)
 	}
 
+	// Realtime Manager (SSE)
+	realtimeManager := realtime.NewManager()
+	realtimeHandler := handler.NewRealtimeHandler(realtimeManager)
+
+	// Kafka Consumer (Gateway - Broadcasts Inventory Events)
+	// We pass the realtime manager so consumer can broadcast updates
+	gatewayConsumer, err := consumer.New(cfg.KafkaBrokers, realtimeManager)
+	if err != nil {
+		logger.Error("Failed to create Gateway Kafka consumer", "error", err)
+	} else {
+		// Start consumer
+		if err := gatewayConsumer.Start(); err != nil {
+			logger.Error("Failed to start Gateway Kafka consumer", "error", err)
+		} else {
+			defer gatewayConsumer.Stop()
+		}
+	}
+
 	// JWT Auth config
 	jwtAuth := middleware.JWTAuth(middleware.JWTConfig{
 		Secret: cfg.JWTSecret,
@@ -254,10 +274,11 @@ func main() {
 			"/v1/queue",
 			"/v1/queue",
 			"/v1/events",
-			"/v1/search/events",  // Public search
-			"/v1/fleet/location", // Allow location updates without forced user token? Probably secure it.
-			"/v1/trips/",         // PUBLIC VIEW (SeatMap/Availability)
-			"/v1/holds",          // PUBLIC ACTION (Hold Seats)
+			"/v1/search/events",   // Public search
+			"/v1/fleet/location",  // Allow location updates without forced user token? Probably secure it.
+			"/v1/trips/",          // PUBLIC VIEW (SeatMap/Availability)
+			"/v1/holds",           // PUBLIC ACTION (Hold Seats)
+			"/v1/trips/*/updates", // Public SSE for Seat Updates (Wildcard match might require custom logic, but let's try)
 		},
 	})
 
@@ -321,6 +342,10 @@ func main() {
 				r.Delete("/pricing/rules/{ruleId}", pricingHandler.DeletePricingRule)
 			})
 		}
+
+		// Realtime Updates (Public SSE)
+		// /v1/trips/{tripId}/updates
+		r.Get("/trips/{tripId}/updates", realtimeHandler.SubscribeTripUpdates)
 
 		// Operator/Vendor routes (protected + admin only)
 		if operatorHandler != nil {

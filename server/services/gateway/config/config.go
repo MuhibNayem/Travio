@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -30,6 +31,7 @@ type Config struct {
 	TLSCAFile    string
 	FraudURL     string
 	ReportingURL string
+	KafkaBrokers []string
 }
 
 func Load() *Config {
@@ -53,6 +55,7 @@ func Load() *Config {
 		EventsURL:       getEnv("EVENTS_URL", "localhost:9092"),
 		FleetURL:        getEnv("FLEET_URL", "localhost:9093"),
 		CRMURL:          getEnv("CRM_URL", "localhost:9094"),
+		KafkaBrokers:    strings.Split(getEnv("KAFKA_BROKERS", "localhost:29092"), ","),
 		JWTSecret:       getEnv("JWT_SECRET", "travio-secret-key-change-in-production"),
 		AllowedOrigins: []string{
 			"http://localhost:5173",

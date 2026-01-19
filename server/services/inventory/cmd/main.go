@@ -11,6 +11,7 @@ import (
 	pb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/database/scylladb"
 	"github.com/MuhibNayem/Travio/server/pkg/entitlement"
+	"github.com/MuhibNayem/Travio/server/pkg/kafka"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/inventory/config"
@@ -90,9 +91,20 @@ func main() {
 		logger.Error("Failed to create fleet client", "error", err)
 	}
 
+	// Kafka Producer
+	kafkaProducer, err := kafka.NewProducer(cfg.KafkaBrokers)
+	if err != nil {
+		logger.Error("Failed to create Kafka producer", "error", err)
+		// We might proceed without producer if eventing is not critical for startup
+		// or fail if it is critical. For now, we proceed but events won't fire.
+	} else {
+		logger.Info("Kafka producer initialized", "brokers", cfg.KafkaBrokers)
+		defer kafkaProducer.Close()
+	}
+
 	redisRepo := repository.NewRedisRepository(redisClient)
 	holdRepo := repository.NewHoldRepository(redisClient)
-	inventoryService := service.NewInventoryService(scyllaRepo, holdRepo, redisRepo)
+	inventoryService := service.NewInventoryService(scyllaRepo, holdRepo, redisRepo, kafkaProducer)
 	grpcHandler := handler.NewGrpcHandler(inventoryService)
 
 	// Event Consumer
