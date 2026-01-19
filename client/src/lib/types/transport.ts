@@ -29,7 +29,7 @@ export interface Trip {
     totalSeats: number;
 }
 
-export type SeatStatus = "available" | "booked" | "held" | "selected";
+export type SeatStatus = "available" | "booked" | "held" | "blocked" | "selected";
 
 export interface Seat {
     id: string;

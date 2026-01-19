@@ -176,6 +176,7 @@ type TripResult struct {
 	Date            string                 `protobuf:"bytes,15,opt,name=date,proto3" json:"date,omitempty"` // YYYY-MM-DD
 	Status          string                 `protobuf:"bytes,16,opt,name=status,proto3" json:"status,omitempty"`
 	RouteId         string                 `protobuf:"bytes,17,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	OrganizationId  string                 `protobuf:"bytes,18,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -325,6 +326,13 @@ func (x *TripResult) GetStatus() string {
 func (x *TripResult) GetRouteId() string {
 	if x != nil {
 		return x.RouteId
+	}
+	return ""
+}
+
+func (x *TripResult) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
 	}
 	return ""
 }
@@ -507,7 +515,7 @@ const file_api_proto_search_v1_search_proto_rawDesc = "" +
 	"\x06offset\x18\x06 \x01(\x05R\x06offset\"\\\n" +
 	"\x13SearchTripsResponse\x12/\n" +
 	"\aresults\x18\x01 \x03(\v2\x15.search.v1.TripResultR\aresults\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"\xbf\x04\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xe8\x04\n" +
 	"\n" +
 	"TripResult\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12!\n" +
@@ -529,7 +537,8 @@ const file_api_proto_search_v1_search_proto_rawDesc = "" +
 	"\ato_city\x18\x0e \x01(\tR\x06toCity\x12\x12\n" +
 	"\x04date\x18\x0f \x01(\tR\x04date\x12\x16\n" +
 	"\x06status\x18\x10 \x01(\tR\x06status\x12\x19\n" +
-	"\broute_id\x18\x11 \x01(\tR\arouteId\"C\n" +
+	"\broute_id\x18\x11 \x01(\tR\arouteId\x12'\n" +
+	"\x0forganization_id\x18\x12 \x01(\tR\x0eorganizationId\"C\n" +
 	"\x15SearchStationsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"L\n" +

@@ -33,6 +33,8 @@ func Load() *Config {
 	scyllaHosts := []string{"localhost:9042"}
 	if env := os.Getenv("SCYLLA_HOSTS"); env != "" {
 		scyllaHosts = strings.Split(env, ",")
+	} else if env := os.Getenv("SCYLLA_HOST"); env != "" {
+		scyllaHosts = []string{env}
 	}
 
 	scyllaConsistency := "ONE" // Default for single-node dev environments
@@ -50,6 +52,13 @@ func Load() *Config {
 		fleetURL = env
 	}
 
+	redisAddr := "localhost:6379"
+	if env := os.Getenv("INVENTORY_REDIS_URL"); env != "" {
+		redisAddr = env
+	} else if env := os.Getenv("REDIS_URL"); env != "" {
+		redisAddr = env
+	}
+
 	return &Config{
 		Server: server.Config{
 			GRPCPort:        9083,
@@ -65,7 +74,7 @@ func Load() *Config {
 			Timeout:     5 * time.Second,
 		},
 		Redis: RedisConfig{
-			Addr:     "localhost:6379",
+			Addr:     redisAddr,
 			Password: "",
 			DB:       1,
 		},

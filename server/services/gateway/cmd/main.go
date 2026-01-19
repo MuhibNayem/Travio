@@ -256,8 +256,8 @@ func main() {
 			"/v1/events",
 			"/v1/search/events",  // Public search
 			"/v1/fleet/location", // Allow location updates without forced user token? Probably secure it.
-			// Actually, tracking devices might need API keys, but for now let's assume secure or public tracking for demo?
-			// Let's keep it secure by default, but maybe allow public public tracking view?
+			"/v1/trips/",         // PUBLIC VIEW (SeatMap/Availability)
+			"/v1/holds",          // PUBLIC ACTION (Hold Seats)
 		},
 	})
 
@@ -383,6 +383,7 @@ func main() {
 			r.Get("/schedules/{scheduleId}/exceptions", catalogHandler.ListScheduleExceptions)
 			r.Post("/schedules/{scheduleId}/generate", catalogHandler.GenerateTripInstances)
 			r.Get("/trip-instances/{tripId}", catalogHandler.GetTripInstance)
+			r.Post("/trip-instances/{tripId}/cancel", catalogHandler.CancelTrip)
 		}
 
 		// Inventory routes (protected)

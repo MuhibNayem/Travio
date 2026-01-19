@@ -17,11 +17,12 @@
     let tripId = $derived($page.params.tripId);
     let fromId = $derived($page.url.searchParams.get("from") || "");
     let toId = $derived($page.url.searchParams.get("to") || "");
+    let orgId = $derived($page.url.searchParams.get("org_id") || "");
 
     let trip = $state<Trip | null>(null);
     let fromStationName = $state<string>("Unknown Origin");
     let toStationName = $state<string>("Unknown Destination");
-    let layout = $state<Seat[][]>([]);
+    let layout = $state<(Seat | null)[][]>([]);
     let isLoading = $state(true);
     let isHolding = $state(false);
 
@@ -33,7 +34,7 @@
         if (!tripId) return;
         isLoading = true;
         try {
-            const tripData = await searchApi.getTripInstance(tripId);
+            const tripData = await searchApi.getTripInstance(tripId, orgId);
             const t = tripData?.trip || {};
             const origin = tripData?.origin_station;
             const dest = tripData?.destination_station;
@@ -71,15 +72,50 @@
                     tripId,
                     fromId,
                     toId,
+                    orgId,
                 );
-                layout = mapResp.rows.map((r) =>
-                    r.seats.map((s) => ({
-                        id: s.seat_id,
-                        label: s.seat_number,
-                        status: s.status.toLowerCase() as SeatStatus,
-                        price: s.price_paisa / 100,
-                    })),
-                );
+
+                const statusMap: Record<string, SeatStatus> = {
+                    SEAT_STATUS_AVAILABLE: "available",
+                    SEAT_STATUS_BOOKED: "booked",
+                    SEAT_STATUS_HELD: "held",
+                    SEAT_STATUS_BLOCKED: "blocked",
+                };
+
+                const grouped = mapResp.rows
+                    .flatMap((r) => r.seats)
+                    .reduce(
+                        (acc, seat) => {
+                            const match =
+                                seat.seat_number.match(/^([A-Za-z]+)(\d+)$/);
+                            if (!match) return acc;
+                            const rowKey = match[1];
+                            const col = Number(match[2]);
+                            acc[rowKey] ??= [];
+                            acc[rowKey].push({ seat, col });
+                            return acc;
+                        },
+                        {} as Record<string, { seat: any; col: number }[]>,
+                    );
+
+                layout = Object.entries(grouped)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([, seats]) => {
+                        const row = Array<Seat | null>(4).fill(null);
+                        seats
+                            .sort((a, b) => a.col - b.col)
+                            .forEach(({ seat, col }) => {
+                                const idx = Math.min(col - 1, 3);
+                                row[idx] = {
+                                    id: seat.seat_id,
+                                    label: seat.seat_number,
+                                    status:
+                                        statusMap[seat.status] || "available",
+                                    price: seat.price_paisa / 100,
+                                };
+                            });
+                        return row;
+                    });
             }
         } catch (error) {
             console.error("Failed to load booking data", error);
@@ -103,13 +139,16 @@
         isHolding = true;
         try {
             const sessionId = crypto.randomUUID();
-            const holdResp = await inventoryApi.holdSeats({
-                trip_id: tripId,
-                from_station_id: fromId,
-                to_station_id: toId,
-                seat_ids: selectedSeats.map((s) => s.id),
-                session_id: sessionId,
-            });
+            const holdResp = await inventoryApi.holdSeats(
+                {
+                    trip_id: tripId,
+                    from_station_id: fromId,
+                    to_station_id: toId,
+                    seat_ids: selectedSeats.map((s) => s.id),
+                    session_id: sessionId,
+                },
+                orgId,
+            );
 
             if (holdResp.success) {
                 toast.success("Seats held successfully!");

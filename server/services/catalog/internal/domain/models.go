@@ -71,12 +71,12 @@ type Trip struct {
 	UpdatedAt      time.Time     `json:"updated_at"`
 
 	// Transient fields for event publishing
-	OriginStationID        string `json:"-"`
-	DestinationStationID   string `json:"-"`
-	OriginStationName      string `json:"-"`
-	OriginStationCity      string `json:"-"`
-	DestinationStationName string `json:"-"`
-	DestinationStationCity string `json:"-"`
+	OriginStationID        string `json:"from_station_id"`
+	DestinationStationID   string `json:"to_station_id"`
+	OriginStationName      string `json:"from_station_name"`
+	OriginStationCity      string `json:"from_city"`
+	DestinationStationName string `json:"to_station_name"`
+	DestinationStationCity string `json:"to_city"`
 }
 
 // TripPricing contains pricing information for a trip

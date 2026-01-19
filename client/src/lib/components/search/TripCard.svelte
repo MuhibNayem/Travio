@@ -11,7 +11,7 @@
     import { Button } from "$lib/components/ui/button";
     import type { TripSearchResult } from "$lib/api/search";
 
-    export let trip: TripSearchResult;
+    let { trip } = $props<{ trip: TripSearchResult }>();
 
     function formatTime(timestamp: number) {
         if (!timestamp) return "--:--";
@@ -33,9 +33,15 @@
         launch: Ship,
     } as const;
 
-    $: vehicleType = (
-        trip.vehicle_type || "bus"
-    ).toLowerCase() as keyof typeof icons;
+    const vehicleType = $derived(
+        (trip.vehicle_type || "bus").toLowerCase() as keyof typeof icons,
+    );
+
+    const VehicleIcon = $derived(icons[vehicleType] || Bus);
+
+    const orgParam = $derived(
+        trip.organization_id ? `&org_id=${trip.organization_id}` : "",
+    );
 </script>
 
 <div
@@ -49,7 +55,7 @@
             <div
                 class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20"
             >
-                <svelte:component this={icons[vehicleType] || Bus} size={24} />
+                <VehicleIcon size={24} />
             </div>
             <div>
                 <h3 class="text-lg font-bold text-foreground">
@@ -114,7 +120,7 @@
                 </div>
             </div>
             <Button
-                href={`/booking/${trip.trip_id}?from=${trip.from_station_id}&to=${trip.to_station_id}&org_id=${trip.organization_id}`}
+                href={`/booking/${trip.trip_id}?from=${trip.from_station_id}&to=${trip.to_station_id}${orgParam}`}
                 class="w-full rounded-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
                 size="sm"
             >

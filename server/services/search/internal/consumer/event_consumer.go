@@ -27,7 +27,7 @@ func New(brokers []string, groupID string, indexer *indexer.Indexer) (*EventCons
 	}
 
 	consumer.RegisterHandler(kafka.EventTripCreated, c.handleTripCreated)
-	consumer.RegisterHandler(kafka.EventTripCreated, c.handleTripCreated)
+	consumer.RegisterHandler(kafka.EventTripUpdated, c.handleTripUpdated)
 	consumer.RegisterHandler(kafka.EventStationCreated, c.handleStationCreated)
 	consumer.RegisterHandler(kafka.EventEventCreated, c.handleEventUpsert)
 	consumer.RegisterHandler(kafka.EventEventUpdated, c.handleEventUpsert)
@@ -45,15 +45,21 @@ func (c *EventConsumer) Stop() error {
 }
 
 func (c *EventConsumer) handleTripCreated(ctx context.Context, event *kafka.Event) error {
-	logger.Info("Indexing trip", "id", event.AggregateID)
+	return c.upsertTrip(ctx, event)
+}
+
+func (c *EventConsumer) handleTripUpdated(ctx context.Context, event *kafka.Event) error {
+	return c.upsertTrip(ctx, event)
+}
+
+func (c *EventConsumer) upsertTrip(ctx context.Context, event *kafka.Event) error {
+	logger.Info("Indexing trip", "id", event.AggregateID, "type", event.Type)
 
 	payloadBytes, err := json.Marshal(event.Payload)
 	if err != nil {
 		return err
 	}
 
-	// Add type field for mixed index or just raw payload
-	// For better search, we might want to flatten structure, but for now raw is fine
 	return c.indexer.IndexDocument(ctx, "trips", event.AggregateID, string(payloadBytes))
 }
 

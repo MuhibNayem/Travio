@@ -207,12 +207,13 @@ func (r *ScyllaRepository) ReleaseExpiredHolds(ctx context.Context, orgID, tripI
 
 // HoldSeats marks seats as held across all required segments atomically
 func (r *ScyllaRepository) HoldSeats(ctx context.Context, orgID, holdID, tripID, userID string, seatIDs []string, segmentIndices []int, expiry time.Time) error {
-	batch := r.session.NewBatch(gocql.LoggedBatch)
-
+	// Group by Segment (Partition) because LWT cannot span partitions
 	now := time.Now()
+	var successfulSegments []int
+
 	for _, segIdx := range segmentIndices {
+		batch := r.session.NewBatch(gocql.LoggedBatch)
 		for _, seatID := range seatIDs {
-			// Use lightweight transaction (LWT) for atomicity
 			batch.Query(`UPDATE seat_inventory 
 						 SET status = ?, hold_id = ?, hold_user_id = ?, hold_expiry = ?, updated_at = ?
 						 WHERE organization_id = ? AND trip_id = ? AND segment_index = ? AND seat_id = ?
@@ -221,9 +222,22 @@ func (r *ScyllaRepository) HoldSeats(ctx context.Context, orgID, holdID, tripID,
 				orgID, tripID, segIdx, seatID,
 				domain.SeatStatusAvailable)
 		}
+
+		applied, _, err := r.session.ExecuteBatchCAS(batch, make(map[string]interface{}))
+		if err != nil {
+			// System error - try to rollback what we did
+			_ = r.ReleaseHold(ctx, orgID, tripID, holdID, successfulSegments, seatIDs)
+			return err
+		}
+		if !applied {
+			// Contention - rollback and fail
+			_ = r.ReleaseHold(ctx, orgID, tripID, holdID, successfulSegments, seatIDs)
+			return fmt.Errorf("concurrent modification: seats already held or booked")
+		}
+		successfulSegments = append(successfulSegments, segIdx)
 	}
 
-	return r.session.ExecuteBatch(batch)
+	return nil
 }
 
 // ReleaseHold marks seats as available again
@@ -248,10 +262,15 @@ func (r *ScyllaRepository) ReleaseHold(ctx context.Context, orgID, tripID, holdI
 
 // ConfirmBooking converts held seats to booked status
 func (r *ScyllaRepository) ConfirmBooking(ctx context.Context, orgID, tripID, holdID, bookingID string, segmentIndices []int, seatIDs []string) error {
-	batch := r.session.NewBatch(gocql.LoggedBatch)
-
+	// Group by Segment (Partition)
 	now := time.Now()
+	// Note: For confirmation, if one segment fails (expired), the whole booking is invalid.
+	// Since we held them, they should be ours. If this fails, it's weird.
+	// We might leave partial booked state if we crash?
+	// Ideally we'd rollback to HELD if possible, but simplest is to fail.
+
 	for _, segIdx := range segmentIndices {
+		batch := r.session.NewBatch(gocql.LoggedBatch)
 		for _, seatID := range seatIDs {
 			batch.Query(`UPDATE seat_inventory 
 						 SET status = ?, booking_id = ?, hold_id = '', hold_user_id = '', updated_at = ?
@@ -261,9 +280,17 @@ func (r *ScyllaRepository) ConfirmBooking(ctx context.Context, orgID, tripID, ho
 				orgID, tripID, segIdx, seatID,
 				holdID)
 		}
+
+		applied, _, err := r.session.ExecuteBatchCAS(batch, make(map[string]interface{}))
+		if err != nil {
+			return err
+		}
+		if !applied {
+			return fmt.Errorf("concurrent modification: booking confirmation failed (expired or stolen)")
+		}
 	}
 
-	return r.session.ExecuteBatch(batch)
+	return nil
 }
 
 // CancelBooking releases booked seats back to available

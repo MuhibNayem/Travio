@@ -41,6 +41,7 @@ message TripResult {
   string date = 15;           // YYYY-MM-DD
   string status = 16;
   string route_id = 17;
+  string organization_id = 18;
 }
 
 message SearchStationsRequest {

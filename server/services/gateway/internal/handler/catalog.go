@@ -366,6 +366,11 @@ func (h *CatalogHandler) GetTripInstance(w http.ResponseWriter, r *http.Request)
 
 	orgID := middleware.GetOrgID(r.Context())
 	if orgID == "" {
+		// Fallback to query parameter for public access
+		orgID = r.URL.Query().Get("org_id")
+	}
+
+	if orgID == "" {
 		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -430,6 +435,42 @@ func (h *CatalogHandler) GetTripInstance(w http.ResponseWriter, r *http.Request)
 		"origin_station":      stationToJSON(origin),
 		"destination_station": stationToJSON(dest),
 	})
+}
+
+// CancelTrip cancels a trip instance
+func (h *CatalogHandler) CancelTrip(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	tripID := chi.URLParam(r, "tripId")
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		orgID = r.Header.Get("X-Organization-ID")
+	}
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req.Reason = "Cancelled by admin"
+	}
+
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.CancelTrip(ctx, &catalogpb.CancelTripRequest{
+			Id:             tripID,
+			OrganizationId: orgID,
+			Reason:         req.Reason,
+		})
+	})
+	if err != nil {
+		logger.Error("Failed to cancel trip", "error", err)
+		http.Error(w, "Failed to cancel trip", http.StatusInternalServerError)
+		return
+	}
+	resp := result.(*catalogpb.Trip)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tripToJSON(resp))
 }
 
 // Schedule request/response helpers

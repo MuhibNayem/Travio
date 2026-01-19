@@ -47,6 +47,7 @@ func (h *GrpcHandler) SearchTrips(ctx context.Context, req *pb.SearchTripsReques
 			Date:            t.Date,
 			Status:          t.Status,
 			RouteId:         t.RouteID,
+			OrganizationId:  t.OrganizationID,
 		})
 	}
 

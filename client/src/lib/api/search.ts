@@ -51,8 +51,12 @@ export const searchApi = {
         return response;
     },
 
-    getTripInstance: async (id: string): Promise<TripInstanceResult> => {
-        const response = await api.get<TripInstanceResult>(`/v1/trip-instances/${id}`);
+    getTripInstance: async (id: string, orgId?: string): Promise<TripInstanceResult> => {
+        let url = `/v1/trip-instances/${id}`;
+        if (orgId) {
+            url += `?org_id=${orgId}`;
+        }
+        const response = await api.get<TripInstanceResult>(url);
         return response;
     },
 };

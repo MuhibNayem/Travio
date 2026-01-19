@@ -447,10 +447,18 @@ func (r *PostgresTripRepository) Create(ctx context.Context, trip *domain.Trip) 
 }
 
 func (r *PostgresTripRepository) GetByID(ctx context.Context, id, orgID string) (*domain.Trip, error) {
-	query := `SELECT id, organization_id, schedule_id, service_date, route_id, vehicle_id, vehicle_type, vehicle_class,
-			  departure_time, arrival_time, total_seats, available_seats, pricing, status,
-			  created_at, updated_at
-			  FROM trips WHERE id = $1 AND organization_id = $2`
+	query := `
+		SELECT t.id, t.organization_id, t.schedule_id, t.service_date, t.route_id, t.vehicle_id, t.vehicle_type, t.vehicle_class,
+			   t.departure_time, t.arrival_time, t.total_seats, t.available_seats, t.pricing, t.status,
+			   t.created_at, t.updated_at,
+			   r.origin_station_id, r.destination_station_id,
+			   s1.name as origin_name, s1.city as origin_city,
+			   s2.name as dest_name, s2.city as dest_city
+		FROM trips t
+		JOIN routes r ON t.route_id = r.id
+		JOIN stations s1 ON r.origin_station_id = s1.id
+		JOIN stations s2 ON r.destination_station_id = s2.id
+		WHERE t.id = $1 AND t.organization_id = $2`
 
 	var trip domain.Trip
 	var pricingJSON []byte
@@ -462,10 +470,13 @@ func (r *PostgresTripRepository) GetByID(ctx context.Context, id, orgID string) 
 		&trip.VehicleClass, &trip.DepartureTime, &trip.ArrivalTime, &trip.TotalSeats, &trip.AvailableSeats,
 		&pricingJSON, &trip.Status,
 		&trip.CreatedAt, &trip.UpdatedAt,
+		&trip.OriginStationID, &trip.DestinationStationID,
+		&trip.OriginStationName, &trip.OriginStationCity,
+		&trip.DestinationStationName, &trip.DestinationStationCity,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrScheduleNotFound
+			return nil, ErrTripNotFound
 		}
 		return nil, err
 	}

@@ -175,6 +175,9 @@ func (h *InventoryHandler) HoldSeats(w http.ResponseWriter, r *http.Request) {
 	}
 	orgID := middleware.GetOrgID(r.Context())
 	if orgID == "" {
+		orgID = r.URL.Query().Get("org_id")
+	}
+	if orgID == "" {
 		http.Error(w, `{"error": "organization_id is required"}`, http.StatusBadRequest)
 		return
 	}
