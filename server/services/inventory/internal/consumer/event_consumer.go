@@ -47,11 +47,11 @@ func (c *EventConsumer) Stop() error {
 }
 
 type TripEventDTO struct {
-	ID             string           `json:"id"`
+	ID             string           `json:"trip_id"`
 	OrganizationID string           `json:"organization_id"`
 	VehicleID      string           `json:"vehicle_id"`
 	ServiceDate    string           `json:"service_date"`
-	DepartureTime  time.Time        `json:"departure_time"`
+	DepartureTime  int64            `json:"departure_time"`
 	RouteID        string           `json:"route_id"`
 	Pricing        TripPricingDTO   `json:"pricing"`
 	Segments       []TripSegmentDTO `json:"segments"`
