@@ -56,7 +56,7 @@ func main() {
 	dbUser := getEnv("DB_USER", "postgres")
 	dbPass := getEnv("DB_PASSWORD", "postgres")
 	dbHost := getEnv("DB_HOST", "localhost")
-	dbPort := getEnv("DB_PORT", "5432")
+	dbPort := getEnv("DB_PORT", "5440")
 	dbName := getEnv("DB_NAME", "travio_catalog")
 	sslMode := getEnv("DB_SSLMODE", "disable")
 

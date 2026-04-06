@@ -210,7 +210,7 @@ services:
       - POSTGRES_DB=travio_identity
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
-      - REDIS_ADDR=redis:${REDIS_PORT:-6379}
+      - REDIS_ADDR=redis:${REDIS_PORT:-6388}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY}
       - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY}
@@ -437,7 +437,7 @@ services:
     environment:
       - OPENSEARCH_URL=http://opensearch:9200
       - KAFKA_BROKERS=kafka:29092
-      - REDIS_ADDR=redis:${REDIS_PORT:-6379}
+      - REDIS_ADDR=redis:${REDIS_PORT:-6388}
       - TRIPS_INDEX=${TRIPS_INDEX:-trips}
       - STATIONS_INDEX=${STATIONS_INDEX:-stations}
       - HTTP_PORT=${SEARCH_HTTP_PORT:-8088}
