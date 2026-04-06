@@ -122,8 +122,20 @@ func (h *GrpcHandler) GetOrderStatus(ctx context.Context, req *pb.GetOrderStatus
 }
 
 func (h *GrpcHandler) RetryOrder(ctx context.Context, req *pb.RetryOrderRequest) (*pb.RetryOrderResponse, error) {
-	// Not implemented - would require saga retry integration
-	return &pb.RetryOrderResponse{Success: false}, nil
+	order, err := h.orderService.GetOrder(ctx, req.OrderId, req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "order not found")
+	}
+
+	if order.SagaID == "" {
+		return nil, status.Error(codes.FailedPrecondition, "order has no associated saga")
+	}
+
+	if err := h.orderService.RetrySaga(ctx, order.SagaID); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.RetryOrderResponse{Success: true}, nil
 }
 
 // Converters

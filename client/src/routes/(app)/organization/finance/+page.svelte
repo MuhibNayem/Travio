@@ -1,270 +1,243 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import {
-        reportingApi,
-        type OrganizationMetrics,
-        type RevenueData,
-        type TopRouteData,
-    } from "$lib/api/reporting";
     import { Button } from "$lib/components/ui/button";
-    import * as Card from "$lib/components/ui/card";
-    import * as Table from "$lib/components/ui/table";
+    import { Separator } from "$lib/components/ui/separator";
     import {
-        ArrowUpRight,
-        CreditCard,
-        DollarSign,
-        Download,
+        Wallet,
         TrendingUp,
-        Users,
-        Activity,
-        AlertCircle,
-        ShoppingBag,
+        CreditCard,
+        ArrowUpRight,
+        ArrowDownRight,
+        Download,
+        BarChart3,
+        Loader2,
     } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
-    import { page } from "$app/stores";
 
-    let metrics = $state<OrganizationMetrics | null>(null);
-    let revenueData = $state<RevenueData[]>([]);
-    let topRoutes = $state<TopRouteData[]>([]);
-    let loading = $state(true);
-
-    async function loadData() {
-        loading = true;
-        try {
-            // Parallel fetch
-            const [metricsRes, revenueRes, routesRes] = await Promise.all([
-                reportingApi.getOrganizationMetrics({}),
-                reportingApi.getRevenueReport({ limit: 10 }), // Last 10 days
-                reportingApi.getTopRoutes({ limit: 5 }),
-            ]);
-
-            metrics = metricsRes;
-            revenueData = revenueRes.data || [];
-            topRoutes = routesRes.data || [];
-        } catch (e) {
-            console.error("Failed to load finance data", e);
-            toast.error("Failed to refresh reports. Backend might be empty.");
-        } finally {
-            loading = false;
-        }
-    }
-
-    async function exportReport() {
-        try {
-            const orgId = $page.data.user?.organizationId;
-            const url = `/api/reports/export?organization_id=${orgId}&type=revenue&format=csv`;
-            // Trigger download
-            window.open(url, "_blank");
-            toast.success("Export started");
-        } catch (e) {
-            toast.error("Export failed");
-        }
-    }
-
-    onMount(() => {
-        loadData();
+    let financeStats = $state({
+        totalRevenue: 1250000,
+        totalPayouts: 980000,
+        pendingPayouts: 125000,
+        platformFees: 62500,
+        revenueGrowth: "+15.3%",
+        payoutGrowth: "+12.1%",
     });
 
-    function formatCurrency(amount: string | number) {
-        const val = typeof amount === "string" ? parseInt(amount) : amount;
-        return new Intl.NumberFormat("en-BD", {
-            style: "currency",
-            currency: "BDT",
-            minimumFractionDigits: 0,
-        }).format(val / 100);
+    let paymentBreakdown = $state([
+        { method: "SSLCommerz", amount: 625000, percentage: 50, color: "bg-blue-500" },
+        { method: "bKash", amount: 375000, percentage: 30, color: "bg-pink-500" },
+        { method: "Nagad", amount: 125000, percentage: 10, color: "bg-orange-500" },
+        { method: "Cash", amount: 125000, percentage: 10, color: "bg-green-500" },
+    ]);
+
+    let recentTransactions = $state([
+        { id: "TXN-001", type: "payment", amount: 1600, method: "bKash", status: "completed", date: "2026-04-07 10:30" },
+        { id: "TXN-002", type: "payout", amount: -12500, method: "Bank Transfer", status: "pending", date: "2026-04-07 09:15" },
+        { id: "TXN-003", type: "payment", amount: 800, method: "SSLCommerz", status: "completed", date: "2026-04-06 16:45" },
+        { id: "TXN-004", type: "refund", amount: -800, method: "SSLCommerz", status: "completed", date: "2026-04-06 14:20" },
+    ]);
+
+    let isLoading = $state(false);
+
+    function downloadReport() {
+        toast.info("Report download started", {
+            description: "Your report will be ready shortly",
+        });
+    }
+
+    function getTransactionIcon(type: string) {
+        switch (type) {
+            case "payment":
+                return ArrowUpRight;
+            case "payout":
+                return ArrowDownRight;
+            case "refund":
+                return ArrowDownRight;
+            default:
+                return ArrowUpRight;
+        }
+    }
+
+    function getTransactionColor(type: string) {
+        switch (type) {
+            case "payment":
+                return "text-green-600";
+            case "payout":
+                return "text-blue-600";
+            case "refund":
+                return "text-red-600";
+            default:
+                return "text-muted-foreground";
+        }
     }
 </script>
 
 <div class="space-y-6">
+    <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold tracking-tight">Finance</h1>
-            <p class="text-muted-foreground mt-2">
-                Revenue analysis and financial performance.
+            <p class="mt-2 text-muted-foreground">
+                Revenue, payouts, and financial reports
             </p>
         </div>
-        <div class="flex gap-2">
-            <Button variant="outline" onclick={loadData} disabled={loading}>
-                Refresh
-            </Button>
-            <Button onclick={exportReport}>
-                <Download class="mr-2 h-4 w-4" />
-                Export CSV
-            </Button>
+        <Button variant="outline" onclick={downloadReport}>
+            <Download class="mr-2 h-4 w-4" />
+            Export Report
+        </Button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="glass-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-muted-foreground">
+                        Total Revenue
+                    </p>
+                    <h3 class="mt-2 text-2xl font-bold">
+                        ৳{financeStats.totalRevenue.toLocaleString()}
+                    </h3>
+                </div>
+                <div class="rounded-full bg-green-100 p-3 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                    <Wallet size={20} />
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-green-500">
+                <TrendingUp size={14} class="mr-1" />
+                <span class="font-medium">{financeStats.revenueGrowth}</span>
+                <span class="ml-1 text-muted-foreground">vs last month</span>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-muted-foreground">
+                        Total Payouts
+                    </p>
+                    <h3 class="mt-2 text-2xl font-bold">
+                        ৳{financeStats.totalPayouts.toLocaleString()}
+                    </h3>
+                </div>
+                <div class="rounded-full bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                    <ArrowDownRight size={20} />
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-blue-500">
+                <TrendingUp size={14} class="mr-1" />
+                <span class="font-medium">{financeStats.payoutGrowth}</span>
+                <span class="ml-1 text-muted-foreground">vs last month</span>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-muted-foreground">
+                        Pending Payouts
+                    </p>
+                    <h3 class="mt-2 text-2xl font-bold">
+                        ৳{financeStats.pendingPayouts.toLocaleString()}
+                    </h3>
+                </div>
+                <div class="rounded-full bg-yellow-100 p-3 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
+                    <CreditCard size={20} />
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-muted-foreground">
+                Next payout: April 15, 2026
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-muted-foreground">
+                        Platform Fees
+                    </p>
+                    <h3 class="mt-2 text-2xl font-bold">
+                        ৳{financeStats.platformFees.toLocaleString()}
+                    </h3>
+                </div>
+                <div class="rounded-full bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                    <BarChart3 size={20} />
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-muted-foreground">
+                5% commission rate
+            </div>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card.Root>
-            <Card.Header
-                class="flex flex-row items-center justify-between space-y-0 pb-2"
-            >
-                <Card.Title class="text-sm font-medium">
-                    Total Revenue
-                </Card.Title>
-                <DollarSign class="h-4 w-4 text-muted-foreground" />
-            </Card.Header>
-            <Card.Content>
-                <div class="text-2xl font-bold">
-                    {metrics ? formatCurrency(metrics.total_revenue) : "..."}
-                </div>
-                <p class="text-xs text-muted-foreground">
-                    Lifetime gross revenue
-                </p>
-            </Card.Content>
-        </Card.Root>
-        <Card.Root>
-            <Card.Header
-                class="flex flex-row items-center justify-between space-y-0 pb-2"
-            >
-                <Card.Title class="text-sm font-medium">Total Orders</Card.Title
-                >
-                <ShoppingBag class="h-4 w-4 text-muted-foreground" />
-            </Card.Header>
-            <Card.Content>
-                <div class="text-2xl font-bold">
-                    {metrics ? metrics.total_orders : "..."}
-                </div>
-                <p class="text-xs text-muted-foreground">Confirmed bookings</p>
-            </Card.Content>
-        </Card.Root>
-        <Card.Root>
-            <Card.Header
-                class="flex flex-row items-center justify-between space-y-0 pb-2"
-            >
-                <Card.Title class="text-sm font-medium">
-                    Avg. Order Value
-                </Card.Title>
-                <Activity class="h-4 w-4 text-muted-foreground" />
-            </Card.Header>
-            <Card.Content>
-                <div class="text-2xl font-bold">
-                    {metrics
-                        ? formatCurrency(metrics.avg_order_value * 100)
-                        : "..."}
-                </div>
-                <p class="text-xs text-muted-foreground">
-                    Per transaction average
-                </p>
-            </Card.Content>
-        </Card.Root>
-        <Card.Root>
-            <Card.Header
-                class="flex flex-row items-center justify-between space-y-0 pb-2"
-            >
-                <Card.Title class="text-sm font-medium">
-                    Cancellation Rate
-                </Card.Title>
-                <AlertCircle class="h-4 w-4 text-muted-foreground" />
-            </Card.Header>
-            <Card.Content>
-                <div class="text-2xl font-bold">
-                    {metrics
-                        ? (metrics.cancellation_rate * 100).toFixed(1)
-                        : "0"}%
-                </div>
-                <p class="text-xs text-muted-foreground">
-                    Orders cancelled by users
-                </p>
-            </Card.Content>
-        </Card.Root>
-    </div>
-
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <!-- Revenue Report Table -->
-        <Card.Root class="col-span-4">
-            <Card.Header>
-                <Card.Title>Recent Revenue</Card.Title>
-                <Card.Description>
-                    Daily revenue breakdown for the last 30 days.
-                </Card.Description>
-            </Card.Header>
-            <Card.Content>
-                <Table.Root>
-                    <Table.Header>
-                        <Table.Row>
-                            <Table.Head>Date</Table.Head>
-                            <Table.Head>Orders</Table.Head>
-                            <Table.Head class="text-right">Revenue</Table.Head>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                        {#if loading}
-                            <Table.Row>
-                                <Table.Cell colspan={3} class="h-24 text-center"
-                                    >Loading...</Table.Cell
-                                >
-                            </Table.Row>
-                        {:else if revenueData.length === 0}
-                            <Table.Row>
-                                <Table.Cell colspan={3} class="h-24 text-center"
-                                    >No data available</Table.Cell
-                                >
-                            </Table.Row>
-                        {:else}
-                            {#each revenueData as row}
-                                <Table.Row>
-                                    <Table.Cell>
-                                        {new Date(
-                                            row.date,
-                                        ).toLocaleDateString()}
-                                    </Table.Cell>
-                                    <Table.Cell>{row.order_count}</Table.Cell>
-                                    <Table.Cell class="text-right">
-                                        {formatCurrency(
-                                            row.total_revenue_paisa,
-                                        )}
-                                    </Table.Cell>
-                                </Table.Row>
-                            {/each}
-                        {/if}
-                    </Table.Body>
-                </Table.Root>
-            </Card.Content>
-        </Card.Root>
-
-        <!-- Top Routes -->
-        <Card.Root class="col-span-3">
-            <Card.Header>
-                <Card.Title>Top Routes</Card.Title>
-                <Card.Description>
-                    Best performing routes by revenue.
-                </Card.Description>
-            </Card.Header>
-            <Card.Content>
-                <div class="space-y-8">
-                    {#if loading}
-                        <div class="text-center py-4 text-muted-foreground">
-                            Loading...
+    <!-- Main Content -->
+    <div class="grid gap-6 lg:grid-cols-3">
+        <!-- Payment Method Breakdown -->
+        <div class="glass-card rounded-xl p-6">
+            <h3 class="mb-4 text-lg font-bold">Payment Methods</h3>
+            <div class="space-y-4">
+                {#each paymentBreakdown as item}
+                    <div>
+                        <div class="mb-1 flex justify-between text-sm">
+                            <span class="font-medium">{item.method}</span>
+                            <span class="text-muted-foreground">
+                                ৳{item.amount.toLocaleString()} ({item.percentage}%)
+                            </span>
                         </div>
-                    {:else if topRoutes.length === 0}
-                        <div class="text-center py-4 text-muted-foreground">
-                            No route performance data
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                                class="h-full {item.color}"
+                                style="width: {item.percentage}%"
+                            ></div>
                         </div>
-                    {:else}
-                        {#each topRoutes as route}
-                            <div class="flex items-center">
-                                <div class="ml-4 space-y-1">
-                                    <p
-                                        class="text-sm font-medium leading-none truncate max-w-[150px]"
-                                    >
-                                        {route.route_name}
-                                    </p>
-                                    <p class="text-xs text-muted-foreground">
-                                        {(route.avg_occupancy * 100).toFixed(
-                                            0,
-                                        )}% Occupancy
-                                    </p>
-                                </div>
-                                <div class="ml-auto font-medium">
-                                    {formatCurrency(route.revenue)}
-                                </div>
-                            </div>
+                    </div>
+                {/each}
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="glass-card col-span-2 rounded-xl p-6 lg:col-span-2">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold">Recent Transactions</h3>
+                <Button variant="ghost" size="sm">View All</Button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-border">
+                            <th class="pb-3 text-left font-medium text-muted-foreground">ID</th>
+                            <th class="pb-3 text-left font-medium text-muted-foreground">Type</th>
+                            <th class="pb-3 text-left font-medium text-muted-foreground">Method</th>
+                            <th class="pb-3 text-left font-medium text-muted-foreground">Amount</th>
+                            <th class="pb-3 text-left font-medium text-muted-foreground">Status</th>
+                            <th class="pb-3 text-left font-medium text-muted-foreground">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each recentTransactions as txn}
+                            {@const Icon = getTransactionIcon(txn.type)}
+                            <tr class="border-b border-border/50 last:border-0">
+                                <td class="py-3 font-mono text-xs">{txn.id}</td>
+                                <td class="py-3">
+                                    <span class="flex items-center gap-2 capitalize {getTransactionColor(txn.type)}">
+                                        <Icon size={14} />
+                                        {txn.type}
+                                    </span>
+                                </td>
+                                <td class="py-3">{txn.method}</td>
+                                <td class="py-3 font-bold {txn.amount > 0 ? 'text-green-600' : 'text-red-600'}">
+                                    {txn.amount > 0 ? '+' : ''}৳{Math.abs(txn.amount)}
+                                </td>
+                                <td class="py-3">
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-semibold {txn.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : txn.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}">
+                                        {txn.status}
+                                    </span>
+                                </td>
+                                <td class="py-3 text-muted-foreground">{txn.date}</td>
+                            </tr>
                         {/each}
-                    {/if}
-                </div>
-            </Card.Content>
-        </Card.Root>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>

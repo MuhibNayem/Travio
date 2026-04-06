@@ -154,6 +154,29 @@ func (h *GrpcHandler) GetSeatMap(ctx context.Context, req *pb.GetSeatMapRequest)
 	}, nil
 }
 
+// GetHoldStatus retrieves the status of a seat hold (frontend checkout sync)
+func (h *GrpcHandler) GetHoldStatus(ctx context.Context, req *pb.GetHoldStatusRequest) (*pb.GetHoldStatusResponse, error) {
+	orgID := req.OrganizationId
+	if orgID == "" {
+		orgID = req.UserId // Fallback
+	}
+	result, err := h.inventoryService.GetHoldStatus(ctx, orgID, req.HoldId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "hold not found")
+	}
+
+	return &pb.GetHoldStatusResponse{
+		HoldId:        result.HoldID,
+		TripId:        result.TripID,
+		FromStationId: result.FromStationID,
+		ToStationId:   result.ToStationID,
+		HeldSeatIds:   result.SeatIDs,
+		ExpiresAt:     result.ExpiresAt.Unix(),
+		TotalPaisa:    result.TotalPaisa,
+		Status:        result.Status,
+	}, nil
+}
+
 func (h *GrpcHandler) InitializeTripInventory(ctx context.Context, req *pb.InitializeTripInventoryRequest) (*pb.InitializeTripInventoryResponse, error) {
 	// Map Proto to Service Request
 	var segments []service.SegmentDef

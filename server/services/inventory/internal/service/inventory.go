@@ -32,6 +32,52 @@ func NewInventoryService(scyllaRepo *repository.ScyllaRepository, holdRepo *repo
 	}
 }
 
+// GetHoldStatus retrieves the status of a seat hold
+func (s *InventoryService) GetHoldStatus(ctx context.Context, orgID, holdID string) (*HoldStatusResult, error) {
+	hold, err := s.holdRepo.GetHold(ctx, orgID, holdID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate total price from seat inventory
+	totalPaisa := int64(0)
+	for _, seatID := range hold.SeatIDs {
+		// Get seat price from first segment
+		seats, err := s.scyllaRepo.GetSeatAvailability(ctx, orgID, hold.TripID, []int{0})
+		if err == nil {
+			for _, seat := range seats {
+				if seat.SeatID == seatID {
+					totalPaisa += seat.PricePaisa
+					break
+				}
+			}
+		}
+	}
+
+	return &HoldStatusResult{
+		HoldID:        hold.HoldID,
+		TripID:        hold.TripID,
+		FromStationID: hold.FromStationID,
+		ToStationID:   hold.ToStationID,
+		SeatIDs:       hold.SeatIDs,
+		ExpiresAt:     hold.ExpiresAt,
+		TotalPaisa:    totalPaisa,
+		Status:        hold.Status,
+	}, nil
+}
+
+// HoldStatusResult represents the response for hold status
+type HoldStatusResult struct {
+	HoldID        string
+	TripID        string
+	FromStationID string
+	ToStationID   string
+	SeatIDs       []string
+	ExpiresAt     time.Time
+	TotalPaisa    int64
+	Status        string
+}
+
 // CheckAvailability returns seat availability for a journey
 func (s *InventoryService) CheckAvailability(ctx context.Context, orgID, tripID, fromStation, toStation string, passengers int, seatClass string) (*AvailabilityResult, error) {
 	// Get segments for this trip

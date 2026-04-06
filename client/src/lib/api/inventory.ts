@@ -74,5 +74,10 @@ export const inventoryApi = {
 
     releaseHold: async (holdId: string): Promise<void> => {
         await api.post<void>(`/v1/bookings/release/${holdId}`, {});
+    },
+
+    getHoldStatus: async (holdId: string): Promise<any> => {
+        const response = await api.get<any>(`/v1/bookings/hold/${holdId}`);
+        return response;
     }
 };

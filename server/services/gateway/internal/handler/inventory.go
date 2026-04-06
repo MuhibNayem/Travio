@@ -250,6 +250,44 @@ func (h *InventoryHandler) ReleaseHold(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetHoldStatus retrieves the status of a seat hold (TASK: Frontend sync)
+func (h *InventoryHandler) GetHoldStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	holdID := chi.URLParam(r, "holdId")
+	userID := middleware.GetUserID(r.Context())
+	orgID := middleware.GetOrgID(r.Context())
+	if orgID == "" {
+		orgID = userID // Fallback for unauthenticated checkout
+	}
+
+	result, err := h.cb.Execute(func() (interface{}, error) {
+		return h.client.GetHoldStatus(ctx, &inventorypb.GetHoldStatusRequest{
+			OrganizationId: orgID,
+			HoldId:         holdID,
+			UserId:         userID,
+		})
+	})
+	if err != nil {
+		http.Error(w, `{"error": "hold not found"}`, http.StatusNotFound)
+		return
+	}
+	resp := result.(*inventorypb.GetHoldStatusResponse)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"hold_id":         resp.HoldId,
+		"trip_id":         resp.TripId,
+		"from_station_id": resp.FromStationId,
+		"to_station_id":   resp.ToStationId,
+		"held_seat_ids":   resp.HeldSeatIds,
+		"expires_at":      time.Unix(resp.ExpiresAt, 0).Format(time.RFC3339),
+		"total_paisa":     resp.TotalPaisa,
+		"status":          resp.Status,
+	})
+}
+
 // Close closes the gRPC connection
 func (h *InventoryHandler) Close() error {
 	return h.conn.Close()

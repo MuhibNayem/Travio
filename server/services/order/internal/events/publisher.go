@@ -40,15 +40,36 @@ type OrderCreatedPayload struct {
 
 // OrderConfirmedPayload is the event payload for order confirmed
 type OrderConfirmedPayload struct {
-	OrderID        string `json:"order_id"`
-	UserID         string `json:"user_id"`
-	OrganizationID string `json:"organization_id"`
-	TripID         string `json:"trip_id"`
-	BookingID      string `json:"booking_id"`
-	PaymentID      string `json:"payment_id"`
-	TotalPaisa     int64  `json:"total_paisa"`
-	ContactEmail   string `json:"contact_email"`
-	ContactPhone   string `json:"contact_phone"`
+	OrderID        string                 `json:"order_id"`
+	UserID         string                 `json:"user_id"`
+	OrganizationID string                 `json:"organization_id"`
+	TripID         string                 `json:"trip_id"`
+	FromStationID  string                 `json:"from_station_id"`
+	ToStationID    string                 `json:"to_station_id"`
+	BookingID      string                 `json:"booking_id"`
+	PaymentID      string                 `json:"payment_id"`
+	TotalPaisa     int64                  `json:"total_paisa"`
+	Currency       string                 `json:"currency"`
+	ContactEmail   string                 `json:"contact_email"`
+	ContactPhone   string                 `json:"contact_phone"`
+	Passengers     []PassengerPayload     `json:"passengers"`
+	RouteName      string                 `json:"route_name"`
+	DepartureTime  string                 `json:"departure_time"`
+	ArrivalTime    string                 `json:"arrival_time"`
+	VehicleType    string                 `json:"vehicle_type"`
+}
+
+// PassengerPayload contains passenger details for ticket generation
+type PassengerPayload struct {
+	NID         string `json:"nid"`
+	Name        string `json:"name"`
+	SeatID      string `json:"seat_id"`
+	SeatNumber  string `json:"seat_number"`
+	SeatClass   string `json:"seat_class"`
+	Gender      string `json:"gender"`
+	Age         int    `json:"age"`
+	Phone       string `json:"phone"`
+	Email       string `json:"email"`
 }
 
 // OrderCancelledPayload is the event payload for order cancelled
@@ -93,16 +114,34 @@ func (p *Publisher) PublishOrderCreated(ctx context.Context, tx *sql.Tx, order *
 
 // PublishOrderConfirmed publishes order confirmed event within a transaction
 func (p *Publisher) PublishOrderConfirmed(ctx context.Context, tx *sql.Tx, order *domain.Order) error {
+	// Build passenger payload
+	passengers := make([]PassengerPayload, len(order.Passengers))
+	for i, passenger := range order.Passengers {
+		passengers[i] = PassengerPayload{
+			NID:        passenger.NID,
+			Name:       passenger.Name,
+			SeatID:     passenger.SeatID,
+			SeatNumber: passenger.SeatNumber,
+			SeatClass:  passenger.SeatClass,
+			Gender:     passenger.Gender,
+			Age:        passenger.Age,
+		}
+	}
+
 	payload := OrderConfirmedPayload{
 		OrderID:        order.ID,
 		UserID:         order.UserID,
 		OrganizationID: order.OrganizationID,
 		TripID:         order.TripID,
+		FromStationID:  order.FromStationID,
+		ToStationID:    order.ToStationID,
 		BookingID:      order.BookingID,
 		PaymentID:      order.PaymentID,
 		TotalPaisa:     order.TotalPaisa,
+		Currency:       order.Currency,
 		ContactEmail:   order.ContactEmail,
 		ContactPhone:   order.ContactPhone,
+		Passengers:     passengers,
 	}
 	return p.outbox.Publish(ctx, tx, kafka.TopicOrders, kafka.EventOrderConfirmed, order.ID, payload)
 }

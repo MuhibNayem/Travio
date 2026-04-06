@@ -23,6 +23,10 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+func (d DatabaseConfig) DSN() string {
+	return "postgres://" + d.User + ":" + d.Password + "@" + d.Host + ":" + strconv.Itoa(d.Port) + "/" + d.DBName + "?sslmode=" + d.SSLMode
+}
+
 type ServicesConfig struct {
 	InventoryAddr    string
 	PaymentAddr      string

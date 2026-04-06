@@ -417,6 +417,10 @@ func main() {
 			r.Get("/trips/{tripId}/seatmap", inventoryHandler.GetSeatMap)
 			r.Post("/holds", inventoryHandler.HoldSeats)
 			r.Delete("/holds/{holdId}", inventoryHandler.ReleaseHold)
+			// Alias for frontend compatibility
+			r.Get("/bookings/hold/{holdId}", inventoryHandler.GetHoldStatus)
+			r.Post("/bookings/hold", inventoryHandler.HoldSeats)
+			r.Post("/bookings/release/{holdId}", inventoryHandler.ReleaseHold)
 		}
 
 		// Order routes (protected)

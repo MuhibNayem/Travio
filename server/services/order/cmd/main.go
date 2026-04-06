@@ -4,8 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"os"
+	"time"
 
 	pb "github.com/MuhibNayem/Travio/server/api/proto/order/v1"
+	paymentv1 "github.com/MuhibNayem/Travio/server/api/proto/payment/v1"
+	pricingv1 "github.com/MuhibNayem/Travio/server/api/proto/pricing/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/pkg/server"
 	"github.com/MuhibNayem/Travio/server/services/order/config"
@@ -20,6 +24,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -28,29 +34,38 @@ func main() {
 
 	// Database
 	logger.Info("Connecting to PostgreSQL...")
-	db, err := sql.Open("pgx", "postgres://postgres:postgres@localhost:5432/travio_order?sslmode=disable")
+	dsn := cfg.Database.DSN()
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		logger.Error("Failed to connect to DB", "error", err)
+		panic(err)
+	}
+	if err := db.Ping(); err != nil {
+		logger.Error("Failed to ping DB", "error", err)
+		panic(err)
 	}
 
-	// GORM for Sagas
-	gormDB, err := gorm.Open(postgres.Open("postgres://postgres:postgres@localhost:5432/travio_order?sslmode=disable"), &gorm.Config{})
+	// GORM for Sagas and Checkout
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Error("Failed to connect to GORM DB", "error", err)
+		panic(err)
 	}
 
 	// Redis
+	redisAddr := getEnv("REDIS_ADDR", "127.0.0.1:6379")
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "127.0.0.1:6379",
+		Addr: redisAddr,
 	})
 
-	// Kafka DLQ
-	dlq, err := messaging.NewKafkaDLQProducer([]string{"localhost:9092"}, "order-saga-dlq")
+	// Kafka DLQ (TASK-009: Implemented)
+	brokers := []string{getEnv("KAFKA_BROKERS", "localhost:9092")}
+	dlqTopic := getEnv("DLQ_TOPIC", "order-saga-dlq")
+	dlq, err := messaging.NewKafkaDLQProducer(brokers, dlqTopic)
 	if err != nil {
-		logger.Error("Failed to initialize DLQ producer", "error", err)
-		// We proceed without DLQ (nil), but log error
+		logger.Warn("Failed to initialize DLQ producer, proceeding without", "error", err)
 	} else {
-		logger.Info("Initialized DLQ producer")
+		logger.Info("Initialized DLQ producer", "topic", dlqTopic)
 	}
 
 	// Service clients
@@ -66,7 +81,7 @@ func main() {
 
 	nidClient, err := clients.NewNIDClient(cfg.Services.NIDAddr)
 	if err != nil {
-		logger.Error("Failed to connect to NID service", "error", err)
+		logger.Warn("NID service not available, NID verification disabled", "error", err)
 	}
 
 	notificationClient := clients.NewNotificationClient()
@@ -76,15 +91,19 @@ func main() {
 		logger.Error("Failed to connect to subscription service", "error", err)
 	}
 
-	catalogClient, err := clients.NewCatalogClient(cfg.Services.CatalogAddr)
-	if err != nil {
-		logger.Error("Failed to connect to catalog service", "error", err)
+	// Connect to Pricing Service for dynamic pricing
+	var pricingClient pricingv1.PricingServiceClient
+	pricingAddr := getEnv("PRICING_URL", "localhost:50058")
+	if pricingConn, err := grpc.Dial(pricingAddr, grpc.WithTransportCredentials(insecure.NewCredentials())); err == nil {
+		pricingClient = pricingv1.NewPricingServiceClient(pricingConn)
+		logger.Info("Connected to pricing service", "addr", pricingAddr)
+	} else {
+		logger.Warn("Failed to connect to pricing service, using fallback", "error", err)
 	}
 
-	pricingClient, err := clients.NewPricingClient(cfg.Services.PricingAddr)
-	if err != nil {
-		logger.Error("Failed to connect to pricing service", "error", err)
-	}
+	// Connect to Payment Service for payment creation
+	var _ paymentv1.PaymentServiceClient
+	// (paymentClient already created above for saga)
 
 	// Saga dependencies
 	sagaDeps := &saga.BookingDependencies{
@@ -95,20 +114,40 @@ func main() {
 		NotificationSvc:     notificationClient,
 	}
 
-	// Repository and service
+	// Repository and service (TASK-008: Checkout repo injected)
 	orderRepo := repository.NewOrderRepository(db)
-
-	// Initialize Schema
-	if err := orderRepo.InitSchema(context.Background()); err != nil {
-		logger.Error("Failed to initialize database schema", "error", err)
-	}
-
-	var dlqProducer messaging.DLQProducer // interface
+	checkoutRepo := repository.NewCheckoutRepository(gormDB)
+	
+	var dlqProducer messaging.DLQProducer
 	if dlq != nil {
 		dlqProducer = dlq
 	}
-	orderService := service.NewOrderService(db, gormDB, dlqProducer, orderRepo, sagaDeps, catalogClient, pricingClient, inventoryClient)
+	
+	// Connect to CRM Service for coupon validation (TASK-046)
+	var couponValidator service.CRMClient
+	crmAddr := getEnv("CRM_URL", "localhost:9094")
+	if crmConn, err := grpc.Dial(crmAddr, grpc.WithTransportCredentials(insecure.NewCredentials())); err == nil {
+		couponValidator = clients.NewCRMClientFromConn(crmConn)
+		logger.Info("Connected to CRM service for coupon validation", "addr", crmAddr)
+	} else {
+		logger.Warn("CRM service not available, coupon validation disabled", "error", err)
+	}
+	
+	orderService := service.NewOrderService(db, gormDB, dlqProducer, orderRepo, checkoutRepo, sagaDeps, couponValidator)
 	grpcHandler := handler.NewGrpcHandler(orderService)
+
+	// Checkout Handler (TASK-006)
+	checkoutHandler := handler.NewCheckoutHandler(
+		service.NewCheckoutService(checkoutRepo, pricingClient, nil, couponValidator),
+	)
+
+	// Recover incomplete sagas on startup (TASK-010)
+	go func() {
+		time.Sleep(5 * time.Second) // Wait for DB to be ready
+		if err := orderService.RecoverIncompleteSagas(context.Background()); err != nil {
+			logger.Error("Failed to recover incomplete sagas", "error", err)
+		}
+	}()
 
 	// Idempotency Middleware
 	idempotency := middleware.NewIdempotencyMiddleware(redisClient)
@@ -120,6 +159,9 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	// Register checkout routes (TASK-004, TASK-005, TASK-006)
+	mux.Handle("/v1/checkout", http.StripPrefix("/v1/checkout", checkoutRoutes(checkoutHandler)))
+
 	// Start server
 	srv := server.New(cfg.Server)
 	pb.RegisterOrderServiceServer(srv.GRPC(), grpcHandler)
@@ -127,7 +169,53 @@ func main() {
 	logger.Info("Order service starting", "grpc_port", cfg.Server.GRPCPort, "http_port", cfg.Server.HTTPPort)
 
 	// Wrap mux with Idempotency Middleware
-	handler := idempotency.Middleware(mux)
+	httpHandler := idempotency.Middleware(mux)
 
-	srv.Start(handler)
+	srv.Start(httpHandler)
+}
+
+func checkoutRoutes(h *handler.CheckoutHandler) http.Handler {
+	r := http.NewServeMux()
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			h.CreateCheckout(w, r)
+		case http.MethodGet:
+			h.ListCheckouts(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	r.HandleFunc("/hold/{holdId}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			h.GetCheckoutByHoldID(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	r.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			h.GetCheckout(w, r)
+		case http.MethodPatch:
+			h.UpdateCheckout(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	r.HandleFunc("/{id}/confirm", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			h.ConfirmCheckout(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	return r
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

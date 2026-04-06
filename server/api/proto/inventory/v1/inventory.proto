@@ -21,10 +21,13 @@ service InventoryService {
   
   // Confirm booking (convert hold to confirmed)
   rpc ConfirmBooking(ConfirmBookingRequest) returns (ConfirmBookingResponse);
-  
+
   // Get seat map with availability status
   rpc GetSeatMap(GetSeatMapRequest) returns (GetSeatMapResponse);
-  
+
+  // Get hold status (frontend checkout sync)
+  rpc GetHoldStatus(GetHoldStatusRequest) returns (GetHoldStatusResponse);
+
   // Admin: Initialize inventory for a trip
   rpc InitializeTripInventory(InitializeTripInventoryRequest) returns (InitializeTripInventoryResponse);
   
@@ -142,6 +145,25 @@ message ConfirmedSeat {
   string seat_id = 1;
   string seat_number = 2;
   string ticket_id = 3;
+}
+
+// --- Hold Status (Frontend checkout sync) ---
+
+message GetHoldStatusRequest {
+  string organization_id = 1;
+  string hold_id = 2;
+  string user_id = 3;
+}
+
+message GetHoldStatusResponse {
+  string hold_id = 1;
+  string trip_id = 2;
+  string from_station_id = 3;
+  string to_station_id = 4;
+  repeated string held_seat_ids = 5;
+  int64 expires_at = 6;
+  int64 total_paisa = 7;
+  string status = 8;
 }
 
 // --- Seat Map ---

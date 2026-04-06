@@ -8,11 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/subscription/internal/handler"
 	"github.com/MuhibNayem/Travio/server/services/subscription/internal/repository"
 	"github.com/MuhibNayem/Travio/server/services/subscription/internal/service"
+	"github.com/MuhibNayem/Travio/server/services/subscription/internal/worker"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -66,9 +68,14 @@ func main() {
 	}
 
 	svc := service.NewSubscriptionService(repo)
+	ctx := context.Background()
+
+	// Billing Worker (TASK-053 to TASK-058)
+	billingSvc := worker.NewBillingService(repo, nil) // Payment repo optional
+	billingWorker := worker.NewBillingWorker(repo, billingSvc, 1*time.Hour) // Check every hour
+	go billingWorker.Start(ctx)
 
 	// Seed Market-Fit Plans (Bangladesh Context)
-	ctx := context.Background()
 	plans := []struct {
 		ID       string
 		Name     string

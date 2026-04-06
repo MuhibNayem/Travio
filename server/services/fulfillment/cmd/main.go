@@ -80,7 +80,7 @@ func main() {
 		}
 		defer orderClient.Close()
 
-		orderConsumer, err := consumer.NewOrderEventConsumer(kafkaBrokers, fulfillmentService, catalogClient, orderClient)
+		orderConsumer, err := consumer.NewOrderEventConsumer(kafkaBrokers, fulfillmentService)
 		if err != nil {
 			logger.Error("Failed to create order event consumer", "error", err)
 		} else {

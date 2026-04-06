@@ -5,6 +5,7 @@ go 1.25.3
 require (
 	github.com/MuhibNayem/Travio/server/pkg v0.0.0
 	golang.org/x/time v0.14.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
 require (
@@ -28,9 +29,7 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
 
-replace (
-	github.com/MuhibNayem/Travio/server/api => ../../api
-	github.com/MuhibNayem/Travio/server/pkg => ../../pkg
-)
+replace github.com/MuhibNayem/Travio/server/pkg => ../../pkg

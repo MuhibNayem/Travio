@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	orderpb "github.com/MuhibNayem/Travio/server/api/proto/order/v1"
 	"github.com/MuhibNayem/Travio/server/pkg/kafka"
 	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/fulfillment/internal/service"
@@ -16,12 +15,10 @@ import (
 type OrderEventConsumer struct {
 	consumer           *kafka.Consumer
 	fulfillmentService *service.FulfillmentService
-	catalogClient      CatalogClient
-	orderClient        OrderClient
 }
 
 // NewOrderEventConsumer creates a new consumer for order events
-func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.FulfillmentService, catalogClient CatalogClient, orderClient OrderClient) (*OrderEventConsumer, error) {
+func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.FulfillmentService) (*OrderEventConsumer, error) {
 	consumer, err := kafka.NewConsumer(brokers, "fulfillment-service", []string{kafka.TopicOrders})
 	if err != nil {
 		return nil, err
@@ -30,8 +27,6 @@ func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.Fulfillment
 	c := &OrderEventConsumer{
 		consumer:           consumer,
 		fulfillmentService: fulfillmentSvc,
-		catalogClient:      catalogClient,
-		orderClient:        orderClient,
 	}
 
 	// Register handlers
@@ -42,15 +37,36 @@ func NewOrderEventConsumer(brokers []string, fulfillmentSvc *service.Fulfillment
 
 // OrderConfirmedPayload matches the event structure from order service
 type OrderConfirmedPayload struct {
-	OrderID        string `json:"order_id"`
-	UserID         string `json:"user_id"`
-	OrganizationID string `json:"organization_id"`
-	TripID         string `json:"trip_id"`
-	BookingID      string `json:"booking_id"`
-	PaymentID      string `json:"payment_id"`
-	TotalPaisa     int64  `json:"total_paisa"`
-	ContactEmail   string `json:"contact_email"`
-	ContactPhone   string `json:"contact_phone"`
+	OrderID        string    `json:"order_id"`
+	UserID         string    `json:"user_id"`
+	OrganizationID string    `json:"organization_id"`
+	TripID         string    `json:"trip_id"`
+	FromStationID  string    `json:"from_station_id"`
+	ToStationID    string    `json:"to_station_id"`
+	BookingID      string    `json:"booking_id"`
+	PaymentID      string    `json:"payment_id"`
+	TotalPaisa     int64     `json:"total_paisa"`
+	Currency       string    `json:"currency"`
+	ContactEmail   string    `json:"contact_email"`
+	ContactPhone   string    `json:"contact_phone"`
+	Passengers     []PassengerInfo `json:"passengers"`
+	RouteName      string    `json:"route_name"`
+	DepartureTime  string    `json:"departure_time"`
+	ArrivalTime    string    `json:"arrival_time"`
+	VehicleType    string    `json:"vehicle_type"`
+}
+
+// PassengerInfo contains passenger details from order
+type PassengerInfo struct {
+	NID        string `json:"nid"`
+	Name       string `json:"name"`
+	SeatID     string `json:"seat_id"`
+	SeatNumber string `json:"seat_number"`
+	SeatClass  string `json:"seat_class"`
+	Gender     string `json:"gender"`
+	Age        int    `json:"age"`
+	Phone      string `json:"phone"`
+	Email      string `json:"email"`
 }
 
 // handleOrderConfirmed processes OrderConfirmed events
@@ -73,55 +89,52 @@ func (c *OrderEventConsumer) handleOrderConfirmed(ctx context.Context, event *ka
 		return err
 	}
 
-    order, err := c.orderClient.GetOrder(ctx, payload.OrderID, payload.UserID)
-	if err != nil {
-		logger.Error("failed to fetch order", "error", err)
-		return err
+	// Validate passenger data
+	if len(payload.Passengers) == 0 {
+		logger.Error("Order confirmed with no passengers", "order_id", payload.OrderID)
+		return fmt.Errorf("order %s has no passengers", payload.OrderID)
 	}
 
-	trip, err := c.catalogClient.GetTrip(ctx, payload.OrganizationID, payload.TripID)
-	if err != nil {
-		logger.Error("failed to fetch trip", "error", err)
-		return err
+	// Parse departure/arrival times
+	var departureTime, arrivalTime time.Time
+	if payload.DepartureTime != "" {
+		departureTime, _ = time.Parse(time.RFC3339, payload.DepartureTime)
+	}
+	if departureTime.IsZero() {
+		departureTime = time.Now().Add(24 * time.Hour)
 	}
 
-	route, err := c.catalogClient.GetRoute(ctx, payload.OrganizationID, trip.RouteId)
-	if err != nil {
-		logger.Error("failed to fetch route", "error", err)
-		return err
+	if payload.ArrivalTime != "" {
+		arrivalTime, _ = time.Parse(time.RFC3339, payload.ArrivalTime)
+	}
+	if arrivalTime.IsZero() {
+		arrivalTime = departureTime.Add(4 * time.Hour)
 	}
 
-	origin, err := c.catalogClient.GetStation(ctx, payload.OrganizationID, order.FromStationId)
-	if err != nil {
-		logger.Error("failed to fetch origin station", "error", err)
-		return err
-	}
-
-	destination, err := c.catalogClient.GetStation(ctx, payload.OrganizationID, order.ToStationId)
-	if err != nil {
-		logger.Error("failed to fetch destination station", "error", err)
-		return err
-	}
-
-	passengers := buildPassengerSeats(order, payload.TotalPaisa)
-	if len(passengers) == 0 {
-		logger.Error("no passengers found for order", "order_id", payload.OrderID)
-		return fmt.Errorf("no passengers found for order %s", payload.OrderID)
-	}
-
+	// Build ticket generation request with real passenger data
 	req := &service.GenerateTicketsReq{
 		BookingID:      payload.BookingID,
 		OrderID:        payload.OrderID,
 		OrganizationID: payload.OrganizationID,
 		TripID:         payload.TripID,
-		RouteName:      route.Name,
-		FromStation:    origin.Name,
-		ToStation:      destination.Name,
-		DepartureTime:  time.Unix(trip.DepartureTime, 0),
-		ArrivalTime:    time.Unix(trip.ArrivalTime, 0),
-		Passengers:     passengers,
-		ContactEmail:   order.ContactEmail,
-		ContactPhone:   order.ContactPhone,
+		RouteName:      payload.RouteName,
+		FromStation:    payload.FromStationID,
+		ToStation:      payload.ToStationID,
+		DepartureTime:  departureTime,
+		ArrivalTime:    arrivalTime,
+		ContactEmail:   payload.ContactEmail,
+		ContactPhone:   payload.ContactPhone,
+	}
+
+	for _, p := range payload.Passengers {
+		req.Passengers = append(req.Passengers, service.PassengerSeat{
+			NID:        p.NID,
+			Name:       p.Name,
+			SeatID:     p.SeatID,
+			SeatNumber: p.SeatNumber,
+			SeatClass:  p.SeatClass,
+			PricePaisa: payload.TotalPaisa / int64(len(payload.Passengers)),
+		})
 	}
 
 	// Generate tickets
@@ -137,72 +150,10 @@ func (c *OrderEventConsumer) handleOrderConfirmed(ctx context.Context, event *ka
 	logger.Info("tickets generated successfully",
 		"order_id", payload.OrderID,
 		"ticket_count", len(result.Tickets),
+		"passengers", len(req.Passengers),
 	)
 
 	return nil
-}
-
-func buildPassengerSeats(order *orderpb.Order, totalPaisa int64) []service.PassengerSeat {
-	if order == nil {
-		return nil
-	}
-
-	seatPrices := make(map[string]int64)
-	seatClass := make(map[string]string)
-	seatNumber := make(map[string]string)
-	for _, seat := range order.Seats {
-		seatPrices[seat.SeatId] = seat.PricePaisa
-		seatClass[seat.SeatId] = seat.SeatClass
-		seatNumber[seat.SeatId] = seat.SeatNumber
-	}
-
-	var passengers []service.PassengerSeat
-	for _, p := range order.Passengers {
-		price := seatPrices[p.SeatId]
-		if price == 0 && totalPaisa > 0 {
-			price = totalPaisa / int64(max(1, len(order.Passengers)))
-		}
-		seatNum := p.SeatNumber
-		if seatNum == "" {
-			seatNum = seatNumber[p.SeatId]
-		}
-		seatCls := p.SeatClass
-		if seatCls == "" {
-			seatCls = seatClass[p.SeatId]
-		}
-		passengers = append(passengers, service.PassengerSeat{
-			NID:        p.Nid,
-			Name:       p.Name,
-			SeatID:     p.SeatId,
-			SeatNumber: seatNum,
-			SeatClass:  seatCls,
-			PricePaisa: price,
-		})
-	}
-
-	if len(passengers) == 0 && len(order.Seats) > 0 {
-		for _, seat := range order.Seats {
-			price := seat.PricePaisa
-			if price == 0 && totalPaisa > 0 {
-				price = totalPaisa / int64(max(1, len(order.Seats)))
-			}
-			passengers = append(passengers, service.PassengerSeat{
-				SeatID:     seat.SeatId,
-				SeatNumber: seat.SeatNumber,
-				SeatClass:  seat.SeatClass,
-				PricePaisa: price,
-			})
-		}
-	}
-
-	return passengers
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // Start begins consuming events

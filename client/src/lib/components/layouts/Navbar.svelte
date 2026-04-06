@@ -4,11 +4,12 @@
     import { Button } from "$lib/components/ui/button";
     import { auth } from "$lib/runes/auth.svelte";
     import { goto } from "$app/navigation";
-    import { Ticket, Sun, Moon, Menu } from "@lucide/svelte";
+    import { Ticket, Sun, Moon, Menu, X } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
 
     let theme = $state<"light" | "dark">("light");
     let logo = $derived(theme === "dark" ? logoDark : logoLight);
+    let mobileMenuOpen = $state(false);
 
     function toggleTheme() {
         theme = theme === "light" ? "dark" : "light";
@@ -17,11 +18,20 @@
         }
     }
 
+    function toggleMobileMenu() {
+        mobileMenuOpen = !mobileMenuOpen;
+    }
+
+    function closeMobileMenu() {
+        mobileMenuOpen = false;
+    }
+
     async function handleLogout() {
         await auth.logout();
         toast.success("Signed out", {
             description: "You have been logged out successfully.",
         });
+        closeMobileMenu();
         goto("/login");
     }
 
@@ -129,10 +139,105 @@
         </div>
     </div>
 
-    <!-- Mobile Menu -->
+    <!-- Mobile Menu Button -->
     <div class="md:hidden">
-        <Button variant="ghost" size="icon">
-            <Menu size={28} />
+        <Button variant="ghost" size="icon" onclick={toggleMobileMenu}>
+            {#if mobileMenuOpen}
+                <X size={28} />
+            {:else}
+                <Menu size={28} />
+            {/if}
         </Button>
     </div>
 </header>
+
+<!-- Mobile Menu Dropdown -->
+{#if mobileMenuOpen}
+    <div
+        class="fixed inset-0 z-40 bg-black/50 md:hidden"
+        onclick={closeMobileMenu}
+    >
+        <div
+            class="absolute right-0 top-16 h-[calc(100vh-4rem)] w-72 bg-white shadow-2xl dark:bg-[#101922] animate-in slide-in-from-right"
+            onclick={(e) => e.stopPropagation()}
+        >
+            <nav class="flex flex-col gap-1 p-4">
+                {#each ["Transport", "Events", "Sports", "Support"] as item}
+                    <a
+                        class="rounded-lg px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-muted dark:text-gray-300"
+                        href="#"
+                        onclick={closeMobileMenu}
+                    >
+                        {item}
+                    </a>
+                {/each}
+
+                <div class="my-2 border-t border-border"></div>
+
+                {#if auth.isAuthenticated}
+                    {#if auth.user?.role === "admin" || auth.user?.role === "operator"}
+                        <Button
+                            variant="ghost"
+                            class="justify-start"
+                            href="/organization"
+                            onclick={closeMobileMenu}
+                        >
+                            Organization
+                        </Button>
+                    {:else}
+                        <Button
+                            variant="ghost"
+                            class="justify-start"
+                            href="/dashboard"
+                            onclick={closeMobileMenu}
+                        >
+                            Dashboard
+                        </Button>
+                    {/if}
+
+                    <Button
+                        variant="ghost"
+                        class="justify-start"
+                        href="/profile"
+                        onclick={closeMobileMenu}
+                    >
+                        Profile
+                    </Button>
+
+                    <Button
+                        variant="ghost"
+                        class="justify-start"
+                        href="/orders"
+                        onclick={closeMobileMenu}
+                    >
+                        My Bookings
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        class="mt-2"
+                        onclick={handleLogout}
+                    >
+                        Sign Out
+                    </Button>
+                {:else}
+                    <Button
+                        variant="outline"
+                        class="justify-start"
+                        href="/login"
+                        onclick={closeMobileMenu}
+                    >
+                        Sign In
+                    </Button>
+                    <Button
+                        class="mt-2"
+                        href="/register"
+                        onclick={closeMobileMenu}
+                    >
+                        Register
+                    </Button>
+                {/if}
+            </nav>
+        </div>
+    </div>
+{/if}

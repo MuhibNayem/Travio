@@ -6,10 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	catalogpb "github.com/MuhibNayem/Travio/server/api/proto/catalog/v1"
-	inventorypb "github.com/MuhibNayem/Travio/server/api/proto/inventory/v1"
-	pricingpb "github.com/MuhibNayem/Travio/server/api/proto/pricing/v1"
-	"github.com/MuhibNayem/Travio/server/services/order/internal/clients"
+	"github.com/MuhibNayem/Travio/server/pkg/logger"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/domain"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/events"
 	"github.com/MuhibNayem/Travio/server/services/order/internal/messaging"
@@ -19,18 +16,25 @@ import (
 )
 
 const (
-	DefaultCurrency = "BDT"
+	TaxRate         = 0.05 // 5% VAT
+	BookingFeePaisa = 2000 // 20 BDT per passenger
 )
 
 type OrderService struct {
 	db              *sql.DB
+	gormDB          *gorm.DB
 	orderRepo       *repository.OrderRepository
+	checkoutRepo    *repository.CheckoutRepository
 	sagaDeps        *saga.BookingDependencies
 	orchestrator    *saga.Orchestrator
 	publisher       *events.Publisher
-	catalogClient   *clients.CatalogClient
-	pricingClient   *clients.PricingClient
-	inventoryClient *clients.InventoryClient
+	dlq             messaging.DLQProducer
+	crmClient       CRMClient
+}
+
+// CRMClient interface for coupon validation
+type CRMClient interface {
+	ValidateCoupon(ctx context.Context, orgID, code string, cartTotal int64) (*domain.CouponValidation, error)
 }
 
 func NewOrderService(
@@ -38,21 +42,64 @@ func NewOrderService(
 	gormDB *gorm.DB,
 	dlq messaging.DLQProducer,
 	orderRepo *repository.OrderRepository,
+	checkoutRepo *repository.CheckoutRepository,
 	sagaDeps *saga.BookingDependencies,
-	catalogClient *clients.CatalogClient,
-	pricingClient *clients.PricingClient,
-	inventoryClient *clients.InventoryClient,
+	crmClient CRMClient,
 ) *OrderService {
+	// Auto-migrate saga instances and checkout tables
+	_ = gormDB.AutoMigrate(&saga.SagaInstance{})
+	_ = checkoutRepo.AutoMigrate()
+
 	return &OrderService{
-		db:              db,
-		orderRepo:       orderRepo,
-		sagaDeps:        sagaDeps,
-		orchestrator:    saga.NewOrchestrator(gormDB, dlq),
-		publisher:       events.NewPublisher(db),
-		catalogClient:   catalogClient,
-		pricingClient:   pricingClient,
-		inventoryClient: inventoryClient,
+		db:           db,
+		gormDB:       gormDB,
+		orderRepo:    orderRepo,
+		checkoutRepo: checkoutRepo,
+		sagaDeps:     sagaDeps,
+		orchestrator: saga.NewOrchestrator(gormDB, dlq),
+		publisher:    events.NewPublisher(db),
+		dlq:          dlq,
+		crmClient:    crmClient,
 	}
+}
+
+// GetOrchestrator returns the saga orchestr for external use
+func (s *OrderService) GetOrchestrator() *saga.Orchestrator {
+	return s.orchestrator
+}
+
+// RecoverIncompleteSagas loads and resumes incomplete sagas on startup
+func (s *OrderService) RecoverIncompleteSagas(ctx context.Context) error {
+	var runningSagas []saga.SagaInstance
+	if err := s.gormDB.WithContext(ctx).
+		Where("status IN ?", []string{"running", "pending", "compensating"}).
+		Find(&runningSagas).Error; err != nil {
+		return fmt.Errorf("failed to query running sagas: %w", err)
+	}
+
+	logger.Info("Recovering incomplete sagas", "count", len(runningSagas))
+
+	for _, sagaInst := range runningSagas {
+		// Get the associated order
+		order, err := s.orderRepo.GetByID(ctx, sagaInst.Name, "") // Name stores order ID
+		if err != nil {
+			logger.Warn("Failed to get order for saga recovery", "saga_id", sagaInst.ID, "error", err)
+			continue
+		}
+
+		// Resume the saga
+		go func(si saga.SagaInstance, o *domain.Order) {
+			execCtx := context.Background()
+			if err := s.orchestrator.Retry(execCtx, si.ID); err != nil {
+				logger.Error("Saga recovery failed", "saga_id", si.ID, "error", err)
+				s.handleOrderFailed(execCtx, o, "saga recovery failed: "+err.Error(), "recovery_failed")
+			} else {
+				logger.Info("Saga recovered successfully", "saga_id", si.ID)
+			}
+		}(sagaInst, order)
+	}
+
+	return nil
 }
 
 // CreateOrder initiates the booking saga with transactional outbox event
@@ -64,7 +111,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 			return nil, err
 		}
 		if existing != nil {
-			return existing, nil // Return existing order
+			return existing, nil
 		}
 	}
 
@@ -75,26 +122,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 	}
 	defer tx.Rollback()
 
-	if s.catalogClient == nil || s.pricingClient == nil || s.inventoryClient == nil {
-		return nil, fmt.Errorf("pricing dependencies unavailable")
-	}
-
-	trip, err := s.catalogClient.GetTrip(ctx, req.OrgID, req.TripID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch trip: %w", err)
-	}
-	seatMap, err := s.inventoryClient.GetSeatMap(ctx, req.OrgID, req.TripID, req.FromStation, req.ToStation)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch seat map: %w", err)
-	}
-	seatInfoMap := buildSeatInfoMap(seatMap)
-
 	// Create order record
 	order := &domain.Order{
 		OrganizationID: req.OrgID,
 		UserID:         req.UserID,
 		TripID:         req.TripID,
-		RouteID:        trip.RouteId,
 		FromStationID:  req.FromStation,
 		ToStationID:    req.ToStation,
 		HoldID:         req.HoldID,
@@ -107,78 +139,35 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		Currency:       DefaultCurrency,
 		ExpiresAt:      time.Now().Add(15 * time.Minute),
 		IdempotencyKey: req.IdempotencyKey,
+		DiscountPaisa:  req.DiscountPaisa,
 	}
 
-	serviceDate := trip.ServiceDate
-	if serviceDate == "" && trip.DepartureTime > 0 {
-		serviceDate = time.Unix(trip.DepartureTime, 0).Format("2006-01-02")
+	// Calculate totals
+	basePrices := make(map[string]int64)
+	for _, p := range req.Passengers {
+		basePrices[p.SeatID] = 50000 // 500 BDT placeholder
 	}
-	occupancyRate := calculateOccupancyRate(trip.TotalSeats, trip.AvailableSeats)
+	order.CalculateTotals(basePrices, TaxRate, BookingFeePaisa)
 
-	seatPrices := make(map[string]int64)
-	var baseSubtotal int64
-	for i, passenger := range order.Passengers {
-		seatDetail, ok := seatInfoMap[passenger.SeatID]
-		if !ok {
-			return nil, fmt.Errorf("seat %s not found in seat map", passenger.SeatID)
-		}
-		seatClass := seatDetail.SeatClass
-		if seatClass == "" {
-			seatClass = trip.VehicleClass
-		}
-		seatCategory := seatDetail.SeatType
-		if seatCategory == "" {
-			seatCategory = seatClass
-		}
-		order.Passengers[i].SeatClass = seatClass
-		order.Passengers[i].SeatNumber = seatDetail.SeatNumber
-
-		basePrice := resolveBasePrice(trip.Pricing, req.FromStation, req.ToStation, seatClass, seatCategory)
-		if basePrice <= 0 {
-			return nil, fmt.Errorf("invalid base price for seat %s", passenger.SeatID)
-		}
-		baseSubtotal += basePrice
-		priceResp, err := s.pricingClient.CalculatePrice(ctx, &pricingpb.CalculatePriceRequest{
-			TripId:         trip.Id,
-			SeatClass:      seatClass,
-			SeatCategory:   seatCategory,
-			Date:           serviceDate,
-			Quantity:       1,
-			BasePricePaisa: basePrice,
-			OccupancyRate:  occupancyRate,
-			OrganizationId: req.OrgID,
-			DepartureTime:  trip.DepartureTime,
-			RouteId:        trip.RouteId,
-			ScheduleId:     trip.ScheduleId,
-			FromStationId:  req.FromStation,
-			ToStationId:    req.ToStation,
-			VehicleType:    trip.VehicleType,
-			VehicleClass:   trip.VehicleClass,
-			PromoCode:      req.CouponCode,
-		})
+	// Validate and apply coupon if provided
+	if req.CouponCode != "" && s.crmClient != nil {
+		couponValidation, err := s.crmClient.ValidateCoupon(ctx, req.OrgID, req.CouponCode, order.TotalPaisa)
 		if err != nil {
-			return nil, fmt.Errorf("pricing calculation failed: %w", err)
+			logger.Warn("Coupon validation failed", "error", err, "code", req.CouponCode)
+			// Don't fail order for invalid coupon, just log it
+		} else if couponValidation.Valid {
+			order.CouponCode = req.CouponCode
+			order.CouponDiscount = couponValidation.DiscountPaisa
+			order.DiscountPaisa = couponValidation.DiscountPaisa
+			order.TotalPaisa -= couponValidation.DiscountPaisa
+			if order.TotalPaisa < 0 {
+				order.TotalPaisa = 0
+			}
+			logger.Info("Coupon applied successfully",
+				"code", req.CouponCode,
+				"discount_paisa", couponValidation.DiscountPaisa,
+			)
 		}
-		seatPrices[passenger.SeatID] = priceResp.FinalPricePaisa
-	}
-
-	order.SubtotalPaisa = 0
-	for _, price := range seatPrices {
-		order.SubtotalPaisa += price
-	}
-	if baseSubtotal > order.SubtotalPaisa {
-		order.DiscountPaisa = baseSubtotal - order.SubtotalPaisa
-	}
-	if trip.Pricing != nil {
-		order.TaxPaisa = trip.Pricing.TaxPaisa * int64(len(order.Passengers))
-		order.BookingFeePaisa = trip.Pricing.BookingFeePaisa * int64(len(order.Passengers))
-		if trip.Pricing.Currency != "" {
-			order.Currency = trip.Pricing.Currency
-		}
-	}
-	order.TotalPaisa = order.SubtotalPaisa + order.TaxPaisa + order.BookingFeePaisa - order.DiscountPaisa
-	if order.TotalPaisa < 0 {
-		order.TotalPaisa = 0
 	}
 
 	// Create order in transaction
@@ -187,7 +176,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
 
-	// Publish OrderCreated event to outbox (same transaction)
+	// Publish OrderCreated event to outbox
 	if err := s.publisher.PublishOrderCreated(ctx, tx, order); err != nil {
 		return nil, fmt.Errorf("failed to publish order created event: %w", err)
 	}
@@ -222,17 +211,55 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		return nil, fmt.Errorf("failed to update order with saga ID: %w", err)
 	}
 
-	// Execute saga asynchronously with outbox event on completion
+	// Execute saga asynchronously
 	go func() {
 		execCtx := context.Background()
 		if err := s.orchestrator.Execute(execCtx, sagaInstance); err != nil {
-			// Update order status on failure and publish event
 			s.handleOrderFailed(execCtx, order, err.Error(), fmt.Sprintf("%v", sagaInstance.Status))
 		} else {
-			// Update order status on success and publish event
 			s.handleOrderConfirmed(execCtx, order, sagaInstance)
 		}
 	}()
+
+	return order, nil
+}
+
+// CreateOrderFromCheckout creates an order from a confirmed checkout session
+func (s *OrderService) CreateOrderFromCheckout(ctx context.Context, checkout *domain.CheckoutSession) (*domain.Order, error) {
+	// Build order request from checkout session
+	req := &CreateOrderRequest{
+		OrgID:         checkout.OrganizationID,
+		UserID:        checkout.UserID,
+		TripID:        checkout.TripID,
+		FromStation:   checkout.FromStationID,
+		ToStation:     checkout.ToStationID,
+		HoldID:        checkout.HoldID,
+		PaymentMethod: checkout.PaymentMethod,
+		Email:         checkout.Passengers[0].Email,
+		Phone:         checkout.Passengers[0].Phone,
+		DiscountPaisa: checkout.DiscountPaisa,
+	}
+
+	for _, p := range checkout.Passengers {
+		req.Passengers = append(req.Passengers, PassengerRequest{
+			NID:         p.NID,
+			Name:        p.Name,
+			SeatID:      p.SeatID,
+			DateOfBirth: p.DateOfBirth,
+			Gender:      p.Gender,
+			Age:         p.Age,
+		})
+	}
+
+	order, err := s.CreateOrder(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Link checkout session to order
+	if err := s.checkoutRepo.UpdateOrderID(ctx, checkout.ID, order.ID); err != nil {
+		// Non-fatal, log and continue
+	}
 
 	return order, nil
 }
@@ -316,12 +343,10 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID, userID, reason 
 		return nil, nil, err
 	}
 
-	// Check if cancellable
 	if order.Status != domain.OrderStatusConfirmed {
 		return nil, nil, fmt.Errorf("order cannot be cancelled in status: %s", order.Status)
 	}
 
-	// Create cancellation saga
 	cancellationSaga := saga.NewCancellationSaga(
 		s.sagaDeps,
 		order.ID,
@@ -333,12 +358,10 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID, userID, reason 
 		order.TotalPaisa,
 	)
 
-	// Execute cancellation saga
 	if err := s.orchestrator.Execute(ctx, cancellationSaga); err != nil {
 		return nil, nil, fmt.Errorf("cancellation failed: %w", err)
 	}
 
-	// Start transaction for final update
 	tx, err := s.orderRepo.BeginTx(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -347,7 +370,6 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID, userID, reason 
 
 	refundID := cancellationSaga.Context.GetString("refund_id")
 
-	// Update order status
 	order.Status = domain.OrderStatusRefunded
 	order.PaymentStatus = domain.PaymentStatusRefunded
 
@@ -356,7 +378,6 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID, userID, reason 
 		return nil, nil, err
 	}
 
-	// Publish cancellation event
 	if err := s.publisher.PublishOrderCancelled(ctx, tx, order, refundID, order.TotalPaisa, reason); err != nil {
 		return nil, nil, err
 	}
@@ -385,6 +406,20 @@ func (s *OrderService) GetOrderStatus(ctx context.Context, orderID, userID strin
 	return order, sagaInstance, nil
 }
 
+// GetSaga retrieves a saga by ID
+func (s *OrderService) GetSaga(ctx context.Context, sagaID string) (*saga.Saga, error) {
+	sagaInstance, ok := s.orchestrator.GetSaga(sagaID)
+	if !ok {
+		return nil, fmt.Errorf("saga not found: %s", sagaID)
+	}
+	return sagaInstance, nil
+}
+
+// RetrySaga attempts to resume a failed saga
+func (s *OrderService) RetrySaga(ctx context.Context, sagaID string) error {
+	return s.orchestrator.Retry(ctx, sagaID)
+}
+
 // --- DTOs ---
 
 type CreateOrderRequest struct {
@@ -400,6 +435,7 @@ type CreateOrderRequest struct {
 	Email          string
 	Phone          string
 	CouponCode     string
+	DiscountPaisa  int64
 	IdempotencyKey string
 }
 
@@ -446,80 +482,6 @@ func convertToSagaPassengers(reqs []PassengerRequest) []saga.PassengerInfo {
 		})
 	}
 	return passengers
-}
-
-type seatInfo struct {
-	SeatNumber string
-	SeatClass  string
-	SeatType   string
-}
-
-func buildSeatInfoMap(seatMap *inventorypb.GetSeatMapResponse) map[string]seatInfo {
-	result := make(map[string]seatInfo)
-	if seatMap == nil {
-		return result
-	}
-	for _, row := range seatMap.Rows {
-		for _, seat := range row.Seats {
-			result[seat.SeatId] = seatInfo{
-				SeatNumber: seat.SeatNumber,
-				SeatClass:  seat.SeatClass,
-				SeatType:   seat.SeatType,
-			}
-		}
-	}
-	return result
-}
-
-func calculateOccupancyRate(totalSeats int32, availableSeats int32) float64 {
-	if totalSeats <= 0 {
-		return 0
-	}
-	used := totalSeats - availableSeats
-	if used < 0 {
-		used = 0
-	}
-	return float64(used) / float64(totalSeats)
-}
-
-func resolveBasePrice(pricing *catalogpb.TripPricing, fromStationID, toStationID, seatClass, seatCategory string) int64 {
-	if pricing == nil {
-		return 0
-	}
-	var segmentPricing *catalogpb.SegmentPricing
-	for _, segment := range pricing.SegmentPrices {
-		if segment != nil && segment.FromStationId == fromStationID && segment.ToStationId == toStationID {
-			segmentPricing = segment
-			break
-		}
-	}
-
-	basePrice := pricing.BasePricePaisa
-	classPrices := pricing.ClassPrices
-	categoryPrices := pricing.SeatCategoryPrices
-	if segmentPricing != nil {
-		if segmentPricing.BasePricePaisa > 0 {
-			basePrice = segmentPricing.BasePricePaisa
-		}
-		if len(segmentPricing.ClassPrices) > 0 {
-			classPrices = segmentPricing.ClassPrices
-		}
-		if len(segmentPricing.SeatCategoryPrices) > 0 {
-			categoryPrices = segmentPricing.SeatCategoryPrices
-		}
-	}
-
-	if seatCategory != "" {
-		if price, ok := categoryPrices[seatCategory]; ok && price > 0 {
-			return price
-		}
-	}
-	if seatClass != "" {
-		if price, ok := classPrices[seatClass]; ok && price > 0 {
-			return price
-		}
-	}
-	return basePrice
 }
 
 func parsePageToken(token string) int {

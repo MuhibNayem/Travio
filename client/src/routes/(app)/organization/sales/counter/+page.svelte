@@ -1,580 +1,362 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { Input } from "$lib/components/ui/input";
+    import { inventoryApi } from "$lib/api/inventory";
+    import { catalogApi } from "$lib/api/catalog";
+    import { orderApi } from "$lib/api/order";
     import { Button } from "$lib/components/ui/button";
-    import * as Tabs from "$lib/components/ui/tabs";
+    import { Input } from "$lib/components/ui/input";
+    import { Separator } from "$lib/components/ui/separator";
     import {
         Search,
-        MonitorPlay,
-        Bus,
-        Calendar,
-        MapPin,
-        Armchair,
-        ShoppingCart,
         User,
-        CreditCard,
+        Phone,
+        Mail,
+        Ticket,
+        Printer,
         Loader2,
+        Check,
     } from "@lucide/svelte";
-    import SeatMap from "$lib/components/sales/seatmap/SeatMap.svelte";
-    import { Badge } from "$lib/components/ui/badge";
-    import { Separator } from "$lib/components/ui/separator";
-    import { eventsApi } from "$lib/api/events";
-    import { catalogApi } from "$lib/api/catalog";
-    import { fleetApi, type AssetConfig, AssetType } from "$lib/api/fleet";
-    import * as Dialog from "$lib/components/ui/dialog";
-    import TicketPrint from "$lib/components/sales/TicketPrint.svelte";
-    import { ordersApi, type CreateOrderRequest } from "$lib/api/orders";
-    import { paymentApi, type PaymentMethod } from "$lib/api/payment";
-    import { auth } from "$lib/runes/auth.svelte";
     import { toast } from "svelte-sonner";
 
-    // State
-    let items: any[] = [];
-    let paymentMethods: PaymentMethod[] = [];
-    let loading = true;
-    let processing = false;
-    let activeTab: "trips" | "events" = "trips";
-    let showTicket = false;
-    let createdOrder: any = null;
+    // Search
+    let searchQuery = $state("");
+    let searchResults = $state<any[]>([]);
+    let isSearching = $state(false);
 
-    // Selected State
-    let selectedItem: any = null;
-    let selectedSeats: string[] = [];
-    let customerName = "";
-    let customerPhone = "";
-    let selectedPaymentId = "cash";
+    // Booking
+    let selectedTrip = $state<any>(null);
+    let passengers = $state<any[]>([]);
+    let contactName = $state("");
+    let contactPhone = $state("");
+    let isBooking = $state(false);
+    let bookingComplete = $state(false);
+    let lastOrder = $state<any>(null);
 
-    // Asset config for SeatMap
-    let assetConfig: AssetConfig | null = null;
-    let loadingAsset = false;
-
-    $: subtotal = selectedSeats.length * (selectedItem?.price || 0);
-
-    onMount(async () => {
-        loadData();
-    });
-
-    async function loadData() {
-        loading = true;
+    async function searchTrips() {
+        if (!searchQuery.trim()) return;
+        isSearching = true;
         try {
-            const orgId = auth.user?.organizationId;
-            if (!orgId) return;
-
-            if (activeTab === "trips") {
-                const res = await catalogApi.listTripInstances();
-                items = res.map((r) => {
-                    const t = r.trip;
-                    return {
-                        id: t.id,
-                        title: r.route?.name || `${t.vehicle_class} Trip`,
-                        time: new Date(t.departure_time * 1000).toLocaleTimeString(
-                            [],
-                            { hour: "2-digit", minute: "2-digit" },
-                        ),
-                        type: "bus",
-                        price: t.pricing?.base_price_paisa
-                            ? t.pricing.base_price_paisa / 100
-                            : 0,
-                        operator: r.operator_name || t.organization_id.substring(0, 8),
-                        seatsAvailable: t.available_seats,
-                        raw: t,
-                    };
-                });
-            } else {
-                const res = await eventsApi.searchEvents("");
-                items = res.results.map((r) => ({
-                    id: r.event.id,
-                    title: r.event.title,
-                    time: new Date(r.event.start_time).toLocaleDateString([], {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                    }),
-                    type: "event",
-                    price: 0,
-                    venue: r.venue.name,
-                    ticketTypes: [],
-                    raw: r,
-                }));
-            }
-
-            // Load Payment Methods
-            if (paymentMethods.length === 0) {
-                try {
-                    const pRes = await paymentApi.getPaymentMethods();
-                    paymentMethods = pRes.methods || [];
-                } catch (e) {
-                    console.error("Failed to load payments", e);
-                }
-            }
-        } catch (err) {
-            console.error("Failed to load data", err);
-            toast.error("Failed to load data");
+            // In production, call search API with route/date
+            searchResults = [
+                {
+                    id: "TRIP-001",
+                    operator: "Green Line",
+                    from: "Dhaka",
+                    to: "Chittagong",
+                    departure: "2026-04-15T08:00:00",
+                    available: 12,
+                    price: 800,
+                    type: "bus",
+                },
+                {
+                    id: "TRIP-002",
+                    operator: "Shohagh",
+                    from: "Dhaka",
+                    to: "Chittagong",
+                    departure: "2026-04-15T10:00:00",
+                    available: 8,
+                    price: 750,
+                    type: "bus",
+                },
+            ];
+        } catch (error) {
+            toast.error("Search failed");
         } finally {
-            loading = false;
+            isSearching = false;
         }
     }
 
-    function handleTabChange(tab: string) {
-        activeTab = tab as any;
-        selectedItem = null;
-        loadData();
+    function selectTrip(trip: any) {
+        selectedTrip = trip;
+        passengers = [{ name: "", nid: "", phone: "" }];
+        searchResults = [];
     }
 
-    // Handlers
-    async function selectItem(item: any) {
-        selectedItem = item;
-        selectedSeats = []; // Reset selection
-        assetConfig = null;
+    function addPassenger() {
+        if (passengers.length < selectedTrip?.available) {
+            passengers = [...passengers, { name: "", nid: "", phone: "" }];
+        }
+    }
 
-        // Fetch asset config for trips
-        if (activeTab === "trips" && item.raw?.vehicle_id) {
-            loadingAsset = true;
-            try {
-                const asset = await fleetApi.getAsset(item.raw.vehicle_id);
-                assetConfig = asset.config || null;
-            } catch (e) {
-                console.error("Failed to load asset config", e);
-                // Fall back to defaults
-            } finally {
-                loadingAsset = false;
+    function removePassenger(index: number) {
+        if (passengers.length > 1) {
+            passengers = passengers.filter((_, i) => i !== index);
+        }
+    }
+
+    async function completeBooking() {
+        // Validate
+        for (let i = 0; i < passengers.length; i++) {
+            if (!passengers[i].name?.trim()) {
+                toast.error(`Passenger ${i + 1} name required`);
+                return;
             }
         }
-    }
-
-    // Helper: Determine SeatMap type from item
-    function getSeatMapType(item: any): "bus" | "train" | "launch" | "event" {
-        if (activeTab === "events") return "event";
-
-        // Map vehicle_type to SeatMap type
-        const vehicleType = item.raw?.vehicle_type || "bus";
-        if (vehicleType.includes("train") || vehicleType.includes("TRAIN")) return "train";
-        if (vehicleType.includes("launch") || vehicleType.includes("LAUNCH") || vehicleType.includes("ferry")) return "launch";
-        return "bus";
-    }
-
-    // Helper: Build SeatMap config from asset config
-    function buildSeatMapConfig(item: any, config: AssetConfig | null): any {
-        const type = getSeatMapType(item);
-
-        // Use asset config if available
-        if (config) {
-            if (type === "bus" && config.bus) {
-                return {
-                    rows: config.bus.rows || 10,
-                    columns: config.bus.seats_per_row || 4,
-                    aisleIndex: config.bus.aisle_after_seat || 2,
-                };
-            }
-            if (type === "train" && config.train) {
-                return { coaches: config.train.coaches || [] };
-            }
-            if (type === "launch" && config.launch) {
-                return { decks: config.launch.decks || [] };
-            }
-        }
-
-        // Default fallbacks
-        if (type === "bus") {
-            return { rows: 10, columns: 4, aisleIndex: 2 };
-        }
-        if (type === "train") {
-            return {
-                coaches: [
-                    {
-                        id: "S1",
-                        name: "S1",
-                        class: "S_Chair",
-                        rows: 15,
-                        seatsPerRow: 6,
-                        hasBerths: false,
-                    },
-                ],
-            };
-        }
-        if (type === "launch") {
-            return {
-                decks: [
-                    {
-                        id: "D1",
-                        name: "Deck 1",
-                        type: "economy",
-                        rows: 8,
-                        cols: 6,
-                        seatPrice: 500,
-                    },
-                ],
-            };
-        }
-        // Event fallback
-        return { zones: [] };
-    }
-
-    function handleSeatSelection(e: CustomEvent) {
-        selectedSeats = e.detail;
-    }
-
-    async function handleBooking() {
-        if (!selectedItem || selectedSeats.length === 0) return;
-        if (!customerName || !customerPhone) {
-            toast.error("Please enter customer name and phone");
+        if (!contactPhone.trim()) {
+            toast.error("Contact phone required");
             return;
         }
 
-        processing = true;
+        isBooking = true;
         try {
-            const orgId = auth.user?.organizationId;
-            if (!orgId) throw new Error("Organization ID missing");
-
-            const payload: CreateOrderRequest = {
-                organization_id: orgId,
-                user_id: "counter_agent",
-                trip_id: activeTab === "trips" ? selectedItem.id : "",
-                from_station_id: "counter",
-                to_station_id: "counter",
-                passengers: selectedSeats.map((seat) => ({
-                    name: customerName,
-                    seat_id: seat,
+            // Create order for counter sale (cash payment)
+            const order = await orderApi.createOrder({
+                trip_id: selectedTrip.id,
+                from_station_id: selectedTrip.from,
+                to_station_id: selectedTrip.to,
+                hold_id: "", // Counter booking doesn't need hold
+                passengers: passengers.map((p, i) => ({
+                    nid: p.nid || "N/A",
+                    name: p.name,
+                    seat_id: `C${i + 1}`, // Counter assigned seats
+                    date_of_birth: "",
+                    gender: "male",
                 })),
-                payment_method: {
-                    type: selectedPaymentId,
-                },
+                payment_method: { type: "cash" },
                 contact_email: "",
-                contact_phone: customerPhone,
-            };
+                contact_phone: contactPhone,
+                idempotency_key: crypto.randomUUID(),
+            });
 
-            const res = await ordersApi.createOrder(payload);
-
-            if (res.payment_redirect_url && selectedPaymentId !== "cash") {
-                toast.success("Order Created. Proceed to payment.");
-                createdOrder = res.order;
-                showTicket = true;
-            } else {
-                toast.success("Booking confirmed! Printing ticket...");
-                createdOrder = res.order;
-                showTicket = true;
-            }
-
-            // Reset
-            selectedSeats = [];
-            customerName = "";
-            customerPhone = "";
-            selectedPaymentId = "cash";
-        } catch (err) {
-            console.error(err);
-            toast.error("Booking failed");
+            lastOrder = order;
+            bookingComplete = true;
+            toast.success("Booking completed!", {
+                description: `Order #${order.id.slice(0, 8)}`,
+            });
+        } catch (error: any) {
+            toast.error("Booking failed", {
+                description: error.message,
+            });
         } finally {
-            processing = false;
+            isBooking = false;
         }
+    }
+
+    function resetForm() {
+        selectedTrip = null;
+        passengers = [];
+        contactName = "";
+        contactPhone = "";
+        bookingComplete = false;
+        lastOrder = null;
+    }
+
+    function printTicket() {
+        toast.info("Printing ticket...");
+        // In production, open print dialog with TicketPrint component
     }
 </script>
 
-<div class="flex h-[calc(100vh-4rem)] overflow-hidden bg-gray-50/50">
-    <!-- LEFT PANEL: Search & Results -->
-    <div class="w-96 flex flex-col border-r bg-white">
-        <div class="p-4 border-b">
-            <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
-                <MonitorPlay class="w-5 h-5 text-primary" /> Counter Sales
-            </h2>
-            <Tabs.Root
-                value={activeTab}
-                onValueChange={handleTabChange}
-                class="w-full"
-            >
-                <Tabs.List class="grid w-full grid-cols-2">
-                    <Tabs.Trigger value="trips">
-                        <Bus class="w-4 h-4 mr-2" /> Trips
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="events">
-                        <Calendar class="w-4 h-4 mr-2" /> Events
-                    </Tabs.Trigger>
-                </Tabs.List>
-            </Tabs.Root>
-            <div class="mt-4 relative">
-                <Search
-                    class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"
-                />
-                <Input
-                    placeholder="Search destination or event..."
-                    class="pl-9"
-                />
-            </div>
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">
+                Counter Booking
+            </h1>
+            <p class="mt-2 text-muted-foreground">
+                Create walk-in bookings for customers
+            </p>
         </div>
-
-        <div class="flex-1 overflow-y-auto p-2 space-y-2">
-            {#if loading}
-                <div class="flex justify-center p-8 text-primary animate-spin">
-                    <Loader2 />
-                </div>
-            {:else}
-                {#each items as item}
-                    <button
-                        class="w-full text-left p-3 rounded-lg border hover:border-primary transition-all group flex flex-col gap-2 relative bg-white"
-                        class:border-primary={selectedItem?.id === item.id}
-                        class:ring-1={selectedItem?.id === item.id}
-                        class:ring-primary={selectedItem?.id === item.id}
-                        onclick={() => selectItem(item)}
-                    >
-                        <div class="flex justify-between items-start">
-                            <span
-                                class="font-semibold text-sm group-hover:text-primary transition-colors"
-                                >{item.title}</span
-                            >
-                            <Badge variant="outline" class="text-[10px]"
-                                >{item.type}</Badge
-                            >
-                        </div>
-
-                        <div
-                            class="flex justify-between items-center text-xs text-muted-foreground"
-                        >
-                            <div class="flex items-center gap-1">
-                                {#if item.type === "event"}
-                                    <MapPin class="w-3 h-3" /> {item.venue}
-                                {:else}
-                                    <Bus class="w-3 h-3" /> {item.operator}
-                                {/if}
-                            </div>
-                            <div
-                                class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700"
-                            >
-                                {item.time}
-                            </div>
-                        </div>
-                    </button>
-                {/each}
-            {/if}
-        </div>
-    </div>
-
-    <!-- CENTER PANEL: Seat Map -->
-    <div class="flex-1 flex flex-col bg-gray-100/50 overflow-hidden relative">
-        {#if selectedItem}
-            <div
-                class="p-4 bg-white border-b flex justify-between items-center shadow-sm z-10"
-            >
-                <div>
-                    <h3 class="font-bold text-lg">{selectedItem.title}</h3>
-                    <p
-                        class="text-sm text-muted-foreground flex items-center gap-2"
-                    >
-                        <span
-                            class="font-mono text-xs bg-primary/10 text-primary px-2 py-0.5 rounded"
-                            >Tickets: ৳{selectedItem.price}</span
-                        >
-                        {#if selectedItem.venue}• {selectedItem.venue}{/if}
-                    </p>
-                </div>
-                <div class="flex items-center gap-4 text-sm">
-                    <div class="flex items-center gap-2">
-                        <div
-                            class="w-3 h-3 rounded-full bg-white border border-gray-300"
-                        ></div>
-                        Available
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-primary"></div>
-                        Selected
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-gray-300"></div>
-                        Sold
-                    </div>
-                </div>
-            </div>
-
-            <div
-                class="flex-1 overflow-auto p-8 flex items-start justify-center"
-            >
-                {#if loadingAsset}
-                    <div class="flex items-center justify-center h-64">
-                        <Loader2 class="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                {:else}
-                    <SeatMap
-                        type={getSeatMapType(selectedItem)}
-                        config={buildSeatMapConfig(selectedItem, assetConfig)}
-                        on:selectionChange={handleSeatSelection}
-                    />
-                {/if}
-            </div>
-        {:else}
-            <div
-                class="flex-1 flex flex-col items-center justify-center text-muted-foreground"
-            >
-                <Armchair class="w-16 h-16 mb-4 opacity-20" />
-                <p>Select a trip or event to view availability</p>
-            </div>
+        {#if bookingComplete}
+            <Button onclick={resetForm}>New Booking</Button>
         {/if}
     </div>
 
-    <!-- RIGHT PANEL: Cart & Checkout -->
-    <div class="w-80 border-l bg-white flex flex-col">
-        <div class="p-4 border-b bg-gray-50/30">
-            <h2 class="font-bold mb-1 flex items-center gap-2">
-                <ShoppingCart class="w-4 h-4" /> Booking Cart
-            </h2>
-            <p class="text-xs text-muted-foreground">Currently processing...</p>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-            <!-- Selected Seats List -->
-            {#if selectedSeats.length > 0}
-                <div
-                    class="bg-primary/5 border border-primary/20 rounded-lg p-3"
-                >
-                    <h4
-                        class="text-xs font-semibold text-primary mb-2 uppercase tracking-wider"
-                    >
-                        Seats Selected ({selectedSeats.length})
-                    </h4>
-                    <div class="flex flex-wrap gap-2">
-                        {#each selectedSeats as seat}
-                            <Badge
-                                class="bg-white hover:bg-white text-primary border-primary shadow-sm"
-                                >{seat}</Badge
-                            >
-                        {/each}
-                    </div>
+    {#if !selectedTrip && !bookingComplete}
+        <!-- Search Step -->
+        <div class="glass-card rounded-xl p-6">
+            <h3 class="mb-4 text-lg font-bold">Step 1: Find Trip</h3>
+            <div class="flex gap-3">
+                <div class="relative flex-1">
+                    <Search
+                        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        size={18}
+                    />
+                    <Input
+                        type="text"
+                        bind:value={searchQuery}
+                        placeholder="Search by route (e.g., Dhaka to Chittagong)"
+                        class="pl-10"
+                        onkeydown={(e) => {
+                            if (e.key === "Enter") searchTrips();
+                        }}
+                    />
                 </div>
-            {:else}
-                <div
-                    class="border rounded-lg border-dashed p-6 flex flex-col items-center justify-center text-center text-muted-foreground text-sm"
-                >
-                    <Armchair class="w-8 h-8 mb-2 opacity-30" />
-                    No seats selected
-                </div>
-            {/if}
-
-            <Separator />
-
-            <!-- Customer Details -->
-            <div class="space-y-3">
-                <h4
-                    class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                >
-                    Customer Info
-                </h4>
-                <div class="space-y-2">
-                    <div class="relative">
-                        <User
-                            class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400"
-                        />
-                        <Input
-                            class="pl-9 h-9"
-                            placeholder="Customer Name"
-                            bind:value={customerName}
-                        />
-                    </div>
-                    <div class="relative">
-                        <div
-                            class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 font-bold text-xs flex items-center justify-center"
-                        >
-                            +88
-                        </div>
-                        <Input
-                            class="pl-9 h-9"
-                            placeholder="017..."
-                            bind:value={customerPhone}
-                        />
-                    </div>
-                </div>
+                <Button onclick={searchTrips} disabled={isSearching}>
+                    {#if isSearching}
+                        <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                    {:else}
+                        <Search class="mr-2 h-4 w-4" />
+                    {/if}
+                    Search
+                </Button>
             </div>
-        </div>
 
-        <div class="px-4 pb-4">
-            <Separator class="my-4" />
-            <div class="space-y-3">
-                <h4
-                    class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                >
-                    Payment Method
-                </h4>
-                <div class="grid grid-cols-2 gap-2">
-                    <button
-                        class="border rounded-md p-2 text-xs font-medium transition-colors {selectedPaymentId ===
-                        'cash'
-                            ? 'bg-primary text-white border-primary'
-                            : 'hover:border-primary'}"
-                        onclick={() => (selectedPaymentId = "cash")}
-                    >
-                        Cash
-                    </button>
-                    {#each paymentMethods as pm}
+            {#if searchResults.length > 0}
+                <div class="mt-4 space-y-2">
+                    {#each searchResults as trip}
                         <button
-                            class="border rounded-md p-2 text-xs font-medium transition-colors {selectedPaymentId ===
-                            pm.id
-                                ? 'bg-primary text-white border-primary'
-                                : 'hover:border-primary'}"
-                            onclick={() => (selectedPaymentId = pm.id)}
+                            class="flex w-full items-center justify-between rounded-lg border border-border bg-white/50 p-4 text-left transition-all hover:bg-white hover:shadow-md"
+                            onclick={() => selectTrip(trip)}
                         >
-                            {pm.name}
+                            <div>
+                                <p class="font-semibold">
+                                    {trip.operator}
+                                </p>
+                                <p class="text-sm text-muted-foreground">
+                                    {trip.from} → {trip.to} • {new Date(
+                                        trip.departure,
+                                    ).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    })}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-bold text-primary">
+                                    ৳{trip.price}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    {trip.available} seats
+                                </p>
+                            </div>
                         </button>
                     {/each}
                 </div>
-            </div>
+            {/if}
         </div>
+    {:else if selectedTrip && !bookingComplete}
+        <!-- Passenger Details -->
+        <div class="glass-card rounded-xl p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold">Step 2: Passenger Details</h3>
+                <div class="text-right text-sm">
+                    <p class="font-medium">{selectedTrip.operator}</p>
+                    <p class="text-muted-foreground">
+                        {selectedTrip.from} → {selectedTrip.to}
+                    </p>
+                </div>
+            </div>
 
-        <!-- Footer / Checkout -->
-        <div class="p-4 border-t bg-gray-50">
-            <div class="space-y-1 mb-4">
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted-foreground">Subtotal</span>
-                    <span>৳{subtotal}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted-foreground">Service Chg.</span>
-                    <span>৳0</span>
-                </div>
-                <div
-                    class="flex justify-between font-bold text-lg pt-2 border-t mt-2"
+            <div class="space-y-4">
+                {#each passengers as passenger, index}
+                    <div class="rounded-lg border border-border p-4">
+                        <div class="mb-3 flex items-center justify-between">
+                            <h4 class="font-medium">Passenger {index + 1}</h4>
+                            {#if passengers.length > 1}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onclick={() => removePassenger(index)}
+                                >
+                                    Remove
+                                </Button>
+                            {/if}
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            <Input
+                                type="text"
+                                bind:value={passenger.name}
+                                placeholder="Full Name"
+                            />
+                            <Input
+                                type="text"
+                                bind:value={passenger.nid}
+                                placeholder="NID (Optional)"
+                            />
+                            <Input
+                                type="tel"
+                                bind:value={passenger.phone}
+                                placeholder="Phone"
+                            />
+                        </div>
+                    </div>
+                {/each}
+
+                <Button
+                    variant="outline"
+                    onclick={addPassenger}
+                    disabled={passengers.length >= selectedTrip.available}
                 >
-                    <span>Total</span>
-                    <span class="text-primary">৳{subtotal}</span>
-                </div>
-            </div>
-
-            <Button
-                class="w-full gap-2 font-bold shadow-lg shadow-primary/20"
-                size="lg"
-                disabled={selectedSeats.length === 0 || processing}
-                onclick={handleBooking}
-            >
-                {#if processing}
-                    <Loader2 class="w-4 h-4 animate-spin" /> Processing...
-                {:else}
-                    <CreditCard class="w-4 h-4" /> Book & Print
-                {/if}
-            </Button>
-        </div>
-    </div>
-</div>
-
-<Dialog.Root bind:open={showTicket}>
-    <Dialog.Content class="max-w-[400px]">
-        <Dialog.Header>
-            <Dialog.Title>Booking Confirmed</Dialog.Title>
-            <Dialog.Description>
-                Ticket generated successfully. Please print it for the customer.
-            </Dialog.Description>
-        </Dialog.Header>
-        {#if createdOrder}
-            <div
-                class="flex justify-center py-4 bg-gray-50 rounded-lg max-h-[60vh] overflow-y-auto print:hidden"
-            >
-                <TicketPrint order={createdOrder} />
-            </div>
-            <!-- Hidden Print Container -->
-            <div class="hidden print:block fixed inset-0 bg-white z-[9999]">
-                <TicketPrint order={createdOrder} />
-            </div>
-
-            <Dialog.Footer class="sm:justify-end gap-2 print:hidden">
-                <Button variant="outline" onclick={() => (showTicket = false)}>
-                    Close
+                    + Add Passenger
                 </Button>
-                <Button onclick={() => window.print()}>Print Ticket</Button>
-            </Dialog.Footer>
-        {/if}
-    </Dialog.Content>
-</Dialog.Root>
+
+                <Separator />
+
+                <!-- Contact Info -->
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <Input
+                        type="text"
+                        bind:value={contactName}
+                        placeholder="Contact Name"
+                    />
+                    <Input
+                        type="tel"
+                        bind:value={contactPhone}
+                        placeholder="Contact Phone *"
+                    />
+                </div>
+
+                <!-- Summary -->
+                <div class="rounded-lg bg-muted/50 p-4">
+                    <div class="flex justify-between">
+                        <span>Total Amount</span>
+                        <span class="text-xl font-bold text-primary">
+                            ৳{(selectedTrip.price * passengers.length).toFixed(2)}
+                        </span>
+                    </div>
+                    <p class="text-sm text-muted-foreground">
+                        Payment: Cash at Counter
+                    </p>
+                </div>
+
+                <Button
+                    size="lg"
+                    class="w-full"
+                    onclick={completeBooking}
+                    disabled={isBooking}
+                >
+                    {#if isBooking}
+                        <Loader2 class="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                    {:else}
+                        <Check class="mr-2 h-5 w-5" />
+                        Complete Booking
+                    {/if}
+                </Button>
+            </div>
+        </div>
+    {:else if bookingComplete && lastOrder}
+        <!-- Success -->
+        <div class="glass-card rounded-xl p-8 text-center">
+            <div
+                class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+            >
+                <Check size={40} class="text-green-600 dark:text-green-400" />
+            </div>
+            <h2 class="mb-2 text-2xl font-bold">Booking Confirmed!</h2>
+            <p class="mb-6 text-muted-foreground">
+                Order #{lastOrder.id.slice(0, 8)}
+            </p>
+
+            <div class="mx-auto mb-6 max-w-sm rounded-lg bg-muted/50 p-4 text-left">
+                <p><strong>Passengers:</strong> {passengers.length}</p>
+                <p>
+                    <strong>Total:</strong> ৳
+                    {(lastOrder.total_paisa / 100).toFixed(2)}
+                </p>
+                <p><strong>Payment:</strong> Cash</p>
+            </div>
+
+            <div class="flex justify-center gap-3">
+                <Button onclick={printTicket}>
+                    <Printer class="mr-2 h-4 w-4" />
+                    Print Ticket
+                </Button>
+                <Button variant="outline" onclick={resetForm}>
+                    New Booking
+                </Button>
+            </div>
+        </div>
+    {/if}
+</div>

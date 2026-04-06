@@ -30,6 +30,10 @@ type Order struct {
 	PaymentStatus string `json:"payment_status"`
 	PaymentMethod string `json:"payment_method"`
 
+	// Coupon
+	CouponCode   string `json:"coupon_code"`
+	CouponDiscount int64 `json:"coupon_discount"`
+
 	// Booking
 	BookingID string       `json:"booking_id"`
 	HoldID    string       `json:"hold_id"`
