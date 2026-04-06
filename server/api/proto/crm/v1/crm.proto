@@ -55,10 +55,14 @@ message GetCouponRequest {
 
 message ListCouponsRequest {
     string organization_id = 1;
+    int32 page_size = 2;
+    string page_token = 3;
 }
 
 message ListCouponsResponse {
     repeated Coupon coupons = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
 }
 
 message UpdateCouponRequest {

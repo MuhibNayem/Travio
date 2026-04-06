@@ -61,7 +61,7 @@ func Load() *Config {
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("POSTGRES_HOST", "localhost"),
-			Port:     getEnvInt("POSTGRES_PORT", 5432),
+			Port:     getEnvInt("POSTGRES_PORT", 5440),
 			User:     getEnv("POSTGRES_USER", "postgres"),
 			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
 			DBName:   getEnv("POSTGRES_DB", "travio_payment"),

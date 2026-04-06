@@ -152,7 +152,12 @@ func (h *GRPCHandler) UpdateAssetStatus(ctx context.Context, req *fleetv1.Update
 }
 
 func (h *GRPCHandler) ListAssets(ctx context.Context, req *fleetv1.ListAssetsRequest) (*fleetv1.ListAssetsResponse, error) {
-	assets, err := h.service.ListAssets(ctx, req.OrganizationId)
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	pageToken := req.GetPageToken()
+	assets, total, nextToken, err := h.service.ListAssets(ctx, req.OrganizationId, pageSize, pageToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "Failed to list assets")
 	}
@@ -163,8 +168,9 @@ func (h *GRPCHandler) ListAssets(ctx context.Context, req *fleetv1.ListAssetsReq
 	}
 
 	return &fleetv1.ListAssetsResponse{
-		Assets:     protoAssets,
-		TotalCount: int32(len(protoAssets)),
+		Assets:        protoAssets,
+		TotalCount:    int32(total),
+		NextPageToken: nextToken,
 	}, nil
 }
 

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/services/crm/internal/domain"
@@ -86,8 +87,33 @@ func (s *CRMService) ValidateCoupon(ctx context.Context, code, orgID string, car
 	return true, discount, "Coupon applied successfully", nil
 }
 
-func (s *CRMService) ListCoupons(ctx context.Context, orgID string) ([]*domain.Coupon, error) {
-	return s.repo.ListCoupons(orgID)
+func (s *CRMService) ListCoupons(ctx context.Context, orgID string, limit int, pageToken string) ([]*domain.Coupon, int, string, error) {
+	offset := parsePageToken(pageToken)
+	if limit <= 0 {
+		limit = 20
+	}
+	coupons, total, err := s.repo.ListCoupons(orgID, limit, offset)
+	if err != nil {
+		return nil, 0, "", err
+	}
+	nextToken := ""
+	if offset+limit < total {
+		nextToken = generatePageToken(offset + limit)
+	}
+	return coupons, total, nextToken, nil
+}
+
+func parsePageToken(token string) int {
+	if token == "" {
+		return 0
+	}
+	var offset int
+	fmt.Sscanf(token, "%d", &offset)
+	return offset
+}
+
+func generatePageToken(offset int) string {
+	return fmt.Sprintf("%d", offset)
 }
 
 func (s *CRMService) GetCoupon(ctx context.Context, id string) (*domain.Coupon, error) {

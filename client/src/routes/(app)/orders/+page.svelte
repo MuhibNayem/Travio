@@ -155,7 +155,7 @@
                             <div class="flex-1">
                                 <div class="mb-2 flex items-center gap-3">
                                     <h3 class="text-lg font-bold">
-                                        Order #{order.id.slice(0, 8)}
+                                        {order.route_name || `${order.from_station_name || order.from_station_id} → ${order.to_station_name || order.to_station_id}`}
                                     </h3>
                                     <span
                                         class="rounded-full px-2.5 py-0.5 text-xs font-semibold {getStatusColor(order.status)}"
@@ -171,7 +171,7 @@
                                             class="text-muted-foreground"
                                         />
                                         <span
-                                            >{order.from_station_id} → {order.to_station_id}</span
+                                            >{order.route_name || `${order.from_station_name || order.from_station_id} → ${order.to_station_name || order.to_station_id}`}</span
                                         >
                                     </div>
                                     <div class="flex items-center gap-2 text-sm">

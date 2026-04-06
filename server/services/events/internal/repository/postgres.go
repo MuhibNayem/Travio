@@ -113,11 +113,17 @@ func (r *EventRepository) GetEvent(id string) (*domain.Event, error) {
 	return &e, nil
 }
 
-func (r *EventRepository) ListEvents(orgID string) ([]*domain.Event, error) {
-	query := `SELECT id, organization_id, venue_id, title, description, category, images, start_time, end_time, status, created_at, updated_at FROM events WHERE organization_id = $1`
-	rows, err := r.DB.Query(query, orgID)
+func (r *EventRepository) ListEvents(orgID string, limit, offset int) ([]*domain.Event, int, error) {
+	var total int
+	err := r.DB.QueryRow(`SELECT COUNT(*) FROM events WHERE organization_id = $1`, orgID).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := `SELECT id, organization_id, venue_id, title, description, category, images, start_time, end_time, status, created_at, updated_at FROM events WHERE organization_id = $1 ORDER BY start_time DESC LIMIT $2 OFFSET $3`
+	rows, err := r.DB.Query(query, orgID, limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -125,11 +131,11 @@ func (r *EventRepository) ListEvents(orgID string) ([]*domain.Event, error) {
 	for rows.Next() {
 		var e domain.Event
 		if err := rows.Scan(&e.ID, &e.OrganizationID, &e.VenueID, &e.Title, &e.Description, &e.Category, pq.Array(&e.Images), &e.StartTime, &e.EndTime, &e.Status, &e.CreatedAt, &e.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		events = append(events, &e)
 	}
-	return events, nil
+	return events, total, nil
 }
 
 func (r *EventRepository) UpdateEvent(event *domain.Event) error {

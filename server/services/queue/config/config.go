@@ -23,7 +23,7 @@ func Load() *Config {
 	return &Config{
 		HTTPPort:    httpPort,
 		GRPCPort:    grpcPort,
-		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6388"),
 		TLSCertFile: getEnv("TLS_CERT_FILE", ""),
 		TLSKeyFile:  getEnv("TLS_KEY_FILE", ""),
 		TLSCAFile:   getEnv("TLS_CA_FILE", ""),

@@ -17,6 +17,13 @@ type Order struct {
 	// Passengers
 	Passengers []OrderPassenger `json:"passengers"`
 
+	// Enriched display names (populated from Catalog Service)
+	FromStationName string `json:"from_station_name"`
+	ToStationName   string `json:"to_station_name"`
+	RouteName       string `json:"route_name"` // e.g., "Dhaka → Chittagong"
+	OperatorName    string `json:"operator_name"`
+	VehicleName     string `json:"vehicle_name"`
+
 	// Pricing
 	SubtotalPaisa   int64  `json:"subtotal_paisa"`
 	TaxPaisa        int64  `json:"tax_paisa"`

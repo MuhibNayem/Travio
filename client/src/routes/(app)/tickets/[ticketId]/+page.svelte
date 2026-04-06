@@ -50,10 +50,10 @@
 
             // Generate QR code
             const qrData = JSON.stringify({
-                ticket_id: ticket.id,
-                booking_id: ticket.booking_id,
                 passenger: ticket.passenger_name,
                 seat: ticket.seat_number,
+                route: `${ticket.from_station} → ${ticket.to_station}`,
+                date: ticket.departure_time,
             });
             qrCodeUrl = await QRCode.toDataURL(qrData, {
                 width: 256,
@@ -147,15 +147,15 @@
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-6 text-white">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-white/80">Booking ID</p>
+                            <p class="text-sm text-white/80">Passenger</p>
                             <p class="text-xl font-bold">
-                                {ticket.booking_id}
+                                {ticket.passenger_name}
                             </p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm text-white/80">Ticket ID</p>
-                            <p class="text-sm font-mono">
-                                {ticket.id.slice(0, 12)}...
+                            <p class="text-sm text-white/80">Seat</p>
+                            <p class="text-xl font-bold">
+                                {ticket.seat_number}
                             </p>
                         </div>
                     </div>

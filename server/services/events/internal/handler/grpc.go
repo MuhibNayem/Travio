@@ -85,7 +85,12 @@ func (h *GRPCHandler) GetEvent(ctx context.Context, req *eventsv1.GetEventReques
 }
 
 func (h *GRPCHandler) ListEvents(ctx context.Context, req *eventsv1.ListEventsRequest) (*eventsv1.ListEventsResponse, error) {
-	events, err := h.service.ListEvents(ctx, req.OrganizationId)
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	pageToken := req.GetPageToken()
+	events, total, nextToken, err := h.service.ListEvents(ctx, req.OrganizationId, pageSize, pageToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -94,7 +99,11 @@ func (h *GRPCHandler) ListEvents(ctx context.Context, req *eventsv1.ListEventsRe
 	for _, e := range events {
 		protoEvents = append(protoEvents, mapEventToProto(e))
 	}
-	return &eventsv1.ListEventsResponse{Events: protoEvents, TotalCount: int32(len(events))}, nil
+	return &eventsv1.ListEventsResponse{
+		Events:        protoEvents,
+		TotalCount:    int32(total),
+		NextPageToken: nextToken,
+	}, nil
 }
 
 func (h *GRPCHandler) UpdateEvent(ctx context.Context, req *eventsv1.UpdateEventRequest) (*eventsv1.Event, error) {

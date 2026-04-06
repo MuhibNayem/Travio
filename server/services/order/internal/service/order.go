@@ -30,6 +30,13 @@ type OrderService struct {
 	publisher       *events.Publisher
 	dlq             messaging.DLQProducer
 	crmClient       CRMClient
+	catalogClient   CatalogClient
+}
+
+// CatalogClient interface for enriching orders with names
+type CatalogClient interface {
+	GetStationName(ctx context.Context, stationID string) (string, error)
+	GetRouteName(ctx context.Context, fromID, toID string) (string, error)
 }
 
 // CRMClient interface for coupon validation
@@ -45,6 +52,7 @@ func NewOrderService(
 	checkoutRepo *repository.CheckoutRepository,
 	sagaDeps *saga.BookingDependencies,
 	crmClient CRMClient,
+	catalogClient CatalogClient,
 ) *OrderService {
 	// Auto-migrate saga instances and checkout tables
 	_ = gormDB.AutoMigrate(&saga.SagaInstance{})
@@ -60,6 +68,7 @@ func NewOrderService(
 		publisher:    events.NewPublisher(db),
 		dlq:          dlq,
 		crmClient:    crmClient,
+		catalogClient: catalogClient,
 	}
 }
 
@@ -311,9 +320,50 @@ func (s *OrderService) handleOrderFailed(ctx context.Context, order *domain.Orde
 	tx.Commit()
 }
 
+// enrichOrder adds human-readable names to an order for user-facing display
+func (s *OrderService) enrichOrder(ctx context.Context, order *domain.Order) {
+	if order.FromStationID != "" && order.ToStationID != "" {
+		// Try to get route name first
+		if s.catalogClient != nil {
+			routeName, _ := s.catalogClient.GetRouteName(ctx, order.FromStationID, order.ToStationID)
+			if routeName != "" {
+				order.RouteName = routeName
+			}
+		}
+		
+		// Get individual station names as fallback
+		if s.catalogClient != nil {
+			fromName, _ := s.catalogClient.GetStationName(ctx, order.FromStationID)
+			if fromName != "" {
+				order.FromStationName = fromName
+			}
+			toName, _ := s.catalogClient.GetStationName(ctx, order.ToStationID)
+			if toName != "" {
+				order.ToStationName = toName
+			}
+		}
+		
+		// Fallback: if names still empty, use IDs as last resort
+		if order.FromStationName == "" {
+			order.FromStationName = order.FromStationID
+		}
+		if order.ToStationName == "" {
+			order.ToStationName = order.ToStationID
+		}
+		if order.RouteName == "" {
+			order.RouteName = order.FromStationName + " → " + order.ToStationName
+		}
+	}
+}
+
 // GetOrder retrieves an order by ID
 func (s *OrderService) GetOrder(ctx context.Context, orderID, userID string) (*domain.Order, error) {
-	return s.orderRepo.GetByID(ctx, orderID, userID)
+	order, err := s.orderRepo.GetByID(ctx, orderID, userID)
+	if err != nil {
+		return nil, err
+	}
+	s.enrichOrder(ctx, order)
+	return order, nil
 }
 
 // ListOrders retrieves user's orders
@@ -326,6 +376,11 @@ func (s *OrderService) ListOrders(ctx context.Context, userID, status string, pa
 	orders, total, err := s.orderRepo.ListByUser(ctx, userID, status, pageSize, offset)
 	if err != nil {
 		return nil, 0, "", err
+	}
+
+	// Enrich all orders with display names
+	for _, order := range orders {
+		s.enrichOrder(ctx, order)
 	}
 
 	nextToken := ""

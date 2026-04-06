@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/services/fleet/internal/domain"
@@ -46,8 +47,33 @@ func (s *FleetService) GetAsset(ctx context.Context, id string) (*domain.Asset, 
 	return s.assetRepo.GetAsset(id)
 }
 
-func (s *FleetService) ListAssets(ctx context.Context, orgID string) ([]*domain.Asset, error) {
-	return s.assetRepo.ListAssets(orgID)
+func (s *FleetService) ListAssets(ctx context.Context, orgID string, limit int, pageToken string) ([]*domain.Asset, int, string, error) {
+	offset := parsePageToken(pageToken)
+	if limit <= 0 {
+		limit = 20
+	}
+	assets, total, err := s.assetRepo.ListAssets(orgID, limit, offset)
+	if err != nil {
+		return nil, 0, "", err
+	}
+	nextToken := ""
+	if offset+limit < total {
+		nextToken = generatePageToken(offset + limit)
+	}
+	return assets, total, nextToken, nil
+}
+
+func parsePageToken(token string) int {
+	if token == "" {
+		return 0
+	}
+	var offset int
+	fmt.Sscanf(token, "%d", &offset)
+	return offset
+}
+
+func generatePageToken(offset int) string {
+	return fmt.Sprintf("%d", offset)
 }
 
 func (s *FleetService) UpdateAssetStatus(ctx context.Context, id, status string) error {

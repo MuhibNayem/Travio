@@ -230,6 +230,28 @@ func (c *CatalogClient) GetTrip(ctx context.Context, orgID, tripID string) (*cat
 	})
 }
 
+// GetStationName looks up a station's human-readable name
+func (c *CatalogClient) GetStationName(ctx context.Context, stationID string) (string, error) {
+	resp, err := c.client.GetStation(ctx, &catalogpb.GetStationRequest{Id: stationID})
+	if err != nil {
+		return "", err
+	}
+	return resp.Name, nil
+}
+
+// GetRouteName builds a route name from two station IDs
+func (c *CatalogClient) GetRouteName(ctx context.Context, fromID, toID string) (string, error) {
+	fromName, _ := c.GetStationName(ctx, fromID)
+	toName, _ := c.GetStationName(ctx, toID)
+	if fromName == "" {
+		fromName = fromID
+	}
+	if toName == "" {
+		toName = toID
+	}
+	return fromName + " → " + toName, nil
+}
+
 // PricingClient calculates dynamic pricing rules.
 type PricingClient struct {
 	client pricingpb.PricingServiceClient

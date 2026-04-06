@@ -57,7 +57,7 @@ func main() {
 	refundRepo := repository.NewRefundRepository(db)
 
 	// Initialize Redis client for IPN idempotency (TASK-020)
-	redisAddr := getEnv("REDIS_ADDR", "127.0.0.1:6379")
+	redisAddr := getEnv("REDIS_ADDR", "127.0.0.1:6388")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: redisAddr,
 	})

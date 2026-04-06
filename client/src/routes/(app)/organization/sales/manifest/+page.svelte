@@ -38,7 +38,9 @@
             (o) =>
                 o.passengers.some((p) => p.name.toLowerCase().includes(q)) ||
                 o.contact_phone.includes(q) ||
-                o.booking_id?.toLowerCase().includes(q),
+                o.route_name?.toLowerCase().includes(q) ||
+                o.from_station_name?.toLowerCase().includes(q) ||
+                o.to_station_name?.toLowerCase().includes(q),
         );
     });
 
@@ -106,7 +108,7 @@
         ];
         const rows = orders.flatMap((o) =>
             o.passengers.map((p) => [
-                o.booking_id || o.id.substring(0, 8),
+                o.route_name || `${o.from_station_name || o.from_station_id} → ${o.to_station_name || o.to_station_id}`,
                 p.name,
                 p.seat_id,
                 o.contact_phone,
@@ -300,10 +302,9 @@
                                 <Table.Cell>
                                     {#if i === 0}
                                         <span
-                                            class="font-mono text-xs bg-muted px-2 py-1 rounded"
+                                            class="text-xs bg-muted px-2 py-1 rounded"
                                         >
-                                            {order.booking_id ||
-                                                order.id.substring(0, 8)}
+                                            {order.route_name || `${order.from_station_name || order.from_station_id} → ${order.to_station_name || order.to_station_id}`}
                                         </span>
                                     {/if}
                                 </Table.Cell>

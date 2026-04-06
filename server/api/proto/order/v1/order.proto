@@ -66,6 +66,13 @@ message Order {
   // Contact
   string contact_email = 23;
   string contact_phone = 24;
+
+  // Display names for user-facing display (enriched from Catalog)
+  string from_station_name = 25;
+  string to_station_name = 26;
+  string route_name = 27;       // e.g., "Dhaka → Chittagong"
+  string operator_name = 28;    // e.g., "Green Line Paribahan"
+  string vehicle_name = 29;     // e.g., "AC Deluxe Coach"
 }
 
 message Passenger {

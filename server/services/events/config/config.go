@@ -32,7 +32,7 @@ func Load() Config {
 		},
 		Database: postgres.Config{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsInt("DB_PORT", 5432),
+			Port:     getEnvAsInt("DB_PORT", 5440),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			DBName:   getEnv("DB_NAME", "travio_events"),

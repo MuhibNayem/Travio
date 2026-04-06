@@ -21,11 +21,11 @@ func Load() *Config {
 		GRPCPort:  getEnvInt("GRPC_PORT", 50058),
 		HTTPPort:  getEnvInt("HTTP_PORT", 8058),
 		DBHost:    getEnv("DB_HOST", "localhost"),
-		DBPort:    getEnvInt("DB_PORT", 5432),
+		DBPort:    getEnvInt("DB_PORT", 5440),
 		DBUser:    getEnv("DB_USER", "postgres"),
 		DBPass:    getEnv("DB_PASSWORD", "postgres"),
 		DBName:    getEnv("DB_NAME", "travio_pricing"),
-		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisAddr: getEnv("REDIS_ADDR", "localhost:6388"),
 	}
 }
 

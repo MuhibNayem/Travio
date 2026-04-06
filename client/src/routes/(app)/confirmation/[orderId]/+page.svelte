@@ -115,7 +115,7 @@
                     Booking Confirmed!
                 </h1>
                 <p class="mt-2 text-lg text-muted-foreground">
-                    Your tickets have been sent to {order.contact_email}
+                    {order.route_name || `${order.from_station_name || order.from_station_id} → ${order.to_station_name || order.to_station_id}`} • {(order.passengers || []).length} passenger(s)
                 </p>
             </div>
 
@@ -129,14 +129,14 @@
                             <div>
                                 <h2 class="text-2xl font-bold">E-Ticket</h2>
                                 <p class="text-sm text-white/80">
-                                    Order #{order.id.slice(0, 8)}
+                                    {(order.passengers || []).length} Passenger(s) • ৳{(order.total_paisa / 100).toFixed(2)}
                                 </p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm text-white/80">Booking ID</p>
+                            <p class="text-sm text-white/80">Passengers</p>
                             <p class="text-xl font-bold">
-                                {order.booking_id?.slice(0, 8) || "N/A"}
+                                {(order.passengers || []).length}
                             </p>
                         </div>
                     </div>
@@ -182,14 +182,14 @@
                             </p>
                             <p class="flex items-center gap-2 text-lg font-bold">
                                 <MapPin size={18} class="text-primary" />
-                                {order.from_station_id}
+                                {order.from_station_name || order.from_station_id}
                             </p>
                         </div>
                         <div>
                             <p class="text-xs text-muted-foreground">To</p>
                             <p class="flex items-center gap-2 text-lg font-bold">
                                 <MapPin size={18} class="text-green-600" />
-                                {order.to_station_id}
+                                {order.to_station_name || order.to_station_id}
                             </p>
                         </div>
                         <div>

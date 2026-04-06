@@ -16,7 +16,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_MULTIPLE_DATABASES: "travio_identity,travio_catalog,travio_inventory,travio_order,travio_payment,travio_fulfillment,travio_pricing,travio_notification,travio_operator,travio_subscription,travio_fraud,travio_queue,travio_events,travio_crm,travio_fleet"
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5440}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT:-6388}:6379"
     volumes:
       - redis_data:/data
     healthcheck:

@@ -302,7 +302,7 @@
                             ></div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium truncate">
-                                    New Booking #{booking.id}
+                                    Booking on {booking.route_name || `${booking.from_station_name || booking.from_station_id} → ${booking.to_station_name || booking.to_station_id}`}
                                 </p>
                                 <p class="text-xs text-muted-foreground truncate">
                                     {booking.route} • {booking.seats} Seats •

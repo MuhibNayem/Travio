@@ -54,11 +54,17 @@ func (r *AssetRepository) UpdateStatus(id, status string) error {
 	return err
 }
 
-func (r *AssetRepository) ListAssets(orgID string) ([]*domain.Asset, error) {
-	query := `SELECT id, organization_id, name, license_plate, vin, make, model, year, type, status, config, created_at, updated_at FROM assets WHERE organization_id = $1`
-	rows, err := r.DB.Query(query, orgID)
+func (r *AssetRepository) ListAssets(orgID string, limit, offset int) ([]*domain.Asset, int, error) {
+	var total int
+	err := r.DB.QueryRow(`SELECT COUNT(*) FROM assets WHERE organization_id = $1`, orgID).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := `SELECT id, organization_id, name, license_plate, vin, make, model, year, type, status, config, created_at, updated_at FROM assets WHERE organization_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	rows, err := r.DB.Query(query, orgID, limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -66,9 +72,9 @@ func (r *AssetRepository) ListAssets(orgID string) ([]*domain.Asset, error) {
 	for rows.Next() {
 		var a domain.Asset
 		if err := rows.Scan(&a.ID, &a.OrganizationID, &a.Name, &a.LicensePlate, &a.VIN, &a.Make, &a.Model, &a.Year, &a.Type, &a.Status, &a.Config, &a.CreatedAt, &a.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		assets = append(assets, &a)
 	}
-	return assets, nil
+	return assets, total, nil
 }

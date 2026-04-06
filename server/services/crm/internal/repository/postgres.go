@@ -48,12 +48,18 @@ func (r *CRMRepository) GetCoupon(id string) (*domain.Coupon, error) {
 	return r.scanCoupon(r.DB.QueryRow(query, id))
 }
 
-func (r *CRMRepository) ListCoupons(orgID string) ([]*domain.Coupon, error) {
-	query := `SELECT id, organization_id, code, discount_type, discount_value, min_purchase_amount, max_discount_amount, start_date, end_date, usage_limit, usage_count, is_active, created_at, updated_at FROM coupons WHERE organization_id = $1`
-
-	rows, err := r.DB.Query(query, orgID)
+func (r *CRMRepository) ListCoupons(orgID string, limit, offset int) ([]*domain.Coupon, int, error) {
+	var total int
+	err := r.DB.QueryRow(`SELECT COUNT(*) FROM coupons WHERE organization_id = $1`, orgID).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := `SELECT id, organization_id, code, discount_type, discount_value, min_purchase_amount, max_discount_amount, start_date, end_date, usage_limit, usage_count, is_active, created_at, updated_at FROM coupons WHERE organization_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+
+	rows, err := r.DB.Query(query, orgID, limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -61,11 +67,11 @@ func (r *CRMRepository) ListCoupons(orgID string) ([]*domain.Coupon, error) {
 	for rows.Next() {
 		c, err := r.scanCouponRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		coupons = append(coupons, c)
 	}
-	return coupons, nil
+	return coupons, total, nil
 }
 
 func (r *CRMRepository) UpdateCouponUsage(id string) error {

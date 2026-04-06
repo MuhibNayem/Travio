@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/MuhibNayem/Travio/server/pkg/kafka"
@@ -94,8 +95,33 @@ func (s *EventService) GetEvent(ctx context.Context, id string) (*domain.Event, 
 	return s.repo.GetEvent(id)
 }
 
-func (s *EventService) ListEvents(ctx context.Context, orgID string) ([]*domain.Event, error) {
-	return s.repo.ListEvents(orgID)
+func (s *EventService) ListEvents(ctx context.Context, orgID string, limit int, pageToken string) ([]*domain.Event, int, string, error) {
+	offset := parsePageToken(pageToken)
+	if limit <= 0 {
+		limit = 20
+	}
+	events, total, err := s.repo.ListEvents(orgID, limit, offset)
+	if err != nil {
+		return nil, 0, "", err
+	}
+	nextToken := ""
+	if offset+limit < total {
+		nextToken = generatePageToken(offset + limit)
+	}
+	return events, total, nextToken, nil
+}
+
+func parsePageToken(token string) int {
+	if token == "" {
+		return 0
+	}
+	var offset int
+	fmt.Sscanf(token, "%d", &offset)
+	return offset
+}
+
+func generatePageToken(offset int) string {
+	return fmt.Sprintf("%d", offset)
 }
 
 func (s *EventService) UpdateEvent(ctx context.Context, id, title, description string, start, end time.Time) (*domain.Event, error) {

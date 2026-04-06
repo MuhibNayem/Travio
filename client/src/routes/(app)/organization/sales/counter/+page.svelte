@@ -119,8 +119,8 @@
 
             lastOrder = order;
             bookingComplete = true;
-            toast.success("Booking completed!", {
-                description: `Order #${order.id.slice(0, 8)}`,
+            toast.success("Booking completed", {
+                description: `${passengers.length} passenger(s) • ৳${(lastOrder.total_paisa / 100).toFixed(2)}`,
             });
         } catch (error: any) {
             toast.error("Booking failed", {
@@ -336,7 +336,7 @@
             </div>
             <h2 class="mb-2 text-2xl font-bold">Booking Confirmed!</h2>
             <p class="mb-6 text-muted-foreground">
-                Order #{lastOrder.id.slice(0, 8)}
+                {selectedTrip.from} → {selectedTrip.to}
             </p>
 
             <div class="mx-auto mb-6 max-w-sm rounded-lg bg-muted/50 p-4 text-left">

@@ -26,13 +26,13 @@ func Load() Config {
 		},
 		Database: postgres.Config{
 			Host:     getEnv("POSTGRES_HOST", "localhost"),
-			Port:     getEnvAsInt("POSTGRES_PORT", 5432),
+			Port:     getEnvAsInt("POSTGRES_PORT", 5440),
 			User:     getEnv("POSTGRES_USER", "postgres"),
 			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
 			DBName:   getEnv("POSTGRES_DB", "travio_identity"),
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 		},
-		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisAddr: getEnv("REDIS_ADDR", "localhost:6388"),
 	}
 }
 

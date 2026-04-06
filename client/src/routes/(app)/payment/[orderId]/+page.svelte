@@ -144,7 +144,7 @@
             <div class="mb-8 text-center">
                 <h1 class="text-3xl font-bold">Complete Payment</h1>
                 <p class="mt-2 text-muted-foreground">
-                    Order #{order.id.slice(0, 8)}
+                    {order.route_name || `${order.from_station_name || order.from_station_id} → ${order.to_station_name || order.to_station_id}`} • {(order.passengers || []).length} passenger(s)
                 </p>
             </div>
 

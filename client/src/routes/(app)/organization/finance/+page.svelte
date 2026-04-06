@@ -216,7 +216,6 @@
                         {#each recentTransactions as txn}
                             {@const Icon = getTransactionIcon(txn.type)}
                             <tr class="border-b border-border/50 last:border-0">
-                                <td class="py-3 font-mono text-xs">{txn.id}</td>
                                 <td class="py-3">
                                     <span class="flex items-center gap-2 capitalize {getTransactionColor(txn.type)}">
                                         <Icon size={14} />

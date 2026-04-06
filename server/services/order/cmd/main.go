@@ -53,7 +53,7 @@ func main() {
 	}
 
 	// Redis
-	redisAddr := getEnv("REDIS_ADDR", "127.0.0.1:6379")
+	redisAddr := getEnv("REDIS_ADDR", "127.0.0.1:6388")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: redisAddr,
 	})
@@ -123,6 +123,16 @@ func main() {
 		dlqProducer = dlq
 	}
 	
+	// Connect to Catalog Service for enriching orders with station names
+	var catalogClient *clients.CatalogClient
+	catalogAddr := getEnv("CATALOG_URL", "localhost:9082")
+	if cc, cerr := clients.NewCatalogClient(catalogAddr); cerr == nil {
+		catalogClient = cc
+		logger.Info("Connected to catalog service for order enrichment", "addr", catalogAddr)
+	} else {
+		logger.Warn("Catalog service not available, orders will show IDs", "error", cerr)
+	}
+
 	// Connect to CRM Service for coupon validation (TASK-046)
 	var couponValidator service.CRMClient
 	crmAddr := getEnv("CRM_URL", "localhost:9094")
@@ -133,7 +143,7 @@ func main() {
 		logger.Warn("CRM service not available, coupon validation disabled", "error", err)
 	}
 	
-	orderService := service.NewOrderService(db, gormDB, dlqProducer, orderRepo, checkoutRepo, sagaDeps, couponValidator)
+	orderService := service.NewOrderService(db, gormDB, dlqProducer, orderRepo, checkoutRepo, sagaDeps, couponValidator, catalogClient)
 	grpcHandler := handler.NewGrpcHandler(orderService)
 
 	// Checkout Handler (TASK-006)

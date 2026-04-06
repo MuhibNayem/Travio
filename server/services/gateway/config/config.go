@@ -49,7 +49,7 @@ func Load() *Config {
 		OperatorURL:     getEnv("OPERATOR_URL", "localhost:50059"),
 		SubscriptionURL: getEnv("SUBSCRIPTION_URL", "localhost:50060"),
 		QueueURL:        getEnv("QUEUE_URL", "localhost:9087"),
-		RedisURL:        getEnv("REDIS_URL", "localhost:6379"),
+		RedisURL:        getEnv("REDIS_URL", "localhost:6388"),
 		FraudURL:        getEnv("FRAUD_URL", "localhost:50090"),
 		ReportingURL:    getEnv("REPORTING_URL", "localhost:50091"),
 		EventsURL:       getEnv("EVENTS_URL", "localhost:9092"),

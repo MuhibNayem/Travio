@@ -24,7 +24,7 @@ func Load() *Config {
 		},
 		Database: postgres.Config{
 			Host:     os.Getenv("POSTGRES_HOST"),
-			Port:     getEnvInt("POSTGRES_PORT", 5432),
+			Port:     getEnvInt("POSTGRES_PORT", 5440),
 			User:     os.Getenv("POSTGRES_USER"),
 			Password: os.Getenv("POSTGRES_PASSWORD"),
 			DBName:   getEnv("POSTGRES_DB", "travio_operator"),

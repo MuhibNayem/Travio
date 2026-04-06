@@ -48,7 +48,12 @@ func (h *GRPCHandler) GetCoupon(ctx context.Context, req *crmv1.GetCouponRequest
 }
 
 func (h *GRPCHandler) ListCoupons(ctx context.Context, req *crmv1.ListCouponsRequest) (*crmv1.ListCouponsResponse, error) {
-	coupons, err := h.service.ListCoupons(ctx, req.OrganizationId)
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	pageToken := req.GetPageToken()
+	coupons, total, nextToken, err := h.service.ListCoupons(ctx, req.OrganizationId, pageSize, pageToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -57,7 +62,11 @@ func (h *GRPCHandler) ListCoupons(ctx context.Context, req *crmv1.ListCouponsReq
 	for _, c := range coupons {
 		protoCoupons = append(protoCoupons, mapCouponToProto(c))
 	}
-	return &crmv1.ListCouponsResponse{Coupons: protoCoupons}, nil
+	return &crmv1.ListCouponsResponse{
+		Coupons:       protoCoupons,
+		NextPageToken: nextToken,
+		TotalCount:    int32(total),
+	}, nil
 }
 
 func (h *GRPCHandler) UpdateCoupon(ctx context.Context, req *crmv1.UpdateCouponRequest) (*crmv1.Coupon, error) {
